@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 
-import common as cmn
 import matplotlib.pyplot as plt
 
 from common.statistics import generate_random_probability_matrix
@@ -92,7 +91,7 @@ optimizer = EmOptimizer(
 
 evidence = samples
 
-num_iterations = 40
+num_iterations = 10
 
 log = Empty()
 log.ll = np.zeros((num_iterations))

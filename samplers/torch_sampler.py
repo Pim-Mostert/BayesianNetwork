@@ -3,8 +3,7 @@ from typing import List, Dict, Type, Callable
 
 import torch
 
-import common as cmn
-from common.interfaces import ISampler
+from model.interfaces import ISampler
 from common.utilities import Cfg
 from model.bayesian_network import BayesianNetwork
 from model.nodes import Node, CPTNode

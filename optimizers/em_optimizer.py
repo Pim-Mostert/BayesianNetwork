@@ -1,4 +1,7 @@
-class EmOptimizer:
+from model.interfaces import IOptimizer
+
+
+class EmOptimizer(IOptimizer):
     def __init__(self, bayesian_network, inference_machine_factory):
         self.bayesian_network = bayesian_network
         self.inference_machine_factory = inference_machine_factory
