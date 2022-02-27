@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from common.empty import Empty
+from common.utilities import Empty
 
 
 class TestEmpty(TestCase):

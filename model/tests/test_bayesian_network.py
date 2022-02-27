@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from bayesian_network.bayesian_network import BayesianNetwork
-from common.empty import Empty
+from model.bayesian_network import BayesianNetwork
+from common.utilities import Empty
 
 
 class TestBayesianNetwork(TestCase):
