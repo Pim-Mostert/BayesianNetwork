@@ -23,7 +23,7 @@ class TorchNaiveInferenceMachine:
 
     def _calculate_p_complete(self, cptnodes: List[CPTNode], parents: Dict[CPTNode, List[CPTNode]]):
         dims = [cptnode.numK for cptnode in cptnodes]
-        p = torch.ones(dims, device=self.device)
+        p = torch.ones(dims, dtype=torch.float64, device=self.device)
 
         for cptnode in cptnodes:
             new_shape = [1] * self.num_nodes
@@ -64,7 +64,7 @@ class TorchNaiveInferenceMachine:
         c = self.p.sum(axis=tuple(sum_over_dims), keepdims=True)
         self.p /= c
 
-        return torch.log(c).mean()
+        return torch.log(c).sum()
 
     def _calculate_p_evidence_for_observed_node(self, observed_node_index, evidence):
         num_trials = evidence.shape[0]
