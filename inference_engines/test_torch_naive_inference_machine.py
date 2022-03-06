@@ -148,7 +148,79 @@ class TestTorchNaiveInferenceMachine(TestCase):
 
         self.assertAlmostEqual(float(ll_expected), float(ll_actual))
 
-# TODO: Test for single observed node
+    def test_single_node_observed(self):
+        # Assign
+        p0_true = np.array([1/5, 4/5], dtype=np.float64)
+        p1_true = np.array([[2/3, 1/3], [1/9, 8/9]], dtype=np.float64)
+        p2_true = np.array([[[3/4, 1/4], [1/2, 1/2]], [[4/7, 3/7], [3/11, 8/11]]], dtype=np.float64)
+        node0 = CPTNode(p0_true)
+        node1 = CPTNode(p1_true)
+        node2 = CPTNode(p2_true)
+
+        nodes = [node0, node1, node2]
+        parents = {
+            node0: [],
+            node1: [node0],
+            node2: [node0, node1],
+        }
+        network = BayesianNetwork(nodes, parents)
+
+        # Act
+        sut = TorchNaiveInferenceMachine(self.default_cfg, network, [node2])
+
+        evidence = torch.tensor([[0], [1]])
+        num_trial = evidence.shape[0]
+
+        ll_actual = sut.enter_evidence(evidence)
+
+        p_actual_0 = sut.infer([node0])
+        p_actual_1 = sut.infer([node1])
+
+        p_actual_0x1 = sut.infer([node0, node1])
+        p_actual_1x2 = sut.infer([node1, node2])
+
+        # Assert - p_posterior
+        for i_trial in range(evidence.shape[0]):
+            # Node0
+            p_expected = p0_true[:, None] * p1_true * p2_true[:, :, evidence[i_trial][0]]
+            p_expected = p_expected.sum(axis=1)
+            p_expected /= p_expected.sum()
+
+            self.assertArrayAlmostEqual(p_actual_0[i_trial], p_expected)
+
+            # Node1
+            p_expected = p0_true[:, None] * p1_true * p2_true[:, :, evidence[i_trial][0]]
+            p_expected = p_expected.sum(axis=0)
+            p_expected /= p_expected.sum()
+
+            self.assertArrayAlmostEqual(p_actual_1[i_trial], p_expected)
+
+            # Node0 x node1
+            px_expected = p0_true[:, None] * p1_true * p2_true[:, :, evidence[i_trial][0]]
+            px_expected /= px_expected.sum()
+
+            self.assertArrayAlmostEqual(p_actual_0x1[i_trial], px_expected)
+
+            # Node1 x node2
+            px_expected = np.zeros((2, 2, 2), dtype=np.float64)
+            px_expected[:, :, evidence[i_trial][0]] = p0_true[:, None] * p1_true * p2_true[:, :, evidence[i_trial][0]]
+            px_expected = px_expected.sum(axis=0)
+            px_expected /= px_expected.sum()
+
+            self.assertArrayAlmostEqual(p_actual_1x2[i_trial], px_expected)
+
+        # Assert - log-likelihood
+        ll = torch.zeros(num_trial, dtype=torch.float64)
+        p_full = p0_true[:, None, None] * p1_true[:, :, None] * p2_true
+
+        for i_trial in range(num_trial):
+            likelihood = p_full[:, :, evidence[i_trial][0]].sum()
+
+            ll[i_trial] = np.log(likelihood)
+
+        ll_expected = ll.sum()
+
+        self.assertAlmostEqual(float(ll_expected), float(ll_actual))
 
     def assertArrayAlmostEqual(self, actual, expected):
         for a, e in zip(actual.flatten(), expected.flatten()):
