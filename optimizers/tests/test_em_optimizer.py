@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 import numpy as np
+import torch
 
 from common.statistics import generate_random_probability_matrix
 from common.utilities import Cfg
@@ -11,7 +12,9 @@ from optimizers.em_optimizer import EmOptimizer
 from samplers.torch_sampler import TorchSampler
 
 
-class TestEmOptimizer(TestCase):
+class TestEmOptimizerCpu(TestCase):
+    device = 'cpu'
+
     def setUp(self):
         self.num_iterations = 10
 
@@ -22,7 +25,7 @@ class TestEmOptimizer(TestCase):
         sampler = TorchSampler(Cfg({'device': 'cpu'}), self.network)
 
         num_samples = 10000
-        self.data = sampler.sample(num_samples, self.observed_nodes)
+        self.data = sampler.sample(num_samples, self.observed_nodes).to(self.device)
 
     def test_optimize_increase_log_likelihood(self):
         # Assign
@@ -51,7 +54,7 @@ class TestEmOptimizer(TestCase):
 
         def inference_machine_factory(bayesian_network):
             return TorchNaiveInferenceMachine(
-                Cfg({'device': 'cpu'}),
+                Cfg({'device': self.device}),
                 bayesian_network,
                 observed_nodes)
 
@@ -82,7 +85,7 @@ class TestEmOptimizer(TestCase):
 
         def inference_machine_factory(bayesian_network):
             return TorchNaiveInferenceMachine(
-                Cfg({'device': 'cpu'}),
+                Cfg({'device': self.device}),
                 bayesian_network,
                 self.observed_nodes)
 
@@ -125,3 +128,13 @@ def get_true_network():
 
     observed_nodes = [node0_3_1, node0_3_2, node0_3_3, node0_3_4]
     return BayesianNetwork(nodes0, parents0), observed_nodes
+
+
+class TestEmOptimizerGpu(TestEmOptimizerCpu):
+    device = 'cuda'
+
+    def setUp(self):
+        if not torch.cuda.is_available():
+            self.skipTest('Cuda not available')
+
+        super(TestEmOptimizerGpu, self).setUp()

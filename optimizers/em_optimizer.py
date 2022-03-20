@@ -33,4 +33,4 @@ class EmOptimizer(IOptimizer):
 
             cpt /= cpt.sum(axis=-1, keepdims=True)
 
-            node.cpt = cpt.numpy()
+            node.cpt = cpt.cpu().numpy()
