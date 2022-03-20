@@ -1,21 +1,22 @@
+from abc import ABC, abstractmethod
 from itertools import groupby
 from unittest import TestCase
 
 import numpy as np
 import torch
 from scipy import stats
-from torch import flatten
 
 from common.utilities import Cfg
-from model.bayesian_network import BayesianNetwork
 from model.nodes import CPTNode
-from samplers.torch_sampler import TorchSampler, CPTNodeSampler
+from samplers.torch_sampler import CPTNodeSampler
 
 
-class TestTorchNodeSamplers(TestCase):
+class TestTorchNodeSamplersCpu(TestCase):
+    device = 'cpu'
+
     def setUp(self):
         default_cfg = Cfg()
-        default_cfg.device = 'cpu'
+        default_cfg.device = self.device
         self.default_cfg = default_cfg
 
         self.num_samples = 10000
@@ -42,3 +43,13 @@ class TestTorchNodeSamplers(TestCase):
         _, p = stats.chisquare(actual, expected)
 
         self.assertGreater(p, self.alpha)
+
+
+class TestTorchNodeSamplersGpu(TestTorchNodeSamplersCpu):
+    device = 'cuda'
+
+    def setUp(self):
+        if not torch.cuda.is_available():
+            self.skipTest('Cuda not available')
+
+        super(TestTorchNodeSamplersGpu, self).setUp()

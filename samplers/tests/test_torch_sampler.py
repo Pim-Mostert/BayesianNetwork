@@ -2,6 +2,7 @@ from itertools import groupby
 from unittest import TestCase
 
 import numpy as np
+import torch
 from scipy import stats
 from torch import flatten
 
@@ -11,10 +12,12 @@ from model.nodes import CPTNode
 from samplers.torch_sampler import TorchSampler
 
 
-class TestTorchSampler(TestCase):
+class TestTorchSamplerCpu(TestCase):
+    device = 'cpu'
+
     def setUp(self):
         default_cfg = Cfg()
-        default_cfg.device = 'cpu'
+        default_cfg.device = self.device
         self.default_cfg = default_cfg
 
         self.num_samples = 10000
@@ -34,7 +37,7 @@ class TestTorchSampler(TestCase):
         # Act
         sut = TorchSampler(self.default_cfg, network)
 
-        samples = sut.sample(self.num_samples, nodes)
+        samples = sut.sample(self.num_samples, nodes).cpu()
 
         # Assert
         expected = p_true * self.num_samples
@@ -65,7 +68,7 @@ class TestTorchSampler(TestCase):
         # Act
         sut = TorchSampler(self.default_cfg, network)
 
-        samples = sut.sample(self.num_samples, nodes)
+        samples = sut.sample(self.num_samples, nodes).cpu()
 
         # Assert
         p_full_true = p0_true[:, None, None] * p1_true[:, :, None] * p2_true
@@ -82,3 +85,13 @@ class TestTorchSampler(TestCase):
         _, p = stats.chisquare(actual, expected)
 
         self.assertGreater(p, self.alpha)
+
+
+class TestTorchSamplerGpu(TestTorchSamplerCpu):
+    device = 'cuda'
+
+    def setUp(self):
+        if not torch.cuda.is_available():
+            self.skipTest('Cuda not available')
+
+        super(TestTorchSamplerGpu, self).setUp()
