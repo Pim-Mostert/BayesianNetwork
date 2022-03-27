@@ -1,12 +1,13 @@
 from typing import List, Dict
 
 import torch
-import common as cmn
+
 from model.bayesian_network import BayesianNetwork
+from model.interfaces import IInferenceMachine
 from model.nodes import NodeType, Node, CPTNode
 
 
-class TorchNaiveInferenceMachine:
+class TorchNaiveInferenceMachine(IInferenceMachine):
     def __init__(self, cfg, bayesian_network: BayesianNetwork, observed_nodes: List[Node]):
         self.device = cfg.device
 

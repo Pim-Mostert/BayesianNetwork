@@ -6,13 +6,15 @@ import numpy as np
 import torch
 
 from model.bayesian_network import BayesianNetwork
+from model.interfaces import IInferenceMachine
 from model.nodes import CPTNode, Node
 
 
 class TorchInferenceMachineBaseTests:
     class TorchInferenceMachineTestCases(TestCase, ABC):
         @abstractmethod
-        def create_inference_machine(self, bayesian_network: BayesianNetwork, observed_nodes: List[Node]):
+        def create_inference_machine(self, bayesian_network: BayesianNetwork, observed_nodes: List[Node]) \
+                -> IInferenceMachine:
             pass
 
         def test_no_evidence(self):
@@ -221,13 +223,3 @@ class TorchInferenceMachineBaseTests:
         def assertArrayAlmostEqual(self, actual, expected):
             for a, e in zip(actual.flatten(), expected.flatten()):
                 self.assertAlmostEqual(float(a), float(e))
-
-
-# class TestTorchNaiveInferenceMachineGpu(TestTorchNaiveInferenceMachineCpu):
-#     device = 'cuda'
-#
-#     def setUp(self):
-#         if not torch.cuda.is_available():
-#             self.skipTest('Cuda not available')
-#
-#         super(TestTorchNaiveInferenceMachineGpu, self).setUp()
