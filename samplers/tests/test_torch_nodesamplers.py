@@ -20,7 +20,7 @@ class TestTorchNodeSamplersCpu(TestCase):
         self.default_cfg = default_cfg
 
         self.num_samples = 10000
-        self.alpha = 0.05
+        self.alpha = 0.001
 
     def test_cptnodesampler(self):
         # Assign
