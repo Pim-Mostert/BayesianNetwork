@@ -9,4 +9,7 @@ class BayesianNetwork:
         self.parents = parents
         self.num_nodes = len(self.nodes)
 
+    def get_children(self, node) -> List[Node]:
+        return [child for child in self.parents.keys() if node in self.parents[child]]
+
 
