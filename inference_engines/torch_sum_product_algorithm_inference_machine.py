@@ -34,7 +34,7 @@ class FactorGraph:
             message = Message()
             variable_node.add_output_message(factor_node, message)
 
-            for child in bayesian_network.get_children(node):
+            for child in bayesian_network.children[node]:
                 message = Message()
                 variable_node.add_output_message(self.factor_nodes[child], message)
 
@@ -55,7 +55,7 @@ class FactorGraph:
             input_message = factor_node.output_messages[variable_node]
             variable_node.add_input_message(input_message, factor_node)
 
-            for child in bayesian_network.get_children(node):
+            for child in bayesian_network.children[node]:
                 input_message = self.factor_nodes[child].output_messages[variable_node]
                 variable_node.add_input_message(input_message, child)
 
