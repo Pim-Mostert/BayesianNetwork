@@ -13,10 +13,9 @@ class Node(ABC):
         self.name = name
 
     def __repr__(self):
-        if self.name is None:
-            return super().__repr__()
-        else:
-            return f'{type(self).__name__} - {self.name}'
+        return super().__repr__() \
+            if self.name is None \
+            else f'{type(self).__name__} - {self.name}'
 
     @property
     @abstractmethod

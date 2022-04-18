@@ -28,7 +28,9 @@ parents = {
 }
 network = BayesianNetwork(nodes, parents)
 
-sp_inference_machine = TorchSumProductAlgorithmInferenceMachine(Cfg(), network, [Y1, Y2])
-x = sp_inference_machine.factor_graph
+cfg = Cfg()
+cfg.num_iterations = 1
+sp_inference_machine = TorchSumProductAlgorithmInferenceMachine(cfg, network, [Y1, Y2])
 
+sp_inference_machine.infer([])
 pass
