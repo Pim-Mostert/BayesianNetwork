@@ -12,7 +12,7 @@ torch_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 Q1 = CPTNode(np.array([1/5, 4/5], dtype=np.float64), name='Q1')
 Q2 = CPTNode(np.array([0.2, 0.5, 0.3], dtype=np.float64), name='Q2')
 Q3 = CPTNode(np.array([[0.4, 0.6], [0.5, 0.5]], dtype=np.float64), name='Q3')
-Q4 = CPTNode(np.array([[[1/3, 1/3, 1/3], [1/3, 1/3, 1/3]], [[1/3, 1/3, 1/3], [1/3, 1/3, 1/3]], [[1/3, 1/3, 1/3], [1/3, 1/3, 1/3]]], dtype=np.float64), name='Q4')
+Q4 = CPTNode(np.array([[[1/3, 1/3, 1/3], [1/3, 1/3, 1/3], [1/3, 1/3, 1/3]], [[1/3, 1/3, 1/3], [1/3, 1/3, 1/3], [1/3, 1/3, 1/3]]], dtype=np.float64), name='Q4')
 Y1 = CPTNode(np.array([[1, 0], [0, 1]], dtype=np.float64), name='Y1')
 Y2 = CPTNode(np.array([[[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0]], [[0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]]], dtype=np.float64), name='Y2')
 
@@ -28,9 +28,9 @@ parents = {
 network = BayesianNetwork(nodes, parents)
 
 cfg = Cfg()
-cfg.num_iterations = 1
+cfg.num_iterations = 10
 cfg.device = torch_device
 sp_inference_machine = TorchSumProductAlgorithmInferenceMachine(cfg, network, [Y1, Y2])
 
-sp_inference_machine.infer([])
+p = sp_inference_machine.infer([Q3])
 pass

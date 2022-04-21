@@ -28,11 +28,8 @@ class BayesianNetwork:
             if self.parents[node] and not self.children[node]
         ]
 
-    def get_children(self, node: Node) -> List[Node]:
-        return [child for child in self.parents.keys() if node in self.parents[child]]
-
-    def is_root_node(self, node: Node) -> bool:
-        return node in self.root_nodes
-
-    def is_leaf_node(self, node: None) -> bool:
+    def is_leaf_node(self, node: Node) -> bool:
         return node in self.leaf_nodes
+
+    def are_neighbours(self, node1, node2) -> bool:
+        return node1 in self.parents[node1] or node2 in self.parents[node2]
