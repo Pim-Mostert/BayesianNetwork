@@ -15,10 +15,13 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         self.bayesian_network = bayesian_network
         self.factor_graph = FactorGraph(cfg, bayesian_network)
         self.num_iterations = cfg.num_iterations
+        self.callback = cfg.callback
 
     def infer(self, nodes: List[Node]) -> torch.Tensor:
         for _ in range(self.num_iterations):
             self.factor_graph.iterate()
+
+            self.callback(self.factor_graph)
 
         if len(nodes) > 2:
             raise Exception("Only inference on single nodes or two neighbouring nodes supported")
