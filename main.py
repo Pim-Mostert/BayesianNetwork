@@ -2,7 +2,6 @@ import numpy as np
 import torch
 
 from common.utilities import Cfg
-from inference_engines import torch_sum_product_algorithm_inference_machine
 from inference_engines.torch_sum_product_algorithm_inference_machine import TorchSumProductAlgorithmInferenceMachine
 from model.bayesian_network import BayesianNetwork
 from model.nodes import CPTNode
@@ -30,6 +29,7 @@ network = BayesianNetwork(nodes, parents)
 
 cfg = Cfg()
 cfg.num_iterations = 1
+cfg.device = torch_device
 sp_inference_machine = TorchSumProductAlgorithmInferenceMachine(cfg, network, [Y1, Y2])
 
 sp_inference_machine.infer([])

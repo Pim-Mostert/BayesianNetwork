@@ -14,5 +14,25 @@ class BayesianNetwork:
             for node in self.nodes
         }
 
-    def get_children(self, node) -> List[Node]:
+        self.root_nodes = [
+            node
+            for node
+            in self.nodes
+            if not self.parents[node] and self.children[node]
+        ]
+
+        self.leaf_nodes = [
+            node
+            for node
+            in self.nodes
+            if self.parents[node] and not self.children[node]
+        ]
+
+    def get_children(self, node: Node) -> List[Node]:
         return [child for child in self.parents.keys() if node in self.parents[child]]
+
+    def is_root_node(self, node: Node) -> bool:
+        return node in self.root_nodes
+
+    def is_leaf_node(self, node: None) -> bool:
+        return node in self.leaf_nodes
