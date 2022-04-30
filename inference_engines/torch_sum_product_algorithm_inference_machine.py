@@ -12,10 +12,12 @@ from model.nodes import Node, NodeType
 
 class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
     def __init__(self, cfg: Cfg, bayesian_network: BayesianNetwork, observed_nodes: List[Node]):
+        self.device = cfg.device
         self.bayesian_network = bayesian_network
-        self.factor_graph = FactorGraph(cfg, bayesian_network)
+        self.factor_graph = FactorGraph(cfg, bayesian_network, observed_nodes)
         self.num_iterations = cfg.num_iterations
         self.callback = cfg.callback
+        self.observed_nodes = observed_nodes
 
     def infer(self, nodes: List[Node]) -> torch.Tensor:
         for _ in range(self.num_iterations):
@@ -60,9 +62,16 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
         raise Exception("todo")
 
-    def enter_evidence(self, evidence):
-        pass
+    def enter_evidence(self, evidence: torch.Tensor):
+        evidence_list: List[torch.Tensor] = []
 
+        for i, observed_node in enumerate(self.observed_nodes):
+            e = torch.zeros((observed_node.numK), device=self.device, dtype=torch.float64)
+            e[evidence[i]] = 1
+
+            evidence_list.append(e)
+
+        self.factor_graph.enter_evidence(evidence_list)
 
 
 class Message:
@@ -143,7 +152,7 @@ class VariableNode(FactorGraphNodeBase):
 
             output_message.set_new_value(result)
 
-    def add_bias_input_message(self, message: Message):
+    def add_fixed_input_message(self, message: Message):
         self.bias_messages.append(message)
 
     def configure_input_messages(self):
@@ -196,11 +205,12 @@ class FactorNode(FactorGraphNodeBase):
 
 
 class FactorGraph:
-    def __init__(self, cfg: Cfg, bayesian_network: BayesianNetwork):
+    def __init__(self, cfg: Cfg, bayesian_network: BayesianNetwork, observed_nodes: List[Node]):
         if not all([node.node_type == NodeType.CPTNode for node in bayesian_network.nodes]):
             raise Exception(f'Only nodes of type {NodeType.CPTNode} supported')
 
         self.device = cfg.device
+        self.observed_nodes_input_messages: List[Message] = []
 
         # Instantiate nodes
         self.variable_nodes: Dict[Node, VariableNode] = {node: VariableNode(name=node.name) for node in bayesian_network.nodes}
@@ -238,36 +248,18 @@ class FactorGraph:
                 destination=self.variable_nodes[leaf_node],
                 initial_value=torch.ones((leaf_node.numK), dtype=torch.float64, device=self.device))
 
-            self.variable_nodes[leaf_node].add_bias_input_message(bias_message)
+            self.variable_nodes[leaf_node].add_fixed_input_message(bias_message)
 
-        # Connect input messages
-        # for node in bayesian_network.nodes:
-        #     variable_node = self.variable_nodes[node]
-        #     factor_node = self.factor_nodes[node]
-        #
-        #     # Variable nodes
-        #     for child in bayesian_network.children[node]:
-        #         input_message = self.factor_nodes[child].outputs[variable_node]
-        #         variable_node.add_input_message(input_message)
-        #
-        #     input_message = factor_node.outputs[variable_node]
-        #     variable_node.add_input_message(input_message)
-        #
-        #     if bayesian_network.is_leaf_node(node):
-        #         input_message = Message(torch.ones((node.numK), dtype=torch.float64, device=self.device))
-        #         variable_node.add_input_message(input_message)
-        #
-        #     # Factor nodes
-        #     for parent in bayesian_network.parents[node]:
-        #         input_message = self.variable_nodes[parent].outputs[factor_node]
-        #         factor_node.add_input_message(input_message)
-        #
-        #     input_message = variable_node.outputs[factor_node]
-        #     factor_node.add_input_message(input_message)
-        #
-        #     if bayesian_network.is_root_node(node):
-        #         input_message = Message(torch.ones((node.numK), dtype=torch.float64, device=self.device))
-        #         variable_node.add_input_message(input_message)
+        # Add input messages for observed nodes
+        for observed_node in observed_nodes:
+            input_message = Message(
+                source=None,
+                destination=self.variable_nodes[observed_node],
+                initial_value=torch.ones((observed_node.numK), dtype=torch.float64, device=self.device))
+
+            self.variable_nodes[observed_node].add_fixed_input_message(input_message)
+
+            self.observed_nodes_input_messages.append(input_message)
 
         # Update internal registries
         for variable_node in self.variable_nodes.values():
@@ -275,6 +267,11 @@ class FactorGraph:
 
         for factor_node in self.factor_nodes.values():
             factor_node.configure_input_messages()
+
+    def enter_evidence(self, evidence: List[torch.Tensor]):
+        for i, input_message in enumerate(self.observed_nodes_input_messages):
+            input_message.set_new_value(evidence[i])
+            input_message.flip()
 
     def iterate(self):
         for variable_node in self.variable_nodes.values():
