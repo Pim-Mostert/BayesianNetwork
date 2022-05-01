@@ -10,11 +10,16 @@ from model.nodes import Node, NodeType
 
 
 class FactorGraph:
-    def __init__(self, cfg: Cfg, bayesian_network: BayesianNetwork, observed_nodes: List[Node]):
+    def __init__(self,
+                 bayesian_network: BayesianNetwork,
+                 observed_nodes: List[Node],
+                 device: torch.device,
+                 num_observations: int):
         if not all([node.node_type == NodeType.CPTNode for node in bayesian_network.nodes]):
             raise Exception(f'Only nodes of type {NodeType.CPTNode} supported')
 
-        self.device = cfg.device
+        self.device = device
+        self.num_trials = num_observations
         self.observed_nodes_input_messages: List[Message] = []
 
         # Instantiate nodes
@@ -29,21 +34,33 @@ class FactorGraph:
             ### Variable nodes
             # To children
             for child in bayesian_network.children[node]:
-                message = Message(variable_node, self.factor_nodes[child], torch.rand((node.numK), dtype=torch.float64, device=self.device))
+                message = Message(
+                    variable_node,
+                    self.factor_nodes[child],
+                    torch.rand((self.num_trials, node.numK), dtype=torch.float64, device=self.device))
                 variable_node.add_output_message(message)
 
             # To corresponding factor node
-            message = Message(variable_node, factor_node, torch.rand((node.numK), dtype=torch.float64, device=self.device))
+            message = Message(
+                variable_node,
+                factor_node,
+                torch.rand((self.num_trials, node.numK), dtype=torch.float64, device=self.device))
             variable_node.add_output_message(message)
 
             ### Factor nodes
             # To children
             for parent in bayesian_network.parents[node]:
-                message = Message(factor_node, self.variable_nodes[parent], torch.rand((parent.numK), dtype=torch.float64, device=self.device))
+                message = Message(
+                    factor_node,
+                    self.variable_nodes[parent],
+                    torch.rand((self.num_trials, parent.numK), dtype=torch.float64, device=self.device))
                 factor_node.add_output_message(message)
 
             # To corresponding variable node
-            message = Message(factor_node, variable_node, torch.rand((node.numK), dtype=torch.float64, device=self.device))
+            message = Message(
+                factor_node,
+                variable_node,
+                torch.rand((self.num_trials, node.numK), dtype=torch.float64, device=self.device))
             factor_node.add_output_message(message)
 
         # Bias inputs for leaf nodes
@@ -51,7 +68,7 @@ class FactorGraph:
             bias_message = Message(
                 source=None,
                 destination=self.variable_nodes[leaf_node],
-                initial_value=torch.ones((leaf_node.numK), dtype=torch.float64, device=self.device))
+                initial_value=torch.ones((self.num_trials, leaf_node.numK), dtype=torch.float64, device=self.device))
 
             self.variable_nodes[leaf_node].add_fixed_input_message(bias_message)
 
@@ -60,7 +77,7 @@ class FactorGraph:
             input_message = Message(
                 source=None,
                 destination=self.variable_nodes[observed_node],
-                initial_value=torch.ones((observed_node.numK), dtype=torch.float64, device=self.device))
+                initial_value=torch.ones((self.num_trials, observed_node.numK), dtype=torch.float64, device=self.device))
 
             self.variable_nodes[observed_node].add_fixed_input_message(input_message)
 
@@ -74,6 +91,9 @@ class FactorGraph:
             factor_node.configure_input_messages()
 
     def enter_evidence(self, evidence: List[torch.Tensor]):
+        # evidence:
+        # - len(evidence) = number of observed nodes
+        # - torch.Tensor.shape = [number of trials, number of states]
         for i, input_message in enumerate(self.observed_nodes_input_messages):
             input_message.set_new_value(evidence[i])
             input_message.flip()
@@ -163,21 +183,27 @@ class FactorNode(FactorGraphNodeBase):
         super().__init__(name)
 
         self.cpt = torch.tensor(node.cpt, dtype=torch.float64, device=device)
-        self.einsum_equation_start: str = ''
-        self.equation_letters = None
 
-    def configure_input_messages(self):
-        super().configure_input_messages()
+    def _construct_einsum_equation(self, input_tensors: List[torch.Tensor]) -> List:
+        # Example einsum equation for three inputs:
+        # equation = [a, [..., 0], b, [..., 1], c, [..., 2], cpt, [..., 0, 1, 2], [..., 0, 1, 2]]
+        equation = []
 
-        num_inputs = len(self.input_messages)
-        letters = string.ascii_letters
-        if num_inputs > len(letters):
-            raise Exception(f'Max {len(letters)} inputs supported at this moment')
+        for index, input_tensor in enumerate(input_tensors):
+            equation.append(input_tensor)
+            equation.append([..., index])
 
-        self.equation_letters = letters[0:num_inputs]
+        all_inputs_symbol = [..., *range(len(input_tensors))]
+        equation.append(self.cpt)
+        equation.append(all_inputs_symbol)
+
+        equation.append(all_inputs_symbol)
+
+        return equation
 
     def calculate_output_values(self):
         for (i, output_message) in enumerate(self.output_messages):
+            # Collect input tensors for output message currently being calculated
             input_tensors = [
                 input_message.get_value()
                 for input_message
@@ -185,16 +211,11 @@ class FactorNode(FactorGraphNodeBase):
                 if input_message.source is not output_message.destination
             ]
 
-            equation_letters = list(self.equation_letters)
-            current_letter = equation_letters[i]
-            del equation_letters[i]
+            # Perform calculation using einsum
+            einsum_equation = self._construct_einsum_equation(input_tensors)
+            result = torch.einsum(*einsum_equation)
 
-            equation = ','.join([*equation_letters, self.equation_letters])
-            equation += '->'
-            equation += current_letter
-
-            result = torch.einsum(equation, [*input_tensors, self.cpt])
-
+            # Set new value for output message
             output_message.set_new_value(result)
 
 

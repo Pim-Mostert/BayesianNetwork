@@ -1,8 +1,7 @@
-from typing import List
+from typing import List, Callable
 
 import torch
 
-from common.utilities import Cfg
 from inference_engines.factor_graph.factor_graph import FactorGraph
 from model.bayesian_network import BayesianNetwork
 from model.interfaces import IInferenceMachine
@@ -10,13 +9,24 @@ from model.nodes import Node
 
 
 class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
-    def __init__(self, cfg: Cfg, bayesian_network: BayesianNetwork, observed_nodes: List[Node]):
-        self.device = cfg.device
+    def __init__(self,
+                 bayesian_network: BayesianNetwork,
+                 observed_nodes: List[Node],
+                 device: torch.device,
+                 num_iterations: int,
+                 num_observations: int,
+                 callback: Callable[[FactorGraph], None]):
+        self.device = device
         self.bayesian_network = bayesian_network
-        self.factor_graph = FactorGraph(cfg, bayesian_network, observed_nodes)
-        self.num_iterations = cfg.num_iterations
-        self.callback = cfg.callback
+        self.factor_graph = FactorGraph(
+            bayesian_network,
+            observed_nodes,
+            device=device,
+            num_observations=num_observations)
+        self.num_iterations = num_iterations
+        self.callback = callback
         self.observed_nodes = observed_nodes
+        self.num_observations = num_observations
 
     def infer(self, nodes: List[Node]) -> torch.Tensor:
         for _ in range(self.num_iterations):
@@ -51,7 +61,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
         p = value_from_factor_node * value_to_factor_node
 
-        p /= p.sum()
+        p /= p.sum(dims=1, keepDims=True)
 
         return p
 
@@ -62,11 +72,14 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         raise Exception("todo")
 
     def enter_evidence(self, evidence: torch.Tensor):
+        # evidence.shape = [num_trials, num_observed_nodes], label-encoded
         evidence_list: List[torch.Tensor] = []
 
         for i, observed_node in enumerate(self.observed_nodes):
-            e = torch.zeros((observed_node.numK), device=self.device, dtype=torch.float64)
-            e[evidence[i]] = 1
+            e = torch.zeros((self.num_observations, observed_node.numK), device=self.device, dtype=torch.float64)
+
+            for n in range(evidence.shape[0]):
+                e[n, evidence[n, i]] = 1
 
             evidence_list.append(e)
 
