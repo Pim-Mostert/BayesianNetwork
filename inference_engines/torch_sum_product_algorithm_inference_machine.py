@@ -61,7 +61,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
         p = value_from_factor_node * value_to_factor_node
 
-        p /= p.sum(dims=1, keepDims=True)
+        p /= p.sum(dim=1, keepdim=True)
 
         return p
 

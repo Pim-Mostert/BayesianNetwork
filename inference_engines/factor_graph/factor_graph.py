@@ -19,7 +19,7 @@ class FactorGraph:
             raise Exception(f'Only nodes of type {NodeType.CPTNode} supported')
 
         self.device = device
-        self.num_trials = num_observations
+        self.num_observations = num_observations
         self.observed_nodes_input_messages: List[Message] = []
 
         # Instantiate nodes
@@ -37,14 +37,14 @@ class FactorGraph:
                 message = Message(
                     variable_node,
                     self.factor_nodes[child],
-                    torch.rand((self.num_trials, node.numK), dtype=torch.float64, device=self.device))
+                    torch.rand((self.num_observations, node.numK), dtype=torch.float64, device=self.device))
                 variable_node.add_output_message(message)
 
             # To corresponding factor node
             message = Message(
                 variable_node,
                 factor_node,
-                torch.rand((self.num_trials, node.numK), dtype=torch.float64, device=self.device))
+                torch.rand((self.num_observations, node.numK), dtype=torch.float64, device=self.device))
             variable_node.add_output_message(message)
 
             ### Factor nodes
@@ -53,14 +53,14 @@ class FactorGraph:
                 message = Message(
                     factor_node,
                     self.variable_nodes[parent],
-                    torch.rand((self.num_trials, parent.numK), dtype=torch.float64, device=self.device))
+                    torch.rand((self.num_observations, parent.numK), dtype=torch.float64, device=self.device))
                 factor_node.add_output_message(message)
 
             # To corresponding variable node
             message = Message(
                 factor_node,
                 variable_node,
-                torch.rand((self.num_trials, node.numK), dtype=torch.float64, device=self.device))
+                torch.rand((self.num_observations, node.numK), dtype=torch.float64, device=self.device))
             factor_node.add_output_message(message)
 
         # Bias inputs for leaf nodes
@@ -68,7 +68,7 @@ class FactorGraph:
             bias_message = Message(
                 source=None,
                 destination=self.variable_nodes[leaf_node],
-                initial_value=torch.ones((self.num_trials, leaf_node.numK), dtype=torch.float64, device=self.device))
+                initial_value=torch.ones((self.num_observations, leaf_node.numK), dtype=torch.float64, device=self.device))
 
             self.variable_nodes[leaf_node].add_fixed_input_message(bias_message)
 
@@ -77,11 +77,15 @@ class FactorGraph:
             input_message = Message(
                 source=None,
                 destination=self.variable_nodes[observed_node],
-                initial_value=torch.ones((self.num_trials, observed_node.numK), dtype=torch.float64, device=self.device))
+                initial_value=torch.ones((self.num_observations, observed_node.numK), dtype=torch.float64, device=self.device))
 
             self.variable_nodes[observed_node].add_fixed_input_message(input_message)
 
             self.observed_nodes_input_messages.append(input_message)
+
+        # Configure root factor nodes to broadcast to number of observations
+        for root_node in bayesian_network.root_nodes:
+            self.factor_nodes[root_node].set_broadcast(self.num_observations)
 
         # Update internal registries
         for variable_node in self.variable_nodes.values():
@@ -176,30 +180,14 @@ class VariableNode(FactorGraphNodeBase):
 
 
 class FactorNode(FactorGraphNodeBase):
-    def __init__(self, device, node: Node, name=None):
+    def __init__(self, device: torch.device, node: Node, name=None):
         if not node.node_type == NodeType.CPTNode:
             raise Exception(f'Only node of type {NodeType.CPTNode} supported')
 
         super().__init__(name)
 
         self.cpt = torch.tensor(node.cpt, dtype=torch.float64, device=device)
-
-    def _construct_einsum_equation(self, input_tensors: List[torch.Tensor]) -> List:
-        # Example einsum equation for three inputs:
-        # equation = [a, [..., 0], b, [..., 1], c, [..., 2], cpt, [..., 0, 1, 2], [..., 0, 1, 2]]
-        equation = []
-
-        for index, input_tensor in enumerate(input_tensors):
-            equation.append(input_tensor)
-            equation.append([..., index])
-
-        all_inputs_symbol = [..., *range(len(input_tensors))]
-        equation.append(self.cpt)
-        equation.append(all_inputs_symbol)
-
-        equation.append(all_inputs_symbol)
-
-        return equation
+        self.num_observations = None
 
     def calculate_output_values(self):
         for (i, output_message) in enumerate(self.output_messages):
@@ -211,13 +199,35 @@ class FactorNode(FactorGraphNodeBase):
                 if input_message.source is not output_message.destination
             ]
 
+            # Construct einsum equation
+            all_indices = range(len(self.input_messages))
+            current_indices = list(all_indices)
+            del current_indices[i]
+
+            equation = []
+
+            for j, input_tensor in enumerate(input_tensors):
+                equation.append(input_tensor)
+                equation.append([..., current_indices[j]])
+
+            all_inputs_symbol = [..., *all_indices]
+            equation.append(self.cpt)
+            equation.append(all_inputs_symbol)
+
+            equation.append([..., i])
+
             # Perform calculation using einsum
-            einsum_equation = self._construct_einsum_equation(input_tensors)
-            result = torch.einsum(*einsum_equation)
+            result = torch.einsum(*equation)
+
+            # If root node, manually broadcast to number of observations
+            if self.num_observations:
+                result = result.repeat((self.num_observations, 1))
 
             # Set new value for output message
             output_message.set_new_value(result)
 
+    def set_broadcast(self, num_observations: int):
+        self.num_observations = num_observations
 
 class Message:
     def __repr__(self):
