@@ -16,7 +16,11 @@ class IInferenceMachine(ABC):
         pass
 
     @abstractmethod
-    def infer(self, nodes: List[Node]):
+    def infer_single_nodes(self, nodes: List[Node]):
+        pass
+
+    @abstractmethod
+    def infer_children_with_parents(self, child_nodes: List[Node]):
         pass
 
 

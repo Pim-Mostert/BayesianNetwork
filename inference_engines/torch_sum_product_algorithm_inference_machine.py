@@ -15,7 +15,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
                  device: torch.device,
                  num_iterations: int,
                  num_observations: int,
-                 callback: Callable[[FactorGraph], None]):
+                 callback: Callable[[FactorGraph, int], None]):
         self.device = device
         self.bayesian_network = bayesian_network
         self.factor_graph = FactorGraph(
@@ -27,20 +27,13 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         self.callback = callback
         self.observed_nodes = observed_nodes
         self.num_observations = num_observations
+        self.must_iterate: bool = True
 
-    def infer(self, nodes: List[Node]) -> torch.Tensor:
-        for _ in range(self.num_iterations):
-            self.factor_graph.iterate()
+    def infer_single_nodes(self, nodes: List[Node]) -> List[torch.Tensor]:
+        if self.must_iterate:
+            self._iterate()
 
-            self.callback(self.factor_graph)
-
-        if len(nodes) > 2:
-            raise Exception("Only inference on single nodes or two neighbouring nodes supported")
-
-        if len(nodes) == 1:
-            return self._infer_single_node(nodes[0])
-        else:
-            return self._infer_neighbouring_nodes(nodes)
+        return [self._infer_single_node(node) for node in nodes]
 
     def _infer_single_node(self, node: Node) -> torch.Tensor:
         variable_node = self.factor_graph.variable_nodes[node]
@@ -65,11 +58,69 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
         return p
 
-    def _infer_neighbouring_nodes(self, nodes: List[Node]) -> torch.Tensor:
-        if len(nodes) == 2 and not self.bayesian_network.are_neighbours(nodes[0], nodes[1]):
-            raise Exception("Only inference on single nodes or two neighbouring nodes supported")
+    def infer_children_with_parents(self, children: List[Node]) -> List[torch.Tensor]:
+        if self.must_iterate:
+            self._iterate()
 
-        raise Exception("todo")
+        return [self._infer_child_with_parents(child) for child in children]
+
+    def _infer_child_with_parents(self, child: Node) -> torch.Tensor:
+        child_factor_node = self.factor_graph.factor_nodes[child]
+        input_values = [
+            input_message.get_value()
+            for input_message
+            in child_factor_node.input_messages
+        ]
+
+        num_inputs = len(input_values)
+
+        # Example einsum equation for three inputs:
+        # a, [..., 0], b, [..., 1], c, [..., 2], d, [..., 0, 1, 2], [..., 0, 1, 2]
+        einsum_equation = []
+        for index, input_value in enumerate(input_values):
+            einsum_equation.append(input_value)
+            einsum_equation.append([..., index])
+
+        einsum_equation.append(child_factor_node.cpt)
+        einsum_equation.append([..., *range(num_inputs)])
+        einsum_equation.append([..., *range(num_inputs)])
+
+        p = torch.einsum(*einsum_equation)
+
+        # Normalize
+        sum_dims = tuple(range(1, num_inputs+1))
+        p /= p.sum(axis=sum_dims, keepdims=True)
+
+        return p
+
+        # parents = self.bayesian_network.parents[child]
+        # parent_variable_nodes = [self.factor_graph.variable_nodes[parent] for parent in parents]
+        #
+        # child_factor_node = self.factor_graph.factor_nodes[child]
+        # child_factor_node.in
+        # # Get values from child nodes' parents
+        # values_from_parent_variable_nodes = []
+        # for parent_variable_node in parent_variable_nodes:
+        #     [value] = [
+        #         output_message.get_value()
+        #         for output_message
+        #         in parent_variable_node.output_messages
+        #         if output_message.destination is child_factor_node
+        #     ]
+        #
+        #     values_from_parent_variable_nodes.append(value)
+        #
+        # # Append value from child node itself
+        # child_variable_node = self.factor_graph.variable_nodes[child]
+        # value = child_variable_node.output_messages
+
+    def _iterate(self):
+        for iteration in range(self.num_iterations):
+            self.factor_graph.iterate()
+
+            self.callback(self.factor_graph, iteration)
+
+        self.must_iterate = False
 
     def enter_evidence(self, evidence: torch.Tensor):
         # evidence.shape = [num_trials, num_observed_nodes], label-encoded
@@ -84,3 +135,5 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
             evidence_list.append(e)
 
         self.factor_graph.enter_evidence(evidence_list)
+
+        self.must_iterate = True

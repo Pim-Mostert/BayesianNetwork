@@ -31,8 +31,8 @@ parents = {
 network = BayesianNetwork(nodes, parents)
 
 
-def callback(factor_graph):
-    pass
+def callback(factor_graph, iteration):
+    print(f'Finished iteration {iteration}')
 
 sp_inference_machine = TorchSumProductAlgorithmInferenceMachine(
     bayesian_network=network,
@@ -45,8 +45,6 @@ sp_inference_machine = TorchSumProductAlgorithmInferenceMachine(
 evidence = torch.tensor([[0, 0], [0, 1], [1, 0], [1, 1]], device=torch_device, dtype=torch.int)
 sp_inference_machine.enter_evidence(evidence)
 
-p1 = sp_inference_machine.infer([Q1])
-p2 = sp_inference_machine.infer([Q2])
-p3 = sp_inference_machine.infer([Q3])
-p4 = sp_inference_machine.infer([Q4])
+p = sp_inference_machine.infer_children_with_parents([Q1, Q2])
+
 pass
