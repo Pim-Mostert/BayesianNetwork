@@ -37,14 +37,14 @@ class FactorGraph:
                 message = Message(
                     variable_node,
                     self.factor_nodes[child],
-                    torch.rand((self.num_observations, node.numK), dtype=torch.float64, device=self.device))
+                    torch.ones((self.num_observations, node.numK), dtype=torch.float64, device=self.device))
                 variable_node.add_output_message(message)
 
             # To corresponding factor node
             message = Message(
                 variable_node,
                 factor_node,
-                torch.rand((self.num_observations, node.numK), dtype=torch.float64, device=self.device))
+                torch.ones((self.num_observations, node.numK), dtype=torch.float64, device=self.device))
             variable_node.add_output_message(message)
 
             ### Factor nodes
@@ -53,14 +53,14 @@ class FactorGraph:
                 message = Message(
                     factor_node,
                     self.variable_nodes[parent],
-                    torch.rand((self.num_observations, parent.numK), dtype=torch.float64, device=self.device))
+                    torch.ones((self.num_observations, parent.numK), dtype=torch.float64, device=self.device))
                 factor_node.add_output_message(message)
 
             # To corresponding variable node
             message = Message(
                 factor_node,
                 variable_node,
-                torch.rand((self.num_observations, node.numK), dtype=torch.float64, device=self.device))
+                torch.ones((self.num_observations, node.numK), dtype=torch.float64, device=self.device))
             factor_node.add_output_message(message)
 
         # Bias inputs for leaf nodes

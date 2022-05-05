@@ -10,9 +10,17 @@ from model.nodes import Node
 
 
 class TestTorchSumProductAlgorithmInferenceMachineCpu(TorchInferenceMachineBaseTests.TorchInferenceMachineTestCases):
-    def create_inference_machine(self, bayesian_network: BayesianNetwork, observed_nodes: List[Node]):
-        cfg = Cfg({'device': 'cpu'})
-        return TorchSumProductAlgorithmInferenceMachine(cfg, bayesian_network, observed_nodes)
+    def create_inference_machine(self,
+                                 bayesian_network: BayesianNetwork,
+                                 observed_nodes: List[Node],
+                                 num_observations: int):
+        return TorchSumProductAlgorithmInferenceMachine(
+            bayesian_network,
+            observed_nodes,
+            torch.device('cpu'),
+            5,
+            num_observations,
+            lambda factor_graph, iteration: None)
 
 
 class TestTorchSumProductAlgorithmInferenceMachineGpu(TorchInferenceMachineBaseTests.TorchInferenceMachineTestCases):
@@ -20,6 +28,14 @@ class TestTorchSumProductAlgorithmInferenceMachineGpu(TorchInferenceMachineBaseT
         if not torch.cuda.is_available():
             self.skipTest('Cuda not available')
 
-    def create_inference_machine(self, bayesian_network: BayesianNetwork, observed_nodes: List[Node]):
-        cfg = Cfg({'device': 'cuda'})
-        return TorchSumProductAlgorithmInferenceMachine(cfg, bayesian_network, observed_nodes)
+    def create_inference_machine(self,
+                                 bayesian_network: BayesianNetwork,
+                                 observed_nodes: List[Node],
+                                 num_observations: int):
+        return TorchSumProductAlgorithmInferenceMachine(
+            bayesian_network,
+            observed_nodes,
+            torch.device('cuda'),
+            5,
+            num_observations,
+            lambda factor_graph, iteration: None)

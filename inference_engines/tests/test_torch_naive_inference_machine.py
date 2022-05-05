@@ -10,7 +10,10 @@ from model.nodes import Node
 
 
 class TestTorchNaiveInferenceMachineCpu(TorchInferenceMachineBaseTests.TorchInferenceMachineTestCases):
-    def create_inference_machine(self, bayesian_network: BayesianNetwork, observed_nodes: List[Node]):
+    def create_inference_machine(self,
+                                 bayesian_network: BayesianNetwork,
+                                 observed_nodes: List[Node],
+                                 num_observations: int):
         cfg = Cfg({'device': 'cpu'})
         return TorchNaiveInferenceMachine(cfg, bayesian_network, observed_nodes)
 
@@ -20,6 +23,9 @@ class TestTorchNaiveInferenceMachineGpu(TorchInferenceMachineBaseTests.TorchInfe
         if not torch.cuda.is_available():
             self.skipTest('Cuda not available')
 
-    def create_inference_machine(self, bayesian_network: BayesianNetwork, observed_nodes: List[Node]):
+    def create_inference_machine(self,
+                                 bayesian_network: BayesianNetwork,
+                                 observed_nodes: List[Node],
+                                 num_observations: int):
         cfg = Cfg({'device': 'cuda'})
         return TorchNaiveInferenceMachine(cfg, bayesian_network, observed_nodes)

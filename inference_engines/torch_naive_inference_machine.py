@@ -19,6 +19,8 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
         self.num_observed_nodes = len(observed_nodes)
         self.node_to_index = {node: bayesian_network.nodes.index(node) for node in bayesian_network.nodes}
         self.observed_nodes_indices: List[CPTNode] = [self.node_to_index[node] for node in observed_nodes]
+        self.bayesian_network = bayesian_network
+        self._log_likelihood = None
 
         self.p = self._calculate_p_complete(bayesian_network.nodes, bayesian_network.parents)[None, ...]
 
@@ -65,7 +67,7 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
         c = self.p.sum(axis=tuple(sum_over_dims), keepdims=True)
         self.p /= c
 
-        return torch.log(c).sum()
+        self._log_likelihood = torch.log(c).sum()
 
     def _calculate_p_evidence_for_observed_node(self, observed_node_index, evidence):
         num_trials = evidence.shape[0]
@@ -76,11 +78,35 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
 
         return p_evidence
 
-    def infer(self, nodes):
+    def _infer(self, nodes):
         node_indices = [self.node_to_index[node] for node in nodes]
         dims = [d+1 for d in range(self.num_nodes) if d not in node_indices]
 
         if not dims:
             return self.p
 
-        return self.p.sum(axis=dims)
+        return self.p.sum(dim=dims)
+
+    def infer_children_with_parents(self, child_nodes: List[Node]):
+        p = [
+            self._infer(self.bayesian_network.parents[node] + [node])
+            for node
+            in child_nodes
+        ]
+
+        return p
+
+    def infer_single_nodes(self, nodes: List[Node]):
+        p = [
+            self._infer([node])
+            for node
+            in nodes
+        ]
+
+        return p
+
+    def log_likelihood(self) -> float:
+        if self.num_observed_nodes == 0:
+            raise Exception("Log likelihood can't be calculated with 0 observed nodes")
+
+        return self._log_likelihood

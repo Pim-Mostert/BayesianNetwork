@@ -93,27 +93,6 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
         return p
 
-        # parents = self.bayesian_network.parents[child]
-        # parent_variable_nodes = [self.factor_graph.variable_nodes[parent] for parent in parents]
-        #
-        # child_factor_node = self.factor_graph.factor_nodes[child]
-        # child_factor_node.in
-        # # Get values from child nodes' parents
-        # values_from_parent_variable_nodes = []
-        # for parent_variable_node in parent_variable_nodes:
-        #     [value] = [
-        #         output_message.get_value()
-        #         for output_message
-        #         in parent_variable_node.output_messages
-        #         if output_message.destination is child_factor_node
-        #     ]
-        #
-        #     values_from_parent_variable_nodes.append(value)
-        #
-        # # Append value from child node itself
-        # child_variable_node = self.factor_graph.variable_nodes[child]
-        # value = child_variable_node.output_messages
-
     def _iterate(self):
         for iteration in range(self.num_iterations):
             self.factor_graph.iterate()
@@ -137,3 +116,22 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         self.factor_graph.enter_evidence(evidence_list)
 
         self.must_iterate = True
+
+    def log_likelihood(self) -> float:
+        if not self.observed_nodes:
+            raise Exception("Log likelihood can't be calculated with 0 observed nodes")
+
+        if self.must_iterate:
+            self._iterate()
+
+        node = self.bayesian_network.nodes[1]
+        variable_node = self.factor_graph.variable_nodes[node]
+        input_values = [
+            input_message.get_value()
+            for input_message
+            in variable_node.input_messages
+        ]
+
+        p = torch.stack(input_values).prod(dim=0)
+        likelihood = p.sum(dim=1)
+        return torch.log(likelihood).sum()

@@ -23,6 +23,10 @@ class IInferenceMachine(ABC):
     def infer_children_with_parents(self, child_nodes: List[Node]):
         pass
 
+    @abstractmethod
+    def log_likelihood(self) -> float:
+        pass
+
 
 class IOptimizer(ABC):
     @abstractmethod

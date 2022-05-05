@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 from common.utilities import Cfg
+from inference_engines.torch_naive_inference_machine import TorchNaiveInferenceMachine
 from inference_engines.torch_sum_product_algorithm_inference_machine import TorchSumProductAlgorithmInferenceMachine
 from model.bayesian_network import BayesianNetwork
 from model.nodes import CPTNode
@@ -30,21 +31,29 @@ parents = {
 }
 network = BayesianNetwork(nodes, parents)
 
+evidence = torch.tensor([[0, 0]], device=torch_device, dtype=torch.int)
+
 
 def callback(factor_graph, iteration):
     print(f'Finished iteration {iteration}')
+
 
 sp_inference_machine = TorchSumProductAlgorithmInferenceMachine(
     bayesian_network=network,
     observed_nodes=[Y1, Y2],
     device=torch_device,
-    num_iterations=10,
+    num_iterations=1,
     callback=callback,
-    num_observations=4)
-
-evidence = torch.tensor([[0, 0], [0, 1], [1, 0], [1, 1]], device=torch_device, dtype=torch.int)
+    num_observations=len(evidence))
 sp_inference_machine.enter_evidence(evidence)
+ll0 = sp_inference_machine.log_likelihood()
 
-p = sp_inference_machine.infer_children_with_parents([Q1, Q2])
+cfg = Cfg({'device': 'cpu'})
+naive_inference_machine = TorchNaiveInferenceMachine(
+    cfg,
+    bayesian_network=network,
+    observed_nodes=[Y1, Y2])
+naive_inference_machine.enter_evidence(evidence)
+ll1 = naive_inference_machine.log_likelihood()
 
 pass
