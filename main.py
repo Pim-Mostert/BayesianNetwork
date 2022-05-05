@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 from common.utilities import Cfg
+from inference_engines.factor_graph.factor_graph import FactorGraph
 from inference_engines.torch_naive_inference_machine import TorchNaiveInferenceMachine
 from inference_engines.torch_sum_product_algorithm_inference_machine import TorchSumProductAlgorithmInferenceMachine
 from model.bayesian_network import BayesianNetwork
@@ -35,10 +36,15 @@ network = BayesianNetwork(nodes, parents)
 
 evidence = torch.tensor([[0, 0]], device=torch_device, dtype=torch.int)
 
-
-def callback(factor_graph, iteration):
-    print(f'Finished iteration {iteration}')
-
+a = []
+b = []
+c = []
+d = []
+def callback(factor_graph: FactorGraph, iteration):
+    a.append(factor_graph.factor_nodes[Q1].input_messages[0].get_value())
+    b.append(factor_graph.factor_nodes[Q1].output_messages[0].get_value())
+    c.append(factor_graph.factor_nodes[Q4].input_messages[2].get_value())
+    d.append(factor_graph.factor_nodes[Q4].output_messages[2].get_value())
 
 sp_inference_machine = TorchSumProductAlgorithmInferenceMachine(
     bayesian_network=network,
@@ -57,5 +63,10 @@ naive_inference_machine = TorchNaiveInferenceMachine(
     observed_nodes=[Y1, Y2])
 naive_inference_machine.enter_evidence(evidence)
 ll1 = naive_inference_machine.log_likelihood()
+
+a = torch.squeeze(torch.stack(a))
+b = torch.squeeze(torch.stack(b))
+c = torch.squeeze(torch.stack(c))
+d = torch.squeeze(torch.stack(d))
 
 pass
