@@ -36,6 +36,6 @@ class TestTorchSumProductAlgorithmInferenceMachineGpu(TorchInferenceMachineBaseT
             bayesian_network,
             observed_nodes,
             torch.device('cuda'),
-            5,
+            20,
             num_observations,
             lambda factor_graph, iteration: None)

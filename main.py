@@ -9,6 +9,8 @@ from model.nodes import CPTNode
 
 torch_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+### WARNING: networks with loops don't seem to work with SP yet. Seems a problem with normalization of messages
+# and ever shrinking values after many iterations. Log-likelihood calculation is broken
 # True network
 Q1 = CPTNode(np.array([1 / 5, 4 / 5], dtype=np.float64), name='Q1')
 Q2 = CPTNode(np.array([0.2, 0.5, 0.3], dtype=np.float64), name='Q2')
@@ -42,7 +44,7 @@ sp_inference_machine = TorchSumProductAlgorithmInferenceMachine(
     bayesian_network=network,
     observed_nodes=[Y1, Y2],
     device=torch_device,
-    num_iterations=1,
+    num_iterations=30,
     callback=callback,
     num_observations=len(evidence))
 sp_inference_machine.enter_evidence(evidence)

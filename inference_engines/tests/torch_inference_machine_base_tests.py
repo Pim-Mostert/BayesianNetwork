@@ -86,7 +86,7 @@ class TorchInferenceMachineBaseTests:
 
             num_trial = evidence.shape[0]
 
-            ll_actual = sut.enter_evidence(evidence)
+            sut.enter_evidence(evidence)
 
             p_actual = sut.infer_single_nodes([node0, node1, node2])
             [px_actual, pxx_actual] = sut.infer_children_with_parents([node1, node2])
@@ -119,7 +119,9 @@ class TorchInferenceMachineBaseTests:
                 self.assertArrayAlmostEqual(pxx_actual[i_trial], pxx_expected)
 
             # Assert - log-likelihood
-            ll = torch.zeros(num_trial, dtype=torch.float64)
+            ll_actual = sut.log_likelihood()
+
+            ll_expected = torch.zeros(num_trial, dtype=torch.float64)
             p_full = p0_true[:, None, None] * p1_true[:, :, None] * p2_true
 
             for i_trial in range(num_trial):
@@ -129,9 +131,9 @@ class TorchInferenceMachineBaseTests:
                     evidence[i_trial][2]
                 ]
 
-                ll[i_trial] = np.log(likelihood)
+                ll_expected[i_trial] = np.log(likelihood)
 
-            ll_expected = ll.sum()
+            ll_expected = ll_expected.sum()
 
             self.assertAlmostEqual(float(ll_expected), float(ll_actual))
 
@@ -158,7 +160,7 @@ class TorchInferenceMachineBaseTests:
 
             num_trial = evidence.shape[0]
 
-            ll_actual = sut.enter_evidence(evidence)
+            sut.enter_evidence(evidence)
 
             [p_actual_0, p_actual_1] = sut.infer_single_nodes([node0, node1])
             [p_actual_0x1] = sut.infer_children_with_parents([node1])
@@ -186,15 +188,17 @@ class TorchInferenceMachineBaseTests:
                 self.assertArrayAlmostEqual(p_actual_0x1[i_trial], px_expected)
 
             # Assert - log-likelihood
-            ll = torch.zeros(num_trial, dtype=torch.float64)
+            ll_actual = sut.log_likelihood()
+
+            ll_expected = torch.zeros(num_trial, dtype=torch.float64)
             p_full = p0_true[:, None, None] * p1_true[:, :, None] * p2_true
 
             for i_trial in range(num_trial):
                 likelihood = p_full[:, :, evidence[i_trial][0]].sum()
 
-                ll[i_trial] = np.log(likelihood)
+                ll_expected[i_trial] = np.log(likelihood)
 
-            ll_expected = ll.sum()
+            ll_expected = ll_expected.sum()
 
             self.assertAlmostEqual(float(ll_expected), float(ll_actual))
 
