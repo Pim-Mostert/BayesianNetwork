@@ -87,7 +87,7 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
 
         return self.p.sum(dim=dims)
 
-    def infer_children_with_parents(self, child_nodes: List[Node]):
+    def infer_nodes_with_parents(self, child_nodes: List[Node]):
         p = [
             self._infer(self.bayesian_network.parents[node] + [node])
             for node

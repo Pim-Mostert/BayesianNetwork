@@ -56,13 +56,13 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
         return p
 
-    def infer_children_with_parents(self, children: List[Node]) -> List[torch.Tensor]:
+    def infer_nodes_with_parents(self, children: List[Node]) -> List[torch.Tensor]:
         if self.must_iterate:
             self._iterate()
 
-        return [self._infer_child_with_parents(child) for child in children]
+        return [self._infer_node_with_parents(child) for child in children]
 
-    def _infer_child_with_parents(self, child: Node) -> torch.Tensor:
+    def _infer_node_with_parents(self, child: Node) -> torch.Tensor:
         child_factor_node = self.factor_graph.factor_nodes[child]
         input_values = [
             input_message.get_value()
@@ -96,7 +96,10 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         self.must_iterate = False
 
     def enter_evidence(self, evidence: torch.Tensor):
-        # evidence.shape = [num_trials, num_observed_nodes], label-encoded
+        # evidence.shape = [num_observations, num_observed_nodes], label-encoded
+        if evidence.shape[0] != self.num_observations:
+            raise Exception(f'First dimension of evidence should match num_observations ({self.num_observations}), but is {evidence.shape[0]}')
+
         evidence_list: List[torch.Tensor] = []
 
         for i, observed_node in enumerate(self.observed_nodes):

@@ -20,7 +20,7 @@ class IInferenceMachine(ABC):
         pass
 
     @abstractmethod
-    def infer_children_with_parents(self, child_nodes: List[Node]):
+    def infer_nodes_with_parents(self, child_nodes: List[Node]):
         pass
 
     @abstractmethod

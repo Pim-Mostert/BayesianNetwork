@@ -19,7 +19,7 @@ class FactorGraph:
             raise Exception(f'Only nodes of type {NodeType.CPTNode} supported')
 
         self.device = device
-        self.num_observations = num_observations
+        self.num_observations = num_observations if num_observations > 0 else 1
         self.observed_nodes_input_messages: List[Message] = []
 
         # Instantiate nodes
@@ -107,17 +107,18 @@ class FactorGraph:
             input_message.flip()
 
     def iterate(self):
-        for variable_node in self.variable_nodes.values():
-            variable_node.calculate_output_values()
-
         for factor_node in self.factor_nodes.values():
             factor_node.calculate_output_values()
+
+        for factor_node in self.factor_nodes.values():
+            factor_node.flip()
+
+        for variable_node in self.variable_nodes.values():
+            variable_node.calculate_output_values()
 
         for variable_node in self.variable_nodes.values():
             variable_node.flip()
 
-        for factor_node in self.factor_nodes.values():
-            factor_node.flip()
 
 
 class FactorGraphNodeBase:
@@ -170,8 +171,7 @@ class VariableNode(FactorGraphNodeBase):
             in self.input_messages
         ]
 
-        local_likelihood = torch.stack(all_input_tensors).prod(dim=0).sum(axis=1, keepdim=True)
-        self.local_log_likelihood = torch.log(local_likelihood).sum()
+        self.local_likelihood = torch.stack(all_input_tensors).prod(dim=0).sum(axis=1, keepdim=True)
 
         for output_message in self.output_messages:
             input_tensors = [
@@ -184,7 +184,7 @@ class VariableNode(FactorGraphNodeBase):
             result = torch.stack(input_tensors).prod(dim=0)
 
             if output_message.destination is self.factor_node:
-                result /= local_likelihood
+                result /= self.local_likelihood
             else:
                 result /= result.sum(axis=1, keepdim=True)
 
@@ -206,7 +206,7 @@ class FactorNode(FactorGraphNodeBase):
 
         super().__init__(name)
 
-        self.cpt = torch.tensor(node.cpt, dtype=torch.float64, device=device)
+        self.cpt = node.cpt
         self.num_observations = None
 
     def calculate_output_values(self):

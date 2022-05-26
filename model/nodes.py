@@ -1,7 +1,7 @@
 from abc import abstractmethod, ABC
 from enum import Enum
 
-import numpy as np
+import torch
 
 
 class NodeType(Enum):
@@ -25,10 +25,10 @@ class Node(ABC):
 class CPTNode(Node):
     node_type = NodeType.CPTNode
 
-    def __init__(self, cpt: np.array, name=None):
+    def __init__(self, cpt: torch.tensor, name=None):
         super().__init__(name)
 
-        if not np.all(np.abs(cpt.sum(axis=-1) - 1) < 1e-15):
+        if not torch.all(torch.abs(cpt.sum(axis=-1) - 1) < 1e-15):
             raise Exception('The CPT should sum to 1 along the last dimension')
 
         self.numK = cpt.shape[-1]
