@@ -186,8 +186,7 @@ class VariableNode(FactorGraphNodeBase):
             if output_message.destination is self.factor_node:
                 result /= local_likelihood
             else:
-                c = result.sum(axis=1, keepdim=True)
-                result /= c
+                result /= result.sum(axis=1, keepdim=True)
 
             output_message.set_new_value(result)
 

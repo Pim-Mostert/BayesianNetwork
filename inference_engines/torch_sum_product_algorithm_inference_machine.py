@@ -85,10 +85,6 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
         p = torch.einsum(*einsum_equation)
 
-        # Normalize
-        # sum_dims = tuple(range(1, num_inputs+1))
-        # p /= p.sum(axis=sum_dims, keepdims=True)
-
         return p
 
     def _iterate(self):
