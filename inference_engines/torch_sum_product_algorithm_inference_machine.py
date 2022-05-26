@@ -54,8 +54,6 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
         p = value_from_factor_node * value_to_factor_node
 
-        # p /= p.sum(dim=1, keepdim=True)
-
         return p
 
     def infer_children_with_parents(self, children: List[Node]) -> List[torch.Tensor]:
@@ -125,7 +123,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
             self._iterate()
 
         log_likelihoods = [
-            node.log_likelihood
+            node.local_log_likelihood
             for node
             in self.factor_graph.variable_nodes.values()
         ]

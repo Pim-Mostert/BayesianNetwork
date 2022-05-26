@@ -161,9 +161,18 @@ class VariableNode(FactorGraphNodeBase):
 
         self.bias_messages: List[Message] = []
         self.factor_node = factor_node
-        self.log_likelihood: torch.tensor = torch.nan
+        self.local_log_likelihood: torch.tensor = torch.nan
 
     def calculate_output_values(self):
+        all_input_tensors = [
+            input_message.get_value()
+            for input_message
+            in self.input_messages
+        ]
+
+        local_likelihood = torch.stack(all_input_tensors).prod(dim=0).sum(axis=1, keepdim=True)
+        self.local_log_likelihood = torch.log(local_likelihood).sum()
+
         for output_message in self.output_messages:
             input_tensors = [
                 input_message.get_value()
@@ -175,18 +184,10 @@ class VariableNode(FactorGraphNodeBase):
             result = torch.stack(input_tensors).prod(dim=0)
 
             if output_message.destination is self.factor_node:
-                all_input_tensors = [
-                    input_message.get_value()
-                    for input_message
-                    in self.input_messages
-                ]
-
-                c = torch.stack(input_tensors).prod(dim=0).sum(axis=1, keepdim=True)
-                self.log_likelihood = torch.log(c).sum()
+                result /= local_likelihood
             else:
                 c = result.sum(axis=1, keepdim=True)
-
-            result /= c
+                result /= c
 
             output_message.set_new_value(result)
 
