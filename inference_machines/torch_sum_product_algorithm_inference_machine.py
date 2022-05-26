@@ -40,13 +40,13 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         factor_node = self.factor_graph.factor_nodes[node]
 
         [value_to_factor_node] = [
-            message.get_value()
+            message.value
             for message
             in variable_node.output_messages
             if message.destination is factor_node
         ]
         [value_from_factor_node] = [
-            message.get_value()
+            message.value
             for message
             in variable_node.input_messages
             if message.source is factor_node
@@ -65,7 +65,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
     def _infer_node_with_parents(self, child: Node) -> torch.Tensor:
         child_factor_node = self.factor_graph.factor_nodes[child]
         input_values = [
-            input_message.get_value()
+            input_message.value
             for input_message
             in child_factor_node.input_messages
         ]

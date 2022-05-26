@@ -103,21 +103,14 @@ class FactorGraph:
         # - len(evidence) = number of observed nodes
         # - torch.Tensor.shape = [number of trials, number of states]
         for i, input_message in enumerate(self.observed_nodes_input_messages):
-            input_message.set_new_value(evidence[i])
-            input_message.flip()
+            input_message.value = evidence[i]
 
     def iterate(self):
         for factor_node in self.factor_nodes.values():
             factor_node.calculate_output_values()
 
-        for factor_node in self.factor_nodes.values():
-            factor_node.flip()
-
         for variable_node in self.variable_nodes.values():
             variable_node.calculate_output_values()
-
-        for variable_node in self.variable_nodes.values():
-            variable_node.flip()
 
 
 
@@ -147,10 +140,6 @@ class FactorGraphNodeBase:
 
             self.input_messages.append(corresponding_input_message)
 
-    def flip(self):
-        for output_message in self.output_messages:
-            output_message.flip()
-
     @abstractmethod
     def calculate_output_values(self):
         pass
@@ -166,7 +155,7 @@ class VariableNode(FactorGraphNodeBase):
 
     def calculate_output_values(self):
         all_input_tensors = [
-            input_message.get_value()
+            input_message.value
             for input_message
             in self.input_messages
         ]
@@ -175,7 +164,7 @@ class VariableNode(FactorGraphNodeBase):
 
         for output_message in self.output_messages:
             input_tensors = [
-                input_message.get_value()
+                input_message.value
                 for input_message
                 in self.input_messages
                 if input_message.source is not output_message.destination
@@ -188,7 +177,7 @@ class VariableNode(FactorGraphNodeBase):
             else:
                 result /= result.sum(axis=1, keepdim=True)
 
-            output_message.set_new_value(result)
+            output_message.value = result
 
     def add_fixed_input_message(self, message: 'Message'):
         self.bias_messages.append(message)
@@ -213,7 +202,7 @@ class FactorNode(FactorGraphNodeBase):
         for (i, output_message) in enumerate(self.output_messages):
             # Collect input tensors for output message currently being calculated
             input_tensors = [
-                input_message.get_value()
+                input_message.value
                 for input_message
                 in self.input_messages
                 if input_message.source is not output_message.destination
@@ -244,7 +233,7 @@ class FactorNode(FactorGraphNodeBase):
                 result = result.repeat((self.num_observations, 1))
 
             # Set new value for output message
-            output_message.set_new_value(result)
+            output_message.value = result
 
     def set_broadcast(self, num_observations: int):
         self.num_observations = num_observations
@@ -262,12 +251,3 @@ class Message:
         self.destination = destination
         self.value: torch.Tensor = initial_value
         self.new_value: torch.Tensor = initial_value
-
-    def flip(self):
-        self.value = self.new_value
-
-    def set_new_value(self, value: torch.Tensor):
-        self.new_value = value
-
-    def get_value(self) -> torch.Tensor:
-        return self.value
