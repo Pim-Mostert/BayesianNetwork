@@ -1,7 +1,6 @@
 from itertools import groupby
 from unittest import TestCase
 
-import numpy as np
 import torch
 from scipy import stats
 from torch import flatten
@@ -25,7 +24,7 @@ class TestTorchSamplerCpu(TestCase):
 
     def test_single_cptnode(self):
         # Assign
-        p_true = np.array([1/5, 4/5], dtype=np.float64)
+        p_true = torch.tensor([1/5, 4/5], dtype=torch.double)
         node = CPTNode(p_true)
 
         nodes = [node]
@@ -50,9 +49,9 @@ class TestTorchSamplerCpu(TestCase):
 
     def test_3layer_cptnodes(self):
         # Assign
-        p0_true = np.array([1/5, 4/5], dtype=np.float64)
-        p1_true = np.array([[2/3, 1/3], [1/9, 8/9]], dtype=np.float64)
-        p2_true = np.array([[[3/4, 1/4], [1/2, 1/2]], [[4/7, 3/7], [3/11, 8/11]]], dtype=np.float64)
+        p0_true = torch.tensor([1/5, 4/5], dtype=torch.double)
+        p1_true = torch.tensor([[2/3, 1/3], [1/9, 8/9]], dtype=torch.double)
+        p2_true = torch.tensor([[[3/4, 1/4], [1/2, 1/2]], [[4/7, 3/7], [3/11, 8/11]]], dtype=torch.double)
         node0 = CPTNode(p0_true)
         node1 = CPTNode(p1_true)
         node2 = CPTNode(p2_true)
@@ -75,7 +74,7 @@ class TestTorchSamplerCpu(TestCase):
         expected = (p_full_true * self.num_samples).flatten()
 
         num_nodes = 3
-        kernel = 2**np.array(list(reversed(range(num_nodes)))).reshape([num_nodes, 1])
+        kernel = 2**torch.tensor(list(reversed(range(num_nodes))), dtype=torch.int).reshape([num_nodes, 1])
         states = samples @ kernel
         states = flatten(states)
         states, _ = states.sort()

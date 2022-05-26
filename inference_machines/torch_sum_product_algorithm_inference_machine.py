@@ -2,7 +2,7 @@ from typing import List, Callable
 
 import torch
 
-from inference_engines.factor_graph.factor_graph import FactorGraph
+from inference_machines.factor_graph.factor_graph import FactorGraph
 from model.bayesian_network import BayesianNetwork
 from model.interfaces import IInferenceMachine
 from model.nodes import Node
@@ -122,11 +122,11 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
             self._iterate()
 
         log_likelihoods = [
-            node.local_log_likelihood
+            node.local_likelihood
             for node
             in self.factor_graph.variable_nodes.values()
         ]
 
-        log_likelihood_total = torch.stack(log_likelihoods).sum(dim=0)
+        log_likelihood_total = torch.log(torch.stack(log_likelihoods)).sum()
 
         return log_likelihood_total

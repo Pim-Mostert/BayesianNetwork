@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List
 
+import torch
+
 from model.nodes import Node
 
 
@@ -12,15 +14,15 @@ class ISampler(ABC):
 
 class IInferenceMachine(ABC):
     @abstractmethod
-    def enter_evidence(self, evidence):
+    def enter_evidence(self, evidence) -> None:
         pass
 
     @abstractmethod
-    def infer_single_nodes(self, nodes: List[Node]):
+    def infer_single_nodes(self, nodes: List[Node]) -> List[torch.tensor]:
         pass
 
     @abstractmethod
-    def infer_nodes_with_parents(self, child_nodes: List[Node]):
+    def infer_nodes_with_parents(self, child_nodes: List[Node]) -> List[torch.tensor]:
         pass
 
     @abstractmethod
@@ -30,6 +32,6 @@ class IInferenceMachine(ABC):
 
 class IOptimizer(ABC):
     @abstractmethod
-    def optimize(self, evidence, num_iterations: int, iteration_callback):
+    def optimize(self, evidence, num_iterations: int, iteration_callback) -> None:
         pass
 

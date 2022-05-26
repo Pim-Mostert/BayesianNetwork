@@ -1,11 +1,10 @@
 from unittest import TestCase
 
-import numpy as np
 import torch
 
 from common.statistics import generate_random_probability_matrix
 from common.utilities import Cfg
-from inference_engines.torch_naive_inference_machine import TorchNaiveInferenceMachine
+from inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
 from model.bayesian_network import BayesianNetwork
 from model.nodes import CPTNode
 from optimizers.em_optimizer import EmOptimizer
@@ -50,7 +49,7 @@ class TestEmOptimizerCpu(TestCase):
         network = BayesianNetwork(nodes, parents)
 
         # Act
-        log_likelihood = np.zeros(self.num_iterations, dtype=np.float64)
+        log_likelihood = torch.zeros(self.num_iterations, dtype=torch.double)
 
         def inference_machine_factory(bayesian_network):
             return TorchNaiveInferenceMachine(
@@ -81,7 +80,7 @@ class TestEmOptimizerCpu(TestCase):
         # Assign
 
         # Act
-        log_likelihood = np.zeros(self.num_iterations, dtype=np.float64)
+        log_likelihood = torch.zeros(self.num_iterations, dtype=torch.double)
 
         def inference_machine_factory(bayesian_network):
             return TorchNaiveInferenceMachine(
@@ -109,12 +108,12 @@ class TestEmOptimizerCpu(TestCase):
 
 
 def get_true_network():
-    node0_1 = CPTNode(np.array([1/5, 4/5], dtype=np.float64))
-    node0_2 = CPTNode(np.array([[0.2, 0.8], [0.3, 0.7]], dtype=np.float64))
-    node0_3_1 = CPTNode(np.array([[[0, 1], [1, 0]], [[1, 0], [1, 0]]], dtype=np.float64))
-    node0_3_2 = CPTNode(np.array([[[1, 0], [0, 1]], [[1, 0], [1, 0]]], dtype=np.float64))
-    node0_3_3 = CPTNode(np.array([[[1, 0], [1, 0]], [[0, 1], [1, 0]]], dtype=np.float64))
-    node0_3_4 = CPTNode(np.array([[[1, 0], [1, 0]], [[1, 0], [0, 1]]], dtype=np.float64))
+    node0_1 = CPTNode(torch.tensor([1/5, 4/5], dtype=torch.double))
+    node0_2 = CPTNode(torch.tensor([[0.2, 0.8], [0.3, 0.7]], dtype=torch.double))
+    node0_3_1 = CPTNode(torch.tensor([[[0, 1], [1, 0]], [[1, 0], [1, 0]]], dtype=torch.double))
+    node0_3_2 = CPTNode(torch.tensor([[[1, 0], [0, 1]], [[1, 0], [1, 0]]], dtype=torch.double))
+    node0_3_3 = CPTNode(torch.tensor([[[1, 0], [1, 0]], [[0, 1], [1, 0]]], dtype=torch.double))
+    node0_3_4 = CPTNode(torch.tensor([[[1, 0], [1, 0]], [[1, 0], [0, 1]]], dtype=torch.double))
 
     nodes0 = [node0_1, node0_2, node0_3_1, node0_3_2, node0_3_3, node0_3_4]
     parents0 = {

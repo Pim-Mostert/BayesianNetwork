@@ -1,8 +1,6 @@
-from abc import ABC, abstractmethod
 from itertools import groupby
 from unittest import TestCase
 
-import numpy as np
 import torch
 from scipy import stats
 
@@ -24,7 +22,7 @@ class TestTorchNodeSamplersCpu(TestCase):
 
     def test_cptnodesampler(self):
         # Assign
-        p_true = np.array([2/14, 4/14, 5/14, 2/14, 1/14], dtype=np.float64)
+        p_true = torch.tensor([2/14, 4/14, 5/14, 2/14, 1/14], dtype=torch.double)
         node = CPTNode(p_true)
 
         # Act

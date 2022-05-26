@@ -112,6 +112,37 @@ class TorchInferenceMachineBaseTests:
             self.assertArrayAlmostEqual(p_Q2_actual, p_Q2_expected)
             self.assertArrayAlmostEqual(p_Y_actual, p_Y_expected)
 
+        def test_all_observed_log_likelihood(self):
+            # Assign
+            evidence = torch.tensor([[0, 0, 0], [0, 1, 1]], dtype=torch.int)
+            num_observations = evidence.shape[0]
+
+            evidence_Q1 = torch.zeros((num_observations, 2), dtype=torch.double)
+            evidence_Q2 = torch.zeros((num_observations, 2), dtype=torch.double)
+            evidence_Y = torch.zeros((num_observations, 2), dtype=torch.double)
+
+            for i_observations in range(num_observations):
+                evidence_Q1[i_observations, evidence[i_observations, 0]] = 1
+                evidence_Q2[i_observations, evidence[i_observations, 1]] = 1
+                evidence_Y[i_observations, evidence[i_observations, 2]] = 1
+
+            c = torch.einsum('i, ij, jk, ni, nj, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y) \
+                .sum(axis=(1, 2, 3))
+            ll_expected = torch.log(c).sum()
+
+            # Act
+            sut = self.create_inference_machine(
+                bayesian_network=self.network,
+                observed_nodes=[self.Q1, self.Q2, self.Y],
+                num_observations=num_observations)
+
+            sut.enter_evidence(evidence)
+
+            ll_actual = sut.log_likelihood()
+
+            # Assert
+            self.assertArrayAlmostEqual(ll_actual, ll_expected)
+
         def test_all_observed_nodes_with_parents(self):
             # Assign
             evidence = torch.tensor([[0, 0, 0], [0, 1, 1]], dtype=torch.int)
@@ -176,6 +207,33 @@ class TorchInferenceMachineBaseTests:
             self.assertArrayAlmostEqual(p_Q1_actual, p_Q1_expected)
             self.assertArrayAlmostEqual(p_Q2_actual, p_Q2_expected)
             self.assertArrayAlmostEqual(p_Y_actual, p_Y_expected)
+
+        def test_single_node_observed_log_likelihood(self):
+            # Assign
+            evidence = torch.tensor([[0], [1]], dtype=torch.int)
+            num_observations = evidence.shape[0]
+
+            evidence_Y = torch.zeros((num_observations, 2), dtype=torch.double)
+
+            for i_observation in range(num_observations):
+                evidence_Y[i_observation, evidence[i_observation, 0]] = 1
+
+            c = torch.einsum('i, ij, jk, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Y) \
+                .sum(axis=(1, 2, 3))
+            ll_expected = torch.log(c).sum()
+
+            # Act
+            sut = self.create_inference_machine(
+                bayesian_network=self.network,
+                observed_nodes=[self.Y],
+                num_observations=num_observations)
+
+            sut.enter_evidence(evidence)
+
+            ll_actual = sut.log_likelihood()
+
+            # Assert
+            self.assertArrayAlmostEqual(ll_actual, ll_expected)
 
         def test_single_node_observed_with_parents(self):
             # Assign
@@ -308,6 +366,37 @@ class TorchInferenceMachineBaseTests:
             self.assertArrayAlmostEqual(p_Q2_actual, p_Q2_expected)
             self.assertArrayAlmostEqual(p_Y_actual, p_Y_expected)
 
+        def test_all_observed_log_likelihood(self):
+            # Assign
+            evidence = torch.tensor([[0, 0, 0], [0, 1, 1]], dtype=torch.int)
+            num_observations = evidence.shape[0]
+
+            evidence_Q1 = torch.zeros((num_observations, 2), dtype=torch.double)
+            evidence_Q2 = torch.zeros((num_observations, 2), dtype=torch.double)
+            evidence_Y = torch.zeros((num_observations, 2), dtype=torch.double)
+
+            for i_observations in range(num_observations):
+                evidence_Q1[i_observations, evidence[i_observations, 0]] = 1
+                evidence_Q2[i_observations, evidence[i_observations, 1]] = 1
+                evidence_Y[i_observations, evidence[i_observations, 2]] = 1
+
+            c = torch.einsum('i, ij, ijk, ni, nj, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y) \
+                .sum(axis=(1, 2, 3))
+            ll_expected = torch.log(c).sum()
+
+            # Act
+            sut = self.create_inference_machine(
+                bayesian_network=self.network,
+                observed_nodes=[self.Q1, self.Q2, self.Y],
+                num_observations=num_observations)
+
+            sut.enter_evidence(evidence)
+
+            ll_actual = sut.log_likelihood()
+
+            # Assert
+            self.assertArrayAlmostEqual(ll_actual, ll_expected)
+
         def test_all_observed_nodes_with_parents(self):
             # Assign
             evidence = torch.tensor([[0, 0, 0], [0, 1, 1]], dtype=torch.int)
@@ -375,7 +464,6 @@ class TorchInferenceMachineBaseTests:
 
         def test_single_node_observed_with_parents(self):
             # Assign
-            # Assign
             evidence = torch.tensor([[0], [1]], dtype=torch.int)
             num_observations = evidence.shape[0]
 
@@ -403,8 +491,7 @@ class TorchInferenceMachineBaseTests:
             self.assertArrayAlmostEqual(p_Q1xQ2_actual, p_Q1xQ2_expected)
             self.assertArrayAlmostEqual(p_Q1xQ2xY_actual, p_Q1xQ2xY_expected)
 
-        def test_single_node_observed_with_parents(self):
-            # Assign
+        def test_single_node_observed_log_likelihood(self):
             # Assign
             evidence = torch.tensor([[0], [1]], dtype=torch.int)
             num_observations = evidence.shape[0]
@@ -414,10 +501,9 @@ class TorchInferenceMachineBaseTests:
             for i_observations in range(num_observations):
                 evidence_Y[i_observations, evidence[i_observations, 0]] = 1
 
-            p_Q1xQ2_expected = torch.einsum('i, ij, ijk, nk->nij', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Y)
-            p_Q1xQ2_expected /= p_Q1xQ2_expected.sum(axis=(1, 2), keepdims=True)
-            p_Q1xQ2xY_expected = torch.einsum('i, ij, ijk, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Y)
-            p_Q1xQ2xY_expected /= p_Q1xQ2xY_expected.sum(axis=(1, 2, 3), keepdims=True)
+            c = torch.einsum('i, ij, ijk, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Y) \
+                .sum(axis=(1, 2, 3))
+            ll_expected = torch.log(c).sum()
 
             # Act
             sut = self.create_inference_machine(
@@ -427,8 +513,7 @@ class TorchInferenceMachineBaseTests:
 
             sut.enter_evidence(evidence)
 
-            [p_Q1xQ2_actual, p_Q1xQ2xY_actual] = sut.infer_nodes_with_parents([self.Q2, self.Y])
+            ll_actual = sut.log_likelihood()
 
             # Assert
-            self.assertArrayAlmostEqual(p_Q1xQ2_actual, p_Q1xQ2_expected)
-            self.assertArrayAlmostEqual(p_Q1xQ2xY_actual, p_Q1xQ2xY_expected)
+            self.assertArrayAlmostEqual(ll_actual, ll_expected)

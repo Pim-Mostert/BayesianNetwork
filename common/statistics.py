@@ -1,7 +1,7 @@
-import numpy as np
+import torch
 
 
 def generate_random_probability_matrix(size):
-    p = np.random.random(size)
+    p = torch.rand(size, dtype=torch.double)
 
-    return p / p.sum(axis=-1, keepdims=True)
+    return p / p.sum(dim=-1, keepdims=True)

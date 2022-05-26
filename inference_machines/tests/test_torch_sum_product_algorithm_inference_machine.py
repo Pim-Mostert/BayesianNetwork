@@ -3,8 +3,8 @@ from typing import List
 
 import torch
 
-from inference_engines.tests.torch_inference_machine_base_tests import TorchInferenceMachineBaseTests
-from inference_engines.torch_sum_product_algorithm_inference_machine import TorchSumProductAlgorithmInferenceMachine
+from inference_machines.tests.torch_inference_machine_base_tests import TorchInferenceMachineBaseTests
+from inference_machines.torch_sum_product_algorithm_inference_machine import TorchSumProductAlgorithmInferenceMachine
 from model.bayesian_network import BayesianNetwork
 from model.nodes import Node
 
@@ -47,19 +47,10 @@ class TestNetworkWithSingleParentsCpu(TorchSumProductAlgorithmInferenceMachineTe
     pass
 
 
-class TestNetworkWithMultipleParentsCpu(TorchSumProductAlgorithmInferenceMachineTestBase.TorchSumProductAlgorithmInferenceMachineTestBaseCpu,
-                                        TorchInferenceMachineBaseTests.NetworkWithMultipleParents):
-    pass
-
-
 # Run all tests for cuda
 class TestNetworkWithSingleParentsCuda(TorchSumProductAlgorithmInferenceMachineTestBase.TorchSumProductAlgorithmInferenceMachineTestBaseCuda,
                                        TorchInferenceMachineBaseTests.NetworkWithSingleParents):
     pass
 
-
-class TestNetworkWithMultipleParentsCuda(TorchSumProductAlgorithmInferenceMachineTestBase.TorchSumProductAlgorithmInferenceMachineTestBaseCuda,
-                                         TorchInferenceMachineBaseTests.NetworkWithMultipleParents):
-    pass
 
 

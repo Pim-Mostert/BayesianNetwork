@@ -162,7 +162,7 @@ class VariableNode(FactorGraphNodeBase):
 
         self.bias_messages: List[Message] = []
         self.factor_node = factor_node
-        self.local_log_likelihood: torch.tensor = torch.nan
+        self.local_likelihood: torch.tensor = torch.nan
 
     def calculate_output_values(self):
         all_input_tensors = [

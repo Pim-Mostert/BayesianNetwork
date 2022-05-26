@@ -1,28 +1,25 @@
-import numpy as np
 import torch
 # import matplotlib.pyplot as plt
 
 from common.utilities import Cfg
-from inference_engines.factor_graph.factor_graph import FactorGraph
-from inference_engines.torch_naive_inference_machine import TorchNaiveInferenceMachine
-from inference_engines.torch_sum_product_algorithm_inference_machine import TorchSumProductAlgorithmInferenceMachine
+from inference_machines.factor_graph.factor_graph import FactorGraph
+from inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
+from inference_machines.torch_sum_product_algorithm_inference_machine import TorchSumProductAlgorithmInferenceMachine
 from model.bayesian_network import BayesianNetwork
 from model.nodes import CPTNode
 
 torch_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-### WARNING: networks with loops don't seem to work with SP yet. Seems a problem with normalization of messages
-# and ever shrinking values after many iterations. Log-likelihood calculation is broken
 # True network
-Q1 = CPTNode(np.array([1 / 5, 4 / 5], dtype=np.float64), name='Q1')
-Q2 = CPTNode(np.array([0.2, 0.5, 0.3], dtype=np.float64), name='Q2')
-Q3 = CPTNode(np.array([[0.4, 0.6], [0.8, 0.2]], dtype=np.float64), name='Q3')
-Q4 = CPTNode(np.array([[[1 / 6, 3 / 6, 2 / 6], [5 / 9, 3 / 9, 1 / 9], [7 / 11, 1 / 11, 3 / 11]],
+Q1 = CPTNode(torch.tensor([1 / 5, 4 / 5], dtype=torch.double), name='Q1')
+Q2 = CPTNode(torch.tensor([0.2, 0.5, 0.3], dtype=torch.double), name='Q2')
+Q3 = CPTNode(torch.tensor([[0.4, 0.6], [0.8, 0.2]], dtype=torch.double), name='Q3')
+Q4 = CPTNode(torch.tensor([[[1 / 6, 3 / 6, 2 / 6], [5 / 9, 3 / 9, 1 / 9], [7 / 11, 1 / 11, 3 / 11]],
                        [[7 / 13, 2 / 13, 4 / 13], [4 / 17, 5 / 17, 8 / 17], [12 / 19, 2 / 19, 5 / 19]]],
-                      dtype=np.float64), name='Q4')
-Y1 = CPTNode(np.array([[0.99, 0.01], [0.01, 0.99]], dtype=np.float64), name='Y1')
-Y2 = CPTNode(np.array([[[0.99, 0.01/5, 0.01/5, 0.01/5, 0.01/5, 0.01/5], [0.01/5, 0.99, 0.01/5, 0.01/5, 0.01/5, 0.01/5], [0.01/5, 0.01/5, 0.99, 0.01/5, 0.01/5, 0.01/5]],
-                       [[0.01/5, 0.01/5, 0.01/5, 0.99, 0.01/5, 0.01/5], [0.01/5, 0.01/5, 0.01/5, 0.01/5, 0.99, 0.01/5], [0.01/5, 0.01/5, 0.01/5, 0.01/5, 0.01/5, 0.99]]], dtype=np.float64), name='Y2')
+                      dtype=torch.double), name='Q4')
+Y1 = CPTNode(torch.tensor([[0.99, 0.01], [0.01, 0.99]], dtype=torch.double), name='Y1')
+Y2 = CPTNode(torch.tensor([[[0.99, 0.01/5, 0.01/5, 0.01/5, 0.01/5, 0.01/5], [0.01/5, 0.99, 0.01/5, 0.01/5, 0.01/5, 0.01/5], [0.01/5, 0.01/5, 0.99, 0.01/5, 0.01/5, 0.01/5]],
+                       [[0.01/5, 0.01/5, 0.01/5, 0.99, 0.01/5, 0.01/5], [0.01/5, 0.01/5, 0.01/5, 0.01/5, 0.99, 0.01/5], [0.01/5, 0.01/5, 0.01/5, 0.01/5, 0.01/5, 0.99]]], dtype=torch.double), name='Y2')
 
 nodes = [Q1, Q2, Q3, Q4, Y1, Y2]
 parents = {
@@ -45,7 +42,7 @@ naive_inference_machine = TorchNaiveInferenceMachine(
 naive_inference_machine.enter_evidence(evidence)
 ll_true = naive_inference_machine.log_likelihood()
 p_true = naive_inference_machine.infer_single_nodes([Q1, Q2, Q3, Q4])
-p_family_true = naive_inference_machine.infer_children_with_parents([Q3, Q4])
+p_family_true = naive_inference_machine.infer_nodes_with_parents([Q3, Q4])
 
 num_iterations=200
 sp_inference_machine = TorchSumProductAlgorithmInferenceMachine(
@@ -59,7 +56,7 @@ sp_inference_machine = TorchSumProductAlgorithmInferenceMachine(
 sp_inference_machine.enter_evidence(evidence)
 ll = sp_inference_machine.log_likelihood()
 p = sp_inference_machine.infer_single_nodes([Q1, Q2, Q3, Q4])
-p_family = sp_inference_machine.infer_children_with_parents([Q3, Q4])
+p_family = sp_inference_machine.infer_nodes_with_parents([Q3, Q4])
 
 
 
