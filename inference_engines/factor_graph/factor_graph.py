@@ -23,8 +23,12 @@ class FactorGraph:
         self.observed_nodes_input_messages: List[Message] = []
 
         # Instantiate nodes
-        self.variable_nodes: Dict[Node, VariableNode] = {node: VariableNode(name=node.name) for node in bayesian_network.nodes}
         self.factor_nodes: Dict[Node, FactorNode] = {node: FactorNode(self.device, node, name=node.name) for node in bayesian_network.nodes}
+        self.variable_nodes: Dict[Node, VariableNode] = {
+            node: VariableNode(factor_node=self.factor_nodes[node], name=node.name)
+            for node
+            in bayesian_network.nodes
+        }
 
         # Output messages
         for node in bayesian_network.nodes:
@@ -152,10 +156,12 @@ class FactorGraphNodeBase:
 
 
 class VariableNode(FactorGraphNodeBase):
-    def __init__(self, name=None):
+    def __init__(self, factor_node: 'FactorNode', name=None):
         super().__init__(name=name)
 
         self.bias_messages: List[Message] = []
+        self.factor_node = factor_node
+        self.log_likelihood: torch.tensor = torch.nan
 
     def calculate_output_values(self):
         for output_message in self.output_messages:
@@ -167,6 +173,20 @@ class VariableNode(FactorGraphNodeBase):
             ]
 
             result = torch.stack(input_tensors).prod(dim=0)
+
+            if output_message.destination is self.factor_node:
+                all_input_tensors = [
+                    input_message.get_value()
+                    for input_message
+                    in self.input_messages
+                ]
+
+                c = torch.stack(input_tensors).prod(dim=0).sum(axis=1, keepdim=True)
+                self.log_likelihood = torch.log(c).sum()
+            else:
+                c = result.sum(axis=1, keepdim=True)
+
+            result /= c
 
             output_message.set_new_value(result)
 

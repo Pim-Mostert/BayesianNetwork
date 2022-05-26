@@ -54,7 +54,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
         p = value_from_factor_node * value_to_factor_node
 
-        p /= p.sum(dim=1, keepdim=True)
+        # p /= p.sum(dim=1, keepdim=True)
 
         return p
 
@@ -88,8 +88,8 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         p = torch.einsum(*einsum_equation)
 
         # Normalize
-        sum_dims = tuple(range(1, num_inputs+1))
-        p /= p.sum(axis=sum_dims, keepdims=True)
+        # sum_dims = tuple(range(1, num_inputs+1))
+        # p /= p.sum(axis=sum_dims, keepdims=True)
 
         return p
 
@@ -124,14 +124,12 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         if self.must_iterate:
             self._iterate()
 
-        node = self.bayesian_network.nodes[1]
-        variable_node = self.factor_graph.variable_nodes[node]
-        input_values = [
-            input_message.get_value()
-            for input_message
-            in variable_node.input_messages
+        log_likelihoods = [
+            node.log_likelihood
+            for node
+            in self.factor_graph.variable_nodes.values()
         ]
 
-        p = torch.stack(input_values).prod(dim=0)
-        likelihood = p.sum(dim=1)
-        return torch.log(likelihood).sum()
+        log_likelihood_total = torch.stack(log_likelihoods).sum(dim=0)
+
+        return log_likelihood_total
