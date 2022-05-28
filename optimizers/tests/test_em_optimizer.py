@@ -90,36 +90,6 @@ class EmOptimizerTestBase:
                 else:
                     self.assertAlmostEqual(diff, 0)
 
-        def test_train_true_network_no_change(self):
-            # Assign
-
-            # Act
-            log_likelihood = np.zeros(self.num_iterations, dtype=np.double)
-
-            def inference_machine_factory(bayesian_network):
-                return TorchNaiveInferenceMachine(
-                    bayesian_network=bayesian_network,
-                    observed_nodes=self.observed_nodes,
-                    device=self.get_torch_device())
-
-            sut = EmOptimizer(self.true_network, inference_machine_factory)
-
-            def callback(ll, i):
-                log_likelihood[i] = ll
-
-            sut.optimize(
-                self.data,
-                self.num_iterations,
-                callback)
-
-            # Assert
-            # Only first iteration may lead to improvement
-            self.assertGreaterEqual(log_likelihood[1], log_likelihood[0])
-
-            # After that, no improvement
-            for iteration in range(2, self.num_iterations):
-                self.assertAlmostEqual(log_likelihood[iteration], log_likelihood[iteration-1])
-
 
 class TestEmOptimizerCpu(EmOptimizerTestBase.TestEmOptimizer):
     def get_torch_device(self) -> torch.device:

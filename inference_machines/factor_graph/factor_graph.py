@@ -4,9 +4,7 @@ from typing import Union, List, Dict
 
 import torch
 
-from common.utilities import Cfg
 from model.bayesian_network import BayesianNetwork, Node
-from model.nodes import NodeType
 
 
 class FactorGraph:
@@ -15,9 +13,6 @@ class FactorGraph:
                  observed_nodes: List[Node],
                  device: torch.device,
                  num_observations: int):
-        if not all([node.node_type == NodeType.CPTNode for node in bayesian_network.nodes]):
-            raise Exception(f'Only nodes of type {NodeType.CPTNode} supported')
-
         self.device = device
         self.num_observations = num_observations if num_observations > 0 else 1
         self.observed_nodes_input_messages: List[Message] = []
@@ -189,9 +184,6 @@ class VariableNode(FactorGraphNodeBase):
 
 class FactorNode(FactorGraphNodeBase):
     def __init__(self, device: torch.device, node: Node, name=None):
-        if not node.node_type == NodeType.CPTNode:
-            raise Exception(f'Only node of type {NodeType.CPTNode} supported')
-
         super().__init__(name)
 
         self.cpt = node.cpt
@@ -236,6 +228,7 @@ class FactorNode(FactorGraphNodeBase):
 
     def set_broadcast(self, num_observations: int):
         self.num_observations = num_observations
+
 
 class Message:
     def __repr__(self):

@@ -1,13 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import List, Union
-from unittest import TestCase
+from typing import List
 
 import torch
 
-from common.testing import TestCaseExtended
+from common.testcase_extensions import TestCaseExtended
 from model.bayesian_network import BayesianNetwork, Node
 from model.interfaces import IInferenceMachine
-from model.nodes import CPTNode
 
 
 class TorchInferenceMachineBaseTests:
@@ -22,13 +20,13 @@ class TorchInferenceMachineBaseTests:
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
 
-            self.Q1 = CPTNode(
+            self.Q1 = Node(
                 torch.tensor([1/5, 4/5], dtype=torch.double),
                 name='Q1')
-            self.Q2 = CPTNode(
+            self.Q2 = Node(
                 torch.tensor([[2/3, 1/3], [1/9, 8/9]], dtype=torch.double),
                 name='Q2')
-            self.Y = CPTNode(
+            self.Y = Node(
                 torch.tensor([[4/7, 3/7], [3/11, 8/11]], dtype=torch.double),
                 name='Y')
 
@@ -275,13 +273,13 @@ class TorchInferenceMachineBaseTests:
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
 
-            self.Q1 = CPTNode(
+            self.Q1 = Node(
                 torch.tensor([1/5, 4/5], dtype=torch.double),
                 name='Q1')
-            self.Q2 = CPTNode(
+            self.Q2 = Node(
                 torch.tensor([[2/3, 1/3], [1/9, 8/9]], dtype=torch.double),
                 name='Q2')
-            self.Y = CPTNode(
+            self.Y = Node(
                 torch.tensor([[[3/4, 1/4], [1/2, 1/2]],
                           [[4/7, 3/7], [3/11, 8/11]]], dtype=torch.double),
                 name='Y')

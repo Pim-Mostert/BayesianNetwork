@@ -3,18 +3,16 @@ from typing import List
 
 import torch
 
-from common.utilities import Cfg
 from inference_machines.tests.torch_inference_machine_base_tests import TorchInferenceMachineBaseTests
 from inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
-from model.bayesian_network import BayesianNetwork
-from model.nodes import Node
+from model.bayesian_network import BayesianNetwork, Node
 
 
 # Helper classes
 class TorchNaiveInferenceMachineTestBase:
     class TorchNaiveInferenceMachineTestBase(ABC):
         @abstractmethod
-        def get_device(self) -> str:
+        def get_device(self) -> torch.device:
             pass
 
         def create_inference_machine(self,
@@ -22,21 +20,21 @@ class TorchNaiveInferenceMachineTestBase:
                                      observed_nodes: List[Node],
                                      num_observations: int):
             return TorchNaiveInferenceMachine(
-                cfg=Cfg({'device': self.get_device()}),
                 bayesian_network=bayesian_network,
-                observed_nodes=observed_nodes)
+                observed_nodes=observed_nodes,
+                device=self.get_device())
 
     class TorchNaiveInferenceMachineTestBaseCpu(TorchNaiveInferenceMachineTestBase):
-        def get_device(self) -> str:
-            return 'cpu'
+        def get_device(self) -> torch.device:
+            return torch.device('cpu')
 
     class TorchNaiveInferenceMachineTestBaseCuda(TorchNaiveInferenceMachineTestBase):
         def setUp(self):
             if not torch.cuda.is_available():
                 self.skipTest('Cuda not available')
 
-        def get_device(self) -> str:
-            return 'cuda'
+        def get_device(self) -> torch.device:
+            return torch.device('cuda')
 
 
 # Run all tests for cpu
