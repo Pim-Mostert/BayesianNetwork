@@ -4,39 +4,35 @@ import torch
 
 from model.bayesian_network import BayesianNetwork, Node
 from model.interfaces import IInferenceMachine
-from model.nodes import NodeType, CPTNode
 
 
 class TorchNaiveInferenceMachine(IInferenceMachine):
-    def __init__(self, cfg, bayesian_network: BayesianNetwork, observed_nodes: List[Node]):
-        self.device = cfg.device
+    def __init__(self, bayesian_network: BayesianNetwork, observed_nodes: List[Node], device: torch.device):
+        self.device = device
 
-        if not all([node.node_type == NodeType.CPTNode for node in bayesian_network.nodes]):
-            raise Exception(f'Only nodes of type {NodeType.CPTNode} supported')
-
-        self.dims = [cptnode.num_states for cptnode in bayesian_network.nodes]
+        self.dims = [node.num_states for node in bayesian_network.nodes]
         self.num_nodes = len(bayesian_network.nodes)
         self.num_observed_nodes = len(observed_nodes)
         self.node_to_index = {node: bayesian_network.nodes.index(node) for node in bayesian_network.nodes}
-        self.observed_nodes_indices: List[CPTNode] = [self.node_to_index[node] for node in observed_nodes]
+        self.observed_nodes_indices: List[Node] = [self.node_to_index[node] for node in observed_nodes]
         self.bayesian_network = bayesian_network
         self._log_likelihood = None
 
         self.p = self._calculate_p_complete(bayesian_network.nodes, bayesian_network.parents)[None, ...]
 
-    def _calculate_p_complete(self, cptnodes: List[CPTNode], parents: Dict[CPTNode, List[CPTNode]]):
-        dims = [cptnode.num_states for cptnode in cptnodes]
+    def _calculate_p_complete(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
+        dims = [node.num_states for node in nodes]
         p = torch.ones(dims, dtype=torch.float64, device=self.device)
 
-        for cptnode in cptnodes:
+        for node in nodes:
             new_shape = [1] * self.num_nodes
-            new_shape[self.node_to_index[cptnode]] = cptnode.num_states
+            new_shape[self.node_to_index[node]] = node.num_states
 
-            for parent in parents[cptnode]:
+            for parent in parents[node]:
                 parent_index = self.node_to_index[parent]
                 new_shape[parent_index] = parent.num_states
 
-            p_node = torch.tensor(cptnode.cpt, device=self.device) \
+            p_node = torch.tensor(node.cpt, device=self.device) \
                 .reshape(new_shape)
 
             p *= p_node

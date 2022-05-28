@@ -18,11 +18,11 @@ class IInferenceMachine(ABC):
         pass
 
     @abstractmethod
-    def infer_single_nodes(self, nodes: List[Node]) -> List[torch.tensor]:
+    def infer_single_nodes(self, nodes: List[Node]) -> List[torch.Tensor]:
         pass
 
     @abstractmethod
-    def infer_nodes_with_parents(self, child_nodes: List[Node]) -> List[torch.tensor]:
+    def infer_nodes_with_parents(self, child_nodes: List[Node]) -> List[torch.Tensor]:
         pass
 
     @abstractmethod

@@ -1,4 +1,4 @@
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 
 import torch
 
@@ -13,29 +13,37 @@ class EmOptimizer(IOptimizer):
 
     def optimize(self, evidence, num_iterations, iteration_callback):
         for iteration in range(num_iterations):
+            # Construct inference machine and enter evidence
             inference_machine = self.inference_machine_factory(self.bayesian_network)
             inference_machine.enter_evidence(evidence)
             ll = inference_machine.log_likelihood()
 
+            # E-step
             p_conditionals = self._e_step(inference_machine)
 
+            # M-step
             self._m_step(p_conditionals)
 
+            # User feedback
             iteration_callback(ll, iteration)
 
-    def _e_step(self, inference_machine: IInferenceMachine) -> Dict[Node, torch.Tensor]:
-        p_conditionals = {
-            node: p_conditional
-            for node, p_conditional in
-            zip(self.bayesian_network.nodes, inference_machine.infer_nodes_with_parents(self.bayesian_network.nodes))
-        }
+    def _e_step(self, inference_machine: IInferenceMachine) -> List[torch.Tensor]:
+        # List[torch.Tensor((observations x parent1 x parent2 x ... x child))]
+        p_all = inference_machine.infer_nodes_with_parents(self.bayesian_network.nodes)
+
+        # Average over observations
+        p_conditionals = [
+            p.mean(dim=0)
+            for p
+            in p_all
+        ]
 
         return p_conditionals
 
-    def _m_step(self, p_conditionals: Dict[Node, torch.Tensor]):
-        for node in self.bayesian_network.nodes:
-            cpt = p_conditionals[node].mean(dim=0)
+    def _m_step(self, p_conditionals: List[torch.Tensor]):
+        for node, p_conditional in zip(self.bayesian_network.nodes, p_conditionals):
+            # Normalize to conditional probability distribution
+            cpt = p_conditional / p_conditional.sum(dim=-1, keepdim=True)
 
-            cpt /= cpt.sum(dim=-1, keepdims=True)
-
+            # Update node
             node.cpt = cpt
