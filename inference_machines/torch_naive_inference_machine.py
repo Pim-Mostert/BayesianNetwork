@@ -2,9 +2,9 @@ from typing import List, Dict
 
 import torch
 
-from model.bayesian_network import BayesianNetwork
+from model.bayesian_network import BayesianNetwork, Node
 from model.interfaces import IInferenceMachine
-from model.nodes import NodeType, Node, CPTNode
+from model.nodes import NodeType, CPTNode
 
 
 class TorchNaiveInferenceMachine(IInferenceMachine):
@@ -14,7 +14,7 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
         if not all([node.node_type == NodeType.CPTNode for node in bayesian_network.nodes]):
             raise Exception(f'Only nodes of type {NodeType.CPTNode} supported')
 
-        self.dims = [cptnode.numK for cptnode in bayesian_network.nodes]
+        self.dims = [cptnode.num_states for cptnode in bayesian_network.nodes]
         self.num_nodes = len(bayesian_network.nodes)
         self.num_observed_nodes = len(observed_nodes)
         self.node_to_index = {node: bayesian_network.nodes.index(node) for node in bayesian_network.nodes}
@@ -25,16 +25,16 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
         self.p = self._calculate_p_complete(bayesian_network.nodes, bayesian_network.parents)[None, ...]
 
     def _calculate_p_complete(self, cptnodes: List[CPTNode], parents: Dict[CPTNode, List[CPTNode]]):
-        dims = [cptnode.numK for cptnode in cptnodes]
+        dims = [cptnode.num_states for cptnode in cptnodes]
         p = torch.ones(dims, dtype=torch.float64, device=self.device)
 
         for cptnode in cptnodes:
             new_shape = [1] * self.num_nodes
-            new_shape[self.node_to_index[cptnode]] = cptnode.numK
+            new_shape[self.node_to_index[cptnode]] = cptnode.num_states
 
             for parent in parents[cptnode]:
                 parent_index = self.node_to_index[parent]
-                new_shape[parent_index] = parent.numK
+                new_shape[parent_index] = parent.num_states
 
             p_node = torch.tensor(cptnode.cpt, device=self.device) \
                 .reshape(new_shape)

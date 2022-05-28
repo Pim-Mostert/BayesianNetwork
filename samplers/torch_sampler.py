@@ -1,22 +1,21 @@
-from abc import abstractmethod, ABC
-from typing import List, Dict, Type, Callable
+from typing import List, Dict
 
 import torch
 
-from model.interfaces import ISampler
-from common.utilities import Cfg
-from model.bayesian_network import BayesianNetwork
-from model.nodes import Node, CPTNode
+from model.interfaces import IBayesianNetworkSampler
+from model.bayesian_network import BayesianNetwork, Node
 
 
-class TorchSampler(ISampler):
-    def __init__(self, cfg0, bayesian_network: BayesianNetwork):
-        self.device = cfg0.device
+class TorchBayesianNetworkSampler(IBayesianNetworkSampler):
+    def __init__(self, bayesian_network: BayesianNetwork, device: torch.device):
+        self.device = device
+        self.bayesian_network = bayesian_network
 
-        cfg = Cfg()
-        cfg.device = self.device
-        self.samplers: Dict[Node, NodeSampler] = {node: NodeSamplers.create(cfg, node) for node in bayesian_network.nodes}
-        self.parents = {node: bayesian_network.parents[node] for node in bayesian_network.nodes}
+        self.samplers: Dict[Node, NodeSampler] = {
+            node: NodeSampler(node, device=self.device)
+            for node
+            in bayesian_network.nodes
+        }
 
     def sample(self, num_samples: int, nodes: List[Node]) -> torch.Tensor:
         num_nodes = len(nodes)
@@ -37,33 +36,17 @@ class TorchSampler(ISampler):
         return torch.tensor([states[node] for node in nodes], device=self.device)
 
     def _sample_single_node(self, node: Node, states: Dict[Node, torch.tensor]) -> torch.tensor:
-        for parent in self.parents[node]:
+        for parent in self.bayesian_network.parents[node]:
             if parent not in states:
                 states[parent] = self._sample_single_node(parent, states)
 
-        parent_states = torch.tensor([states[parent] for parent in self.parents[node]], device=self.device)
+        parent_states = torch.tensor([states[parent] for parent in self.bayesian_network.parents[node]], device=self.device)
         return self.samplers[node].sample(parent_states)
 
 
-class NodeSamplers:
-    factories: Dict[Type, Callable] = {
-        CPTNode: lambda cfg, node: CPTNodeSampler(cfg, node)
-    }
-
-    @staticmethod
-    def create(cfg, node) -> 'NodeSampler':
-        return NodeSamplers.factories[type(node)](cfg, node)
-
-
-class NodeSampler(ABC):
-    @abstractmethod
-    def sample(self, parents_states: torch.tensor):
-        pass
-
-
-class CPTNodeSampler(NodeSampler):
-    def __init__(self, cfg, cptnode: CPTNode):
-        self.cpt = torch.tensor(cptnode.cpt, device=cfg.device)
+class NodeSampler:
+    def __init__(self, node: Node, device: torch.device):
+        self.cpt = torch.tensor(node.cpt, device=device)
 
     def sample(self, parents_states: torch.tensor) -> torch.tensor:
         p = self.cpt[tuple(parents_states)]

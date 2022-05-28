@@ -1,10 +1,27 @@
 from typing import List, Dict
 
-from model.nodes import Node
+import torch
+
+from common.statistics import is_valid_probability_matrix
+
+
+class Node:
+    def __repr__(self):
+        return super().__repr__() \
+            if self.name is None \
+            else f'{type(self).__name__} - {self.name}'
+
+    def __init__(self, cpt: torch.tensor, name=None):
+        if not is_valid_probability_matrix(cpt):
+            raise Exception('The CPT should sum to 1 along the last dimension')
+
+        self.num_states = cpt.shape[-1]
+        self.cpt = cpt
+        self.name = name
 
 
 class BayesianNetwork:
-    def __init__(self, nodes: List['Node'], parents: Dict['Node', List['Node']]):
+    def __init__(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
         self.nodes = nodes
         self.parents = parents
         self.num_nodes = len(self.nodes)
@@ -33,3 +50,5 @@ class BayesianNetwork:
 
     def are_neighbours(self, node1, node2) -> bool:
         return node1 in self.parents[node1] or node2 in self.parents[node2]
+
+

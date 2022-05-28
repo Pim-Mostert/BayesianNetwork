@@ -2,9 +2,8 @@ from typing import Callable, Dict
 
 import torch
 
-from model.bayesian_network import BayesianNetwork
+from model.bayesian_network import BayesianNetwork, Node
 from model.interfaces import IOptimizer, IInferenceMachine
-from model.nodes import Node
 
 
 class EmOptimizer(IOptimizer):

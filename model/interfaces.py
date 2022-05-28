@@ -3,10 +3,10 @@ from typing import List
 
 import torch
 
-from model.nodes import Node
+from model.bayesian_network import Node
 
 
-class ISampler(ABC):
+class IBayesianNetworkSampler(ABC):
     @abstractmethod
     def sample(self, num_samples: int, nodes: List[Node]):
         pass

@@ -5,8 +5,8 @@ from typing import Union, List, Dict
 import torch
 
 from common.utilities import Cfg
-from model.bayesian_network import BayesianNetwork
-from model.nodes import Node, NodeType
+from model.bayesian_network import BayesianNetwork, Node
+from model.nodes import NodeType
 
 
 class FactorGraph:
@@ -39,32 +39,32 @@ class FactorGraph:
             # To children
             for child in bayesian_network.children[node]:
                 message = Message(
-                    variable_node,
-                    self.factor_nodes[child],
-                    torch.ones((self.num_observations, node.numK), dtype=torch.float64, device=self.device))
+                    source=variable_node,
+                    destination=self.factor_nodes[child],
+                    initial_value=torch.ones((self.num_observations, node.num_states), dtype=torch.float64, device=self.device))
                 variable_node.add_output_message(message)
 
             # To corresponding factor node
             message = Message(
-                variable_node,
-                factor_node,
-                torch.ones((self.num_observations, node.numK), dtype=torch.float64, device=self.device))
+                source=variable_node,
+                destination=factor_node,
+                initial_value=torch.ones((self.num_observations, node.num_states), dtype=torch.float64, device=self.device))
             variable_node.add_output_message(message)
 
             ### Factor nodes
             # To children
             for parent in bayesian_network.parents[node]:
                 message = Message(
-                    factor_node,
-                    self.variable_nodes[parent],
-                    torch.ones((self.num_observations, parent.numK), dtype=torch.float64, device=self.device))
+                    source=factor_node,
+                    destination=self.variable_nodes[parent],
+                    initial_value=torch.ones((self.num_observations, parent.num_states), dtype=torch.float64, device=self.device))
                 factor_node.add_output_message(message)
 
             # To corresponding variable node
             message = Message(
-                factor_node,
-                variable_node,
-                torch.ones((self.num_observations, node.numK), dtype=torch.float64, device=self.device))
+                source=factor_node,
+                destination=variable_node,
+                initial_value=torch.ones((self.num_observations, node.num_states), dtype=torch.float64, device=self.device))
             factor_node.add_output_message(message)
 
         # Bias inputs for leaf nodes
@@ -72,7 +72,7 @@ class FactorGraph:
             bias_message = Message(
                 source=None,
                 destination=self.variable_nodes[leaf_node],
-                initial_value=torch.ones((self.num_observations, leaf_node.numK), dtype=torch.float64, device=self.device))
+                initial_value=torch.ones((self.num_observations, leaf_node.num_states), dtype=torch.float64, device=self.device))
 
             self.variable_nodes[leaf_node].add_fixed_input_message(bias_message)
 
@@ -81,7 +81,7 @@ class FactorGraph:
             input_message = Message(
                 source=None,
                 destination=self.variable_nodes[observed_node],
-                initial_value=torch.ones((self.num_observations, observed_node.numK), dtype=torch.float64, device=self.device))
+                initial_value=torch.ones((self.num_observations, observed_node.num_states), dtype=torch.float64, device=self.device))
 
             self.variable_nodes[observed_node].add_fixed_input_message(input_message)
 
@@ -111,7 +111,6 @@ class FactorGraph:
 
         for variable_node in self.variable_nodes.values():
             variable_node.calculate_output_values()
-
 
 
 class FactorGraphNodeBase:

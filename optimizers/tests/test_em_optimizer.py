@@ -8,7 +8,7 @@ from inference_machines.torch_naive_inference_machine import TorchNaiveInference
 from model.bayesian_network import BayesianNetwork
 from model.nodes import CPTNode
 from optimizers.em_optimizer import EmOptimizer
-from samplers.torch_sampler import TorchSampler
+from samplers.torch_sampler import TorchBayesianNetworkSampler
 
 
 class TestEmOptimizerCpu(TestCase):
@@ -21,7 +21,7 @@ class TestEmOptimizerCpu(TestCase):
         self.network, self.observed_nodes = get_true_network()
 
         # Create training data
-        sampler = TorchSampler(Cfg({'device': 'cpu'}), self.network)
+        sampler = TorchBayesianNetworkSampler(Cfg({'device': 'cpu'}), self.network)
 
         num_samples = 10000
         self.data = sampler.sample(num_samples, self.observed_nodes).to(self.device)

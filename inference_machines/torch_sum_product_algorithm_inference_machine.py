@@ -3,9 +3,8 @@ from typing import List, Callable
 import torch
 
 from inference_machines.factor_graph.factor_graph import FactorGraph
-from model.bayesian_network import BayesianNetwork
+from model.bayesian_network import BayesianNetwork, Node
 from model.interfaces import IInferenceMachine
-from model.nodes import Node
 
 
 class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
@@ -103,7 +102,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         evidence_list: List[torch.Tensor] = []
 
         for i, observed_node in enumerate(self.observed_nodes):
-            e = torch.zeros((self.num_observations, observed_node.numK), device=self.device, dtype=torch.float64)
+            e = torch.zeros((self.num_observations, observed_node.num_states), device=self.device, dtype=torch.float64)
 
             for n in range(evidence.shape[0]):
                 e[n, evidence[n, i]] = 1

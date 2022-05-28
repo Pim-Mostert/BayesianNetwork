@@ -5,8 +5,7 @@ import torch
 
 from inference_machines.tests.torch_inference_machine_base_tests import TorchInferenceMachineBaseTests
 from inference_machines.torch_sum_product_algorithm_inference_machine import TorchSumProductAlgorithmInferenceMachine
-from model.bayesian_network import BayesianNetwork
-from model.nodes import Node
+from model.bayesian_network import BayesianNetwork, Node
 
 
 # Helper classes

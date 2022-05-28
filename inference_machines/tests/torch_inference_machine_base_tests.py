@@ -4,10 +4,10 @@ from unittest import TestCase
 
 import torch
 
-from common.testcase_extensions import TestCaseExtended
-from model.bayesian_network import BayesianNetwork
+from common.testing import TestCaseExtended
+from model.bayesian_network import BayesianNetwork, Node
 from model.interfaces import IInferenceMachine
-from model.nodes import CPTNode, Node
+from model.nodes import CPTNode
 
 
 class TorchInferenceMachineBaseTests:
