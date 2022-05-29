@@ -23,7 +23,13 @@ class FactorGraph:
             in bayesian_network.nodes
         }
         self.variable_nodes: Dict[Node, VariableNode] = {
-            node: VariableNode(self.num_observations, node.num_states, factor_node=self.factor_nodes[node], device=self.device, name=node.name)
+            node: VariableNode(
+                self.num_observations,
+                node.num_states,
+                factor_node=self.factor_nodes[node],
+                is_leaf_node=bayesian_network.is_leaf_node(node),
+                device=self.device,
+                name=node.name)
             for node
             in bayesian_network.nodes
         }
@@ -48,15 +54,6 @@ class FactorGraph:
 
             # To corresponding variable node
             factor_node.add_output_message(variable_node)
-
-        # Bias inputs for leaf nodes
-        for leaf_node in [node for node in bayesian_network.nodes if bayesian_network.is_leaf_node(node)]:
-            bias_message = Message(
-                source=None,
-                destination=self.variable_nodes[leaf_node],
-                initial_value=torch.ones((self.num_observations, leaf_node.num_states), dtype=torch.float64, device=self.device))
-
-            self.variable_nodes[leaf_node].add_fixed_input_message(bias_message)
 
         # Add input messages for observed nodes
         for observed_node in observed_nodes:
@@ -136,41 +133,61 @@ class FactorGraphNodeBase:
 
 
 class VariableNode(FactorGraphNodeBase):
-    def __init__(self, num_observations: int, num_states:int, factor_node: 'FactorNode', device: torch.device, name=None):
+    def __init__(
+            self,
+            num_observations: int,
+            num_states:int,
+            factor_node: 'FactorNode',
+            is_leaf_node: bool,
+            device: torch.device,
+            name=None):
         super().__init__(num_observations, num_states, device, name=name)
 
         self.bias_messages: List[Message] = []
         self.factor_node = factor_node
         self.local_likelihood: torch.tensor = torch.nan
+        self.is_leaf_node = is_leaf_node
 
     def add_output_message(self, destination: 'FactorNode'):
         self._add_output_message(destination)
 
     def calculate_output_values(self):
-        all_input_tensors = [
+        # [num_observations x num_inputs x num_states]
+        all_input_tensors = torch.stack([
             input_message.value
             for input_message
             in self.input_messages
-        ]
+        ], dim=1)
 
-        self.local_likelihood = torch.stack(all_input_tensors, dim=1).prod(dim=1).sum(axis=1, keepdim=True)
+        # [num_observations]
+        c = all_input_tensors.prod(dim=1).sum(axis=1, keepdim=True)
+        self.local_likelihood = c.squeeze()
 
-        for output_message in self.output_messages:
-            input_tensors = [
-                input_message.value
-                for input_message
-                in self.input_messages
-                if input_message.source is not output_message.destination
-            ]
+        if self.is_leaf_node:
+            [output_message] = self.output_messages
+            output_message.value = torch.ones(
+                (self.num_observations, self.num_states),
+                dtype=torch.double,
+                device=self.device) / c
+        else:
+            for output_message in self.output_messages:
+                # [num_observations x num_inputs x num_states]
+                input_tensors = torch.stack([
+                    input_message.value
+                    for input_message
+                    in self.input_messages
+                    if input_message.source is not output_message.destination
+                ], dim=1)
 
-            result = torch.stack(input_tensors, dim=1).prod(dim=1)
+                # [num_observations x num_states]
+                result = input_tensors.prod(dim=1)
 
-            if output_message.destination is self.factor_node:
-                result /= self.local_likelihood
-            else:
-                result /= result.sum(axis=1, keepdim=True)
+                if output_message.destination is self.factor_node:
+                    result /= c
+                else:
+                    result /= result.sum(axis=1, keepdim=True)
 
-            output_message.value = result
+                output_message.value = result
 
     def add_fixed_input_message(self, message: 'Message'):
         self.bias_messages.append(message)
