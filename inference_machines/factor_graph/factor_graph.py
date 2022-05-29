@@ -59,7 +59,7 @@ class FactorGraph:
         # Configure nodes' input messages
         all_factor_graph_nodes: List[FactorGraphNodeBase] = [*self.factor_nodes.values(), *self.variable_nodes.values()]
         for factor_graph_node in all_factor_graph_nodes:
-            factor_graph_node.configure_input_messages()
+            factor_graph_node.discover_input_messages()
 
     def enter_evidence(self, evidence: List[torch.Tensor]):
         # evidence:
@@ -94,6 +94,8 @@ class FactorGraphNodeBase:
         self.output_messages: List[Message] = []
         self.input_messages: List[Message] = []
 
+        self.inputs_for_output: Dict[Message, List[Message]] = {}
+
     def _add_output_message(self, destination: 'FactorGraphNodeBase'):
         initial_value = torch.ones(
             (self.num_observations, self.num_states),
@@ -107,7 +109,7 @@ class FactorGraphNodeBase:
 
         self.output_messages.append(output_message)
 
-    def configure_input_messages(self):
+    def discover_input_messages(self):
         for output_message in self.output_messages:
             [corresponding_input_message] = [
                 other_output_message for
@@ -117,6 +119,16 @@ class FactorGraphNodeBase:
             ]
 
             self.input_messages.append(corresponding_input_message)
+
+        for output_message in self.output_messages:
+            corresponding_input_messages = [
+                input_message
+                for input_message
+                in self.input_messages
+                if input_message.source is not output_message.destination
+            ]
+
+            self.inputs_for_output[output_message] = corresponding_input_messages
 
     @abstractmethod
     def calculate_output_values(self):
@@ -147,11 +159,11 @@ class VariableNode(FactorGraphNodeBase):
             if self.is_observed \
             else None
 
-    def configure_input_messages(self):
-        super().configure_input_messages()
-
+    def discover_input_messages(self):
         if self.is_observed:
             self.input_messages.append(self.observation_message)
+
+        super().discover_input_messages()
 
     def add_output_message(self, destination: 'FactorNode'):
         self._add_output_message(destination)
@@ -179,8 +191,7 @@ class VariableNode(FactorGraphNodeBase):
                 input_tensors = torch.stack([
                     input_message.value
                     for input_message
-                    in self.input_messages
-                    if input_message.source is not output_message.destination
+                    in self.inputs_for_output[output_message]
                 ], dim=1)
 
                 # [num_observations x num_states]
@@ -206,12 +217,10 @@ class FactorNode(FactorGraphNodeBase):
 
     def calculate_output_values(self):
         for (i, output_message) in enumerate(self.output_messages):
-            # Collect input tensors for output message currently being calculated
             input_tensors = [
                 input_message.value
                 for input_message
-                in self.input_messages
-                if input_message.source is not output_message.destination
+                in self.inputs_for_output[output_message]
             ]
 
             # Construct einsum equation
