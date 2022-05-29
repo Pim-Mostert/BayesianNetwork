@@ -14,7 +14,7 @@ class FactorGraph:
                  num_observations: int):
         self.device = device
         self.num_observations = num_observations if num_observations > 0 else 1
-        self.observed_nodes_input_messages: List[Message] = []
+        self.observed_nodes = observed_nodes
 
         # Instantiate nodes
         self.factor_nodes: Dict[Node, FactorNode] = {
@@ -26,15 +26,16 @@ class FactorGraph:
             node: VariableNode(
                 self.num_observations,
                 node.num_states,
-                factor_node=self.factor_nodes[node],
+                corresponding_factor_node=self.factor_nodes[node],
                 is_leaf_node=bayesian_network.is_leaf_node(node),
+                is_observed=node in observed_nodes,
                 device=self.device,
                 name=node.name)
             for node
             in bayesian_network.nodes
         }
 
-        # Output messages
+        # Create output messages
         for node in bayesian_network.nodes:
             variable_node = self.variable_nodes[node]
             factor_node = self.factor_nodes[node]
@@ -55,18 +56,7 @@ class FactorGraph:
             # To corresponding variable node
             factor_node.add_output_message(variable_node)
 
-        # Add input messages for observed nodes
-        for observed_node in observed_nodes:
-            input_message = Message(
-                source=None,
-                destination=self.variable_nodes[observed_node],
-                initial_value=torch.ones((self.num_observations, observed_node.num_states), dtype=torch.float64, device=self.device))
-
-            self.variable_nodes[observed_node].add_fixed_input_message(input_message)
-
-            self.observed_nodes_input_messages.append(input_message)
-
-        # Update internal registries
+        # Configure nodes' input messages
         all_factor_graph_nodes: List[FactorGraphNodeBase] = [*self.factor_nodes.values(), *self.variable_nodes.values()]
         for factor_graph_node in all_factor_graph_nodes:
             factor_graph_node.configure_input_messages()
@@ -75,8 +65,9 @@ class FactorGraph:
         # evidence:
         # - len(evidence) = number of observed nodes
         # - torch.Tensor.shape = [number of trials, number of states]
-        for i, input_message in enumerate(self.observed_nodes_input_messages):
-            input_message.value = evidence[i]
+        for i, observed_node in enumerate(self.observed_nodes):
+            variable_node = self.variable_nodes[observed_node]
+            variable_node.observation_message.value = evidence[i]
 
     def iterate(self):
         # First evaluate factor nodes
@@ -136,42 +127,55 @@ class VariableNode(FactorGraphNodeBase):
     def __init__(
             self,
             num_observations: int,
-            num_states:int,
-            factor_node: 'FactorNode',
+            num_states: int,
+            corresponding_factor_node: 'FactorNode',
             is_leaf_node: bool,
+            is_observed: bool,
             device: torch.device,
             name=None):
         super().__init__(num_observations, num_states, device, name=name)
 
-        self.bias_messages: List[Message] = []
-        self.factor_node = factor_node
+        self.factor_node = corresponding_factor_node
         self.local_likelihood: torch.tensor = torch.nan
         self.is_leaf_node = is_leaf_node
+        self.is_observed = is_observed
+        self.observation_message: Union[Message, None] = \
+            Message(
+                source=None,
+                destination=self,
+                initial_value=torch.ones((self.num_observations, self.num_states), dtype=torch.double, device=self.device)) \
+            if self.is_observed \
+            else None
+
+    def configure_input_messages(self):
+        super().configure_input_messages()
+
+        if self.is_observed:
+            self.input_messages.append(self.observation_message)
 
     def add_output_message(self, destination: 'FactorNode'):
         self._add_output_message(destination)
 
     def calculate_output_values(self):
-        # [num_observations x num_inputs x num_states]
+        # all_input_tensors: [num_observations x num_inputs x num_states]
         all_input_tensors = torch.stack([
             input_message.value
             for input_message
             in self.input_messages
         ], dim=1)
 
-        # [num_observations]
-        c = all_input_tensors.prod(dim=1).sum(axis=1, keepdim=True)
-        self.local_likelihood = c.squeeze()
+        # local_likelihood: [num_observations]
+        self.local_likelihood = all_input_tensors.prod(dim=1).sum(axis=1)
 
-        if self.is_leaf_node:
+        if self.is_leaf_node and not self.is_observed:
             [output_message] = self.output_messages
             output_message.value = torch.ones(
                 (self.num_observations, self.num_states),
                 dtype=torch.double,
-                device=self.device) / c
+                device=self.device) / self.local_likelihood[:, None]
         else:
             for output_message in self.output_messages:
-                # [num_observations x num_inputs x num_states]
+                # input_tensors: [num_observations x num_inputs x num_states]
                 input_tensors = torch.stack([
                     input_message.value
                     for input_message
@@ -183,19 +187,11 @@ class VariableNode(FactorGraphNodeBase):
                 result = input_tensors.prod(dim=1)
 
                 if output_message.destination is self.factor_node:
-                    result /= c
+                    result /= self.local_likelihood[:, None]
                 else:
                     result /= result.sum(axis=1, keepdim=True)
 
                 output_message.value = result
-
-    def add_fixed_input_message(self, message: 'Message'):
-        self.bias_messages.append(message)
-
-    def configure_input_messages(self):
-        super().configure_input_messages()
-
-        self.input_messages += self.bias_messages
 
 
 class FactorNode(FactorGraphNodeBase):
@@ -258,4 +254,3 @@ class Message:
         self.source = source
         self.destination = destination
         self.value: torch.Tensor = initial_value
-        self.new_value: torch.Tensor = initial_value
