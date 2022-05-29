@@ -1,4 +1,3 @@
-import string
 from abc import abstractmethod
 from typing import Union, List, Dict
 
@@ -18,9 +17,13 @@ class FactorGraph:
         self.observed_nodes_input_messages: List[Message] = []
 
         # Instantiate nodes
-        self.factor_nodes: Dict[Node, FactorNode] = {node: FactorNode(self.device, node, name=node.name) for node in bayesian_network.nodes}
+        self.factor_nodes: Dict[Node, FactorNode] = {
+            node: FactorNode(node.cpt, self.num_observations, self.device, name=node.name)
+            for node
+            in bayesian_network.nodes
+        }
         self.variable_nodes: Dict[Node, VariableNode] = {
-            node: VariableNode(factor_node=self.factor_nodes[node], name=node.name)
+            node: VariableNode(self.num_observations, node.num_states, factor_node=self.factor_nodes[node], device=self.device, name=node.name)
             for node
             in bayesian_network.nodes
         }
@@ -30,37 +33,21 @@ class FactorGraph:
             variable_node = self.variable_nodes[node]
             factor_node = self.factor_nodes[node]
 
-            ### Variable nodes
-            # To children
+            ### Variable node
+            # To children's factor nodes
             for child in bayesian_network.children[node]:
-                message = Message(
-                    source=variable_node,
-                    destination=self.factor_nodes[child],
-                    initial_value=torch.ones((self.num_observations, node.num_states), dtype=torch.float64, device=self.device))
-                variable_node.add_output_message(message)
+                variable_node.add_output_message(destination=self.factor_nodes[child])
 
             # To corresponding factor node
-            message = Message(
-                source=variable_node,
-                destination=factor_node,
-                initial_value=torch.ones((self.num_observations, node.num_states), dtype=torch.float64, device=self.device))
-            variable_node.add_output_message(message)
+            variable_node.add_output_message(factor_node)
 
-            ### Factor nodes
-            # To children
+            ### Factor node
+            # To parents' variable nodes
             for parent in bayesian_network.parents[node]:
-                message = Message(
-                    source=factor_node,
-                    destination=self.variable_nodes[parent],
-                    initial_value=torch.ones((self.num_observations, parent.num_states), dtype=torch.float64, device=self.device))
-                factor_node.add_output_message(message)
+                factor_node.add_output_message(self.variable_nodes[parent])
 
             # To corresponding variable node
-            message = Message(
-                source=factor_node,
-                destination=variable_node,
-                initial_value=torch.ones((self.num_observations, node.num_states), dtype=torch.float64, device=self.device))
-            factor_node.add_output_message(message)
+            factor_node.add_output_message(variable_node)
 
         # Bias inputs for leaf nodes
         for leaf_node in [node for node in bayesian_network.nodes if bayesian_network.is_leaf_node(node)]:
@@ -82,16 +69,10 @@ class FactorGraph:
 
             self.observed_nodes_input_messages.append(input_message)
 
-        # Configure root factor nodes to broadcast to number of observations
-        for root_node in bayesian_network.root_nodes:
-            self.factor_nodes[root_node].set_broadcast(self.num_observations)
-
         # Update internal registries
-        for variable_node in self.variable_nodes.values():
-            variable_node.configure_input_messages()
-
-        for factor_node in self.factor_nodes.values():
-            factor_node.configure_input_messages()
+        all_factor_graph_nodes: List[FactorGraphNodeBase] = [*self.factor_nodes.values(), *self.variable_nodes.values()]
+        for factor_graph_node in all_factor_graph_nodes:
+            factor_graph_node.configure_input_messages()
 
     def enter_evidence(self, evidence: List[torch.Tensor]):
         # evidence:
@@ -101,9 +82,11 @@ class FactorGraph:
             input_message.value = evidence[i]
 
     def iterate(self):
+        # First evaluate factor nodes
         for factor_node in self.factor_nodes.values():
             factor_node.calculate_output_values()
 
+        # Then variable nodes
         for variable_node in self.variable_nodes.values():
             variable_node.calculate_output_values()
 
@@ -114,14 +97,27 @@ class FactorGraphNodeBase:
             if self.name is None \
             else f'{type(self).__name__} - {self.name}'
 
-    def __init__(self, name=None):
+    def __init__(self, num_observations: int, num_states: int, device: torch.device, name=None):
         self.name = name
+        self.num_observations = num_observations
+        self.num_states = num_states
+        self.device = device
 
         self.output_messages: List[Message] = []
         self.input_messages: List[Message] = []
 
-    def add_output_message(self, message: 'Message'):
-        self.output_messages.append(message)
+    def _add_output_message(self, destination: 'FactorGraphNodeBase'):
+        initial_value = torch.ones(
+            (self.num_observations, self.num_states),
+            dtype=torch.float64,
+            device=self.device) / self.num_states
+
+        output_message = Message(
+            source=self,
+            destination=destination,
+            initial_value=initial_value)
+
+        self.output_messages.append(output_message)
 
     def configure_input_messages(self):
         for output_message in self.output_messages:
@@ -140,12 +136,15 @@ class FactorGraphNodeBase:
 
 
 class VariableNode(FactorGraphNodeBase):
-    def __init__(self, factor_node: 'FactorNode', name=None):
-        super().__init__(name=name)
+    def __init__(self, num_observations: int, num_states:int, factor_node: 'FactorNode', device: torch.device, name=None):
+        super().__init__(num_observations, num_states, device, name=name)
 
         self.bias_messages: List[Message] = []
         self.factor_node = factor_node
         self.local_likelihood: torch.tensor = torch.nan
+
+    def add_output_message(self, destination: 'FactorNode'):
+        self._add_output_message(destination)
 
     def calculate_output_values(self):
         all_input_tensors = [
@@ -183,11 +182,14 @@ class VariableNode(FactorGraphNodeBase):
 
 
 class FactorNode(FactorGraphNodeBase):
-    def __init__(self, device: torch.device, node: Node, name=None):
-        super().__init__(name)
+    def __init__(self, cpt: torch.Tensor, num_observations: int, device: torch.device, name=None):
+        super().__init__(num_observations, num_states=cpt.shape[-1], device=device, name=name)
 
-        self.cpt = node.cpt
-        self.num_observations = None
+        self.cpt = cpt
+        self.is_root_node = len(cpt.shape) == 1
+
+    def add_output_message(self, destination: 'VariableNode'):
+        self._add_output_message(destination)
 
     def calculate_output_values(self):
         for (i, output_message) in enumerate(self.output_messages):
@@ -220,14 +222,11 @@ class FactorNode(FactorGraphNodeBase):
             result = torch.einsum(*equation)
 
             # If root node, manually broadcast to number of observations
-            if self.num_observations:
+            if self.is_root_node:
                 result = result.repeat((self.num_observations, 1))
 
             # Set new value for output message
             output_message.value = result
-
-    def set_broadcast(self, num_observations: int):
-        self.num_observations = num_observations
 
 
 class Message:
