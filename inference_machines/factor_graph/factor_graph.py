@@ -153,7 +153,7 @@ class VariableNode(FactorGraphNodeBase):
             in self.input_messages
         ]
 
-        self.local_likelihood = torch.stack(all_input_tensors).prod(dim=0).sum(axis=1, keepdim=True)
+        self.local_likelihood = torch.stack(all_input_tensors, dim=1).prod(dim=1).sum(axis=1, keepdim=True)
 
         for output_message in self.output_messages:
             input_tensors = [
