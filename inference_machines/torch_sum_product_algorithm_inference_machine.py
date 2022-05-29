@@ -16,7 +16,6 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
                  num_observations: int,
                  callback: Callable[[FactorGraph, int], None]):
         self.device = device
-        self.bayesian_network = bayesian_network
         self.factor_graph = FactorGraph(
             bayesian_network,
             observed_nodes,
@@ -95,7 +94,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         self.must_iterate = False
 
     def enter_evidence(self, evidence: torch.Tensor):
-        # evidence.shape = [num_observations, num_observed_nodes], label-encoded
+        # evidence.shape: [num_observations x num_observed_nodes], label-encoded
         if evidence.shape[0] != self.num_observations:
             raise Exception(f'First dimension of evidence should match num_observations ({self.num_observations}), but is {evidence.shape[0]}')
 
