@@ -43,6 +43,11 @@ class TestNetworkWithSingleParentsCpu(TorchNaiveInferenceMachineTestBase.TorchNa
     pass
 
 
+class TestComplexNetworkWithSingleParentsCpu(TorchNaiveInferenceMachineTestBase.TorchNaiveInferenceMachineTestBaseCpu,
+                                             TorchInferenceMachineBaseTests.ComplexNetworkWithSingleParents):
+    pass
+
+
 class TestNetworkWithMultipleParentsCpu(TorchNaiveInferenceMachineTestBase.TorchNaiveInferenceMachineTestBaseCpu,
                                         TorchInferenceMachineBaseTests.NetworkWithMultipleParents):
     pass
@@ -51,6 +56,11 @@ class TestNetworkWithMultipleParentsCpu(TorchNaiveInferenceMachineTestBase.Torch
 # Run all tests for cuda
 class TestNetworkWithSingleParentsCuda(TorchNaiveInferenceMachineTestBase.TorchNaiveInferenceMachineTestBaseCuda,
                                        TorchInferenceMachineBaseTests.NetworkWithSingleParents):
+    pass
+
+
+class TestComplexNetworkWithSingleParentsCuda(TorchNaiveInferenceMachineTestBase.TorchNaiveInferenceMachineTestBaseCuda,
+                                              TorchInferenceMachineBaseTests.ComplexNetworkWithSingleParents):
     pass
 
 

@@ -120,12 +120,12 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         if self.must_iterate:
             self._iterate()
 
-        log_likelihoods = [
+        local_likelihoods = [
             node.local_likelihood
             for node
             in self.factor_graph.variable_nodes.values()
         ]
 
-        log_likelihood_total = torch.log(torch.stack(log_likelihoods)).sum()
+        log_likelihood_total = torch.log(torch.stack(local_likelihoods)).sum()
 
         return log_likelihood_total

@@ -46,10 +46,18 @@ class TestNetworkWithSingleParentsCpu(TorchSumProductAlgorithmInferenceMachineTe
     pass
 
 
+class TestComplexNetworkWithSingleParentsCpu(TorchSumProductAlgorithmInferenceMachineTestBase.TorchSumProductAlgorithmInferenceMachineTestBaseCpu,
+                                             TorchInferenceMachineBaseTests.ComplexNetworkWithSingleParents):
+    pass
+
+
 # Run all tests for cuda
 class TestNetworkWithSingleParentsCuda(TorchSumProductAlgorithmInferenceMachineTestBase.TorchSumProductAlgorithmInferenceMachineTestBaseCuda,
                                        TorchInferenceMachineBaseTests.NetworkWithSingleParents):
     pass
 
 
+class TestComplexNetworkWithSingleParentsCuda(TorchSumProductAlgorithmInferenceMachineTestBase.TorchSumProductAlgorithmInferenceMachineTestBaseCuda,
+                                              TorchInferenceMachineBaseTests.ComplexNetworkWithSingleParents):
+    pass
 
