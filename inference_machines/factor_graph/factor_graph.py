@@ -164,7 +164,7 @@ class VariableNode(FactorGraphNodeBase):
                 if input_message.source is not output_message.destination
             ]
 
-            result = torch.stack(input_tensors).prod(dim=0)
+            result = torch.stack(input_tensors, dim=1).prod(dim=1)
 
             if output_message.destination is self.factor_node:
                 result /= self.local_likelihood
