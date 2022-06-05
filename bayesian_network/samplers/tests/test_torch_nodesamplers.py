@@ -5,8 +5,8 @@ from unittest import TestCase
 import torch
 from scipy import stats
 
-from src.model.bayesian_network import Node
-from src.samplers.torch_sampler import NodeSampler
+from bayesian_network.bayesian_network import Node
+from bayesian_network.samplers.torch_sampler import NodeSampler
 
 
 class TorchNodeSamplerTestBase:

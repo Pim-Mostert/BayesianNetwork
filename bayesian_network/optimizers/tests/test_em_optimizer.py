@@ -4,11 +4,11 @@ from unittest import TestCase
 
 import torch
 
-from src.common.statistics import generate_random_probability_matrix
-from src.inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
-from src.model.bayesian_network import BayesianNetwork, Node
-from src.optimizers.em_optimizer import EmOptimizer
-from src.samplers.torch_sampler import TorchBayesianNetworkSampler
+from bayesian_network.common.statistics import generate_random_probability_matrix
+from bayesian_network.inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
+from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.optimizers.em_optimizer import EmOptimizer
+from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
 
 
 class EmOptimizerTestBase:

@@ -2,7 +2,7 @@ from typing import List, Dict
 
 import torch
 
-from src.common.statistics import is_valid_probability_matrix
+from bayesian_network.common.statistics import is_valid_probability_matrix
 
 
 class Node:

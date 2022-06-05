@@ -3,9 +3,9 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/venv" />
-      <excludeFolder url="file://$MODULE_DIR$/src/bayesiannetwork.egg-info" />
-      <excludeFolder url="file://$MODULE_DIR$/src/pim_bayesiannetwork.egg-info" />
       <excludeFolder url="file://$MODULE_DIR$/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/bayesian_network/pim_bayesiannetwork.egg-info" />
+      <excludeFolder url="file://$MODULE_DIR$/bayesian_network/bayesiannetwork.egg-info" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

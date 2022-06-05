@@ -6,8 +6,8 @@ import torch
 from scipy import stats
 from torch import flatten
 
-from src.model.bayesian_network import BayesianNetwork, Node
-from src.samplers.torch_sampler import TorchBayesianNetworkSampler
+from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
 
 
 class TorchSamplerTestsBase:
