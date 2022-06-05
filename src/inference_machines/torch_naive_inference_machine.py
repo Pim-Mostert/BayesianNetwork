@@ -2,8 +2,8 @@ from typing import List, Dict
 
 import torch
 
-from model.bayesian_network import BayesianNetwork, Node
-from model.interfaces import IInferenceMachine
+from src.model.bayesian_network import BayesianNetwork, Node
+from src.model.interfaces import IInferenceMachine
 
 
 class TorchNaiveInferenceMachine(IInferenceMachine):

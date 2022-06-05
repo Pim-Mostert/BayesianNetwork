@@ -3,9 +3,9 @@ from typing import List
 
 import torch
 
-from inference_machines.tests.torch_inference_machine_base_tests import TorchInferenceMachineBaseTests
-from inference_machines.torch_sum_product_algorithm_inference_machine import TorchSumProductAlgorithmInferenceMachine
-from model.bayesian_network import BayesianNetwork, Node
+from src.inference_machines.tests.torch_inference_machine_base_tests import TorchInferenceMachineBaseTests
+from src.inference_machines.torch_sum_product_algorithm_inference_machine import TorchSumProductAlgorithmInferenceMachine
+from src.model.bayesian_network import BayesianNetwork, Node
 
 
 # Helper classes

@@ -2,14 +2,13 @@ from abc import abstractmethod
 from typing import List
 from unittest import TestCase
 
-import numpy as np
 import torch
 
-from common.statistics import generate_random_probability_matrix
-from inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
-from model.bayesian_network import BayesianNetwork, Node
-from optimizers.em_optimizer import EmOptimizer
-from samplers.torch_sampler import TorchBayesianNetworkSampler
+from src.common.statistics import generate_random_probability_matrix
+from src.inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
+from src.model.bayesian_network import BayesianNetwork, Node
+from src.optimizers.em_optimizer import EmOptimizer
+from src.samplers.torch_sampler import TorchBayesianNetworkSampler
 
 
 class EmOptimizerTestBase:

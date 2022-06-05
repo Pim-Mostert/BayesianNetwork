@@ -2,9 +2,9 @@ from typing import List, Callable
 
 import torch
 
-from inference_machines.factor_graph.factor_graph import FactorGraph
-from model.bayesian_network import BayesianNetwork, Node
-from model.interfaces import IInferenceMachine
+from src.inference_machines.factor_graph.factor_graph import FactorGraph
+from src.model.bayesian_network import BayesianNetwork, Node
+from src.model.interfaces import IInferenceMachine
 
 
 class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):

@@ -3,7 +3,7 @@ from typing import List
 
 import torch
 
-from model.bayesian_network import Node
+from src.model.bayesian_network import Node
 
 
 class IBayesianNetworkSampler(ABC):

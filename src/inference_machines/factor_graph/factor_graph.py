@@ -3,7 +3,7 @@ from typing import Union, List, Dict
 
 import torch
 
-from model.bayesian_network import BayesianNetwork, Node
+from src.model.bayesian_network import BayesianNetwork, Node
 
 
 class FactorGraph:

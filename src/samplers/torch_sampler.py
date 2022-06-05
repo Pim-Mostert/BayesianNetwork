@@ -2,8 +2,8 @@ from typing import List, Dict
 
 import torch
 
-from model.interfaces import IBayesianNetworkSampler
-from model.bayesian_network import BayesianNetwork, Node
+from src.model.interfaces import IBayesianNetworkSampler
+from src.model.bayesian_network import BayesianNetwork, Node
 
 
 class TorchBayesianNetworkSampler(IBayesianNetworkSampler):

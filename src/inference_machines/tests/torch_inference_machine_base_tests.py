@@ -3,10 +3,10 @@ from typing import List
 
 import torch
 
-from common.statistics import generate_random_probability_matrix
-from common.testcase_extensions import TestCaseExtended
-from model.bayesian_network import BayesianNetwork, Node
-from model.interfaces import IInferenceMachine
+from src.common.statistics import generate_random_probability_matrix
+from src.common.testcase_extensions import TestCaseExtended
+from src.model.bayesian_network import BayesianNetwork, Node
+from src.model.interfaces import IInferenceMachine
 
 
 class TorchInferenceMachineBaseTests:

@@ -1,12 +1,11 @@
 import torch
 # import matplotlib.pyplot as plt
 
-from common.utilities import Cfg
-from inference_machines.factor_graph.factor_graph import FactorGraph
-from inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
-from inference_machines.torch_sum_product_algorithm_inference_machine import TorchSumProductAlgorithmInferenceMachine
-from model.bayesian_network import BayesianNetwork
-from model.nodes import CPTNode
+from src.common import Cfg
+from src.inference_machines import TorchNaiveInferenceMachine
+from src.inference_machines.torch_sum_product_algorithm_inference_machine import TorchSumProductAlgorithmInferenceMachine
+from src.model import BayesianNetwork
+from src.model import CPTNode
 
 torch_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
