@@ -1,0 +1,9 @@
+{
+    "markdown-preview-enhanced.mathInlineDelimiters": [
+        [
+            "$`",
+            "`$"
+        ]
+    ],
+    "markdown-preview-enhanced.scrollSync": false    
+}
