@@ -26,7 +26,7 @@ class BayesianNetwork:
         self.parents = parents
         self.num_nodes = len(self.nodes)
 
-        self.children = {
+        self.children: Dict[Node, List[Node]] = {
             node: [child for child in self.nodes if node in self.parents[child]]
             for node in self.nodes
         }
