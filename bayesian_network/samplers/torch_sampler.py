@@ -12,7 +12,7 @@ class TorchBayesianNetworkSampler(IBayesianNetworkSampler):
         self.bayesian_network = bayesian_network
 
         self.samplers: Dict[Node, NodeSampler] = {
-            node: NodeSampler(node, device=self.device)
+            node: NodeSampler(node)
             for node
             in bayesian_network.nodes
         }
@@ -45,8 +45,8 @@ class TorchBayesianNetworkSampler(IBayesianNetworkSampler):
 
 
 class NodeSampler:
-    def __init__(self, node: Node, device: torch.device):
-        self.cpt = torch.tensor(node.cpt, device=device)
+    def __init__(self, node: Node):
+        self.cpt = node.cpt
 
     def sample(self, parents_states: torch.tensor) -> torch.tensor:
         p = self.cpt[tuple(parents_states)]

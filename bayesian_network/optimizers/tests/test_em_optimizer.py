@@ -18,11 +18,11 @@ class EmOptimizerTestBase:
             pass
 
         def _generate_random_network(self) -> (BayesianNetwork, List[Node]):
-            cpt1 = torch.tensor(generate_random_probability_matrix((2), device=self.get_torch_device()), dtype=torch.double, device=self.get_torch_device())
-            cpt2 = torch.tensor(generate_random_probability_matrix((2, 3), device=self.get_torch_device()), dtype=torch.double, device=self.get_torch_device())
-            cpt3_1 = torch.tensor(generate_random_probability_matrix((2, 3, 4), device=self.get_torch_device()), dtype=torch.double, device=self.get_torch_device())
-            cpt3_2 = torch.tensor(generate_random_probability_matrix((2, 5), device=self.get_torch_device()), dtype=torch.double, device=self.get_torch_device())
-            cpt3_3 = torch.tensor(generate_random_probability_matrix((3, 6), device=self.get_torch_device()), dtype=torch.double, device=self.get_torch_device())
+            cpt1 = generate_random_probability_matrix((2), device=self.get_torch_device())
+            cpt2 = generate_random_probability_matrix((2, 3), device=self.get_torch_device())
+            cpt3_1 = generate_random_probability_matrix((2, 3, 4), device=self.get_torch_device())
+            cpt3_2 = generate_random_probability_matrix((2, 5), device=self.get_torch_device())
+            cpt3_3 = generate_random_probability_matrix((3, 6), device=self.get_torch_device())
             Q1 = Node(cpt1, name='Q1')
             Q2 = Node(cpt2, name='Q2')
             Y1 = Node(cpt3_1, name='Y1')

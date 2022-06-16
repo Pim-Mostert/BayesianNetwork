@@ -284,36 +284,28 @@ class TorchInferenceMachineGenericTests:
             super().setUp()
 
             self.Q1 = Node(
-                torch.tensor(generate_random_probability_matrix((2), device=self.get_torch_device()),
-                             dtype=torch.double),
+                generate_random_probability_matrix((2), device=self.get_torch_device()),
                 name='Q1')
             self.Q2 = Node(
-                torch.tensor(generate_random_probability_matrix((2, 3), device=self.get_torch_device()),
-                             dtype=torch.double),
+                generate_random_probability_matrix((2, 3), device=self.get_torch_device()),
                 name='Q2')
             self.Q3 = Node(
-                torch.tensor(generate_random_probability_matrix((3, 2), device=self.get_torch_device()),
-                             dtype=torch.double),
+                generate_random_probability_matrix((3, 2), device=self.get_torch_device()),
                 name='Q3')
             self.Y1 = Node(
-                torch.tensor(generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
-                             dtype=torch.double),
+                generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
                 name='Y1')
             self.Y2 = Node(
-                torch.tensor(generate_random_probability_matrix((3, 3), device=self.get_torch_device()),
-                             dtype=torch.double),
+                generate_random_probability_matrix((3, 3), device=self.get_torch_device()),
                 name='Y2')
             self.Y3 = Node(
-                torch.tensor(generate_random_probability_matrix((3, 4), device=self.get_torch_device()),
-                             dtype=torch.double),
+                generate_random_probability_matrix((3, 4), device=self.get_torch_device()),
                 name='Y3')
             self.Y4 = Node(
-                torch.tensor(generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
-                             dtype=torch.double),
+                generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
                 name='Y4')
             self.Y5 = Node(
-                torch.tensor(generate_random_probability_matrix((2, 3), device=self.get_torch_device()),
-                             dtype=torch.double),
+                generate_random_probability_matrix((2, 3), device=self.get_torch_device()),
                 name='Y5')
 
             nodes = [self.Q1, self.Q2, self.Q3, self.Y1, self.Y2, self.Y3, self.Y4, self.Y5]

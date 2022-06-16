@@ -25,7 +25,7 @@ class TorchNodeSamplerTestBase:
             node = Node(p_true)
 
             # Act
-            sut = NodeSampler(node, device=self.get_torch_device())
+            sut = NodeSampler(node)
 
             samples = torch.empty(self.num_samples)
             for i in range(self.num_samples):

@@ -32,8 +32,7 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
                 parent_index = self.node_to_index[parent]
                 new_shape[parent_index] = parent.num_states
 
-            p_node = torch.tensor(node.cpt, device=self.device) \
-                .reshape(new_shape)
+            p_node = node.cpt.reshape(new_shape)
 
             p *= p_node
 
