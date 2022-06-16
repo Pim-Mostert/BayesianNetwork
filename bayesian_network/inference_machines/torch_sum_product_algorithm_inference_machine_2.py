@@ -51,14 +51,14 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
     def _infer_node_with_parents(self, child: Node) -> torch.Tensor:
         child_factor_node = self.factor_graph.factor_nodes[child]
-        num_inputs = len(child_factor_node.inputs)
+        num_inputs = len(child_factor_node._all_inputs)
 
         # Example einsum equation for three inputs:
         # 'ni, nj, nk, ijk->nijk', x1, x2, x3, cpt
         # x1, [..., 0], x2, [..., 1], x3, [..., 2], cpt, [..., 0, 1, 2], [..., 0, 1, 2]
         def einsum_equation_generator():
             # Each input used to calculate current output
-            for index, input in enumerate(child_factor_node.inputs):
+            for index, input in enumerate(child_factor_node._all_inputs):
                 yield input
                 yield [..., index]
 

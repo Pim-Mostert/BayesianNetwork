@@ -106,32 +106,42 @@ class FactorNode(FactorGraphNodeBase):
         if num_observations == 0:
             num_observations = 1
 
-        self.inputs: List[torch.Tensor] = [
+        self._all_inputs: List[torch.Tensor] = [
             torch.ones((num_observations, input_num_states), dtype=torch.double, device=device) / input_num_states
             for input_num_states
             in inputs_num_states
         ]
-        self.outputs: List[torch.Tensor] = \
+        self.inputs_from_remote_variable_nodes = self._all_inputs[:-1]
+        self.input_from_local_variable_node = self._all_inputs[-1]
+        self._all_outputs: List[torch.Tensor] = \
         [
             torch.empty(())         # Placeholder
             for _ in range(num_inputs)
         ]
+        self.output_to_local_variable_node = self._all_outputs[-1]
+        self.outputs_to_remote_variable_nodes = self._all_outputs[:-1]
         self.cpt = cpt
 
         self.einsum_equations: List[List] = [
             self._construct_einsum_equations_for_output(output_index)
             for output_index, _
-            in enumerate(self.outputs)
+            in enumerate(self._all_outputs)
         ]
 
+    def configure_output_to_local_variable_node(self, input):
+        self.configure_output_to_remote_variable_node(-1, input)
+
+    def configure_output_to_remote_variable_node(self, output_index, input):
+        self._all_outputs[output_index] = input
+
     def _construct_einsum_equations_for_output(self, output_index: int) -> List:
-        all_indices = range(len(self.outputs))
+        all_indices = range(len(self._all_outputs))
 
         # Get all inputs with indices, except for the input corresponding to current output
         inputs_with_indices = (
             (input, index)
             for input, index
-            in zip(self.inputs, all_indices)
+            in zip(self._all_inputs, all_indices)
             if index != output_index
         )
 
@@ -155,7 +165,7 @@ class FactorNode(FactorGraphNodeBase):
         return einsum_equation
 
     def calculate_outputs(self) -> None:
-        for output, einsum_equation in zip(self.outputs, self.einsum_equations):
+        for output, einsum_equation in zip(self._all_outputs, self.einsum_equations):
             output[:] = torch.einsum(*einsum_equation)
 
 
@@ -199,27 +209,28 @@ class FactorGraph:
             variable_node = self.variable_nodes[node]
             factor_node = self.factor_nodes[node]
 
-            ### Variable nodes
+            # ### Variable nodes
             # Corresponding factor node
-            variable_node.output_with_indices_to_local_factor_node.output = factor_node.inputs[-1]
+            variable_node.output_with_indices_to_local_factor_node.output = factor_node.input_from_local_variable_node
 
             # Child factor nodes
             child_nodes = bayesian_network.children[node]
             for child_node, outputs_with_input_indices in zip(child_nodes, variable_node.outputs_with_indices_to_remote_factor_nodes):
                 child_factor_node = self.factor_nodes[child_node]
                 child_input_index = bayesian_network.parents[child_node].index(node)
-                outputs_with_input_indices.output = child_factor_node.inputs[child_input_index]
+                outputs_with_input_indices.output = child_factor_node.inputs_from_remote_variable_nodes[child_input_index]
 
-            ### Factor nodes
+            # ### Factor nodes
             # Parent variable nodes
             parent_nodes = bayesian_network.parents[node]
             for i, parent_node in enumerate(parent_nodes):
                 parent_variable_node = self.variable_nodes[parent_node]
-                parent_input_index = bayesian_network.children[parent_node].index(node)
-                factor_node.outputs[i] = parent_variable_node._all_inputs[parent_input_index]
+                child_index = bayesian_network.children[parent_node].index(node)
+                input_from_parent_variable_node = parent_variable_node.input_from_remote_factor_nodes[child_index]
+                factor_node.configure_output_to_remote_variable_node(i, input_from_parent_variable_node)
 
             # Corresponding variable node
-            factor_node.outputs[-1] = variable_node._all_inputs[-1]
+            factor_node.configure_output_to_local_variable_node(variable_node.input_from_local_factor_node)
 
     def iterate(self) -> None:
         for variable_node in self.variable_nodes.values():
@@ -231,4 +242,4 @@ class FactorGraph:
     def enter_evidence(self, evidence):
         for observed_node, observations in zip(self.observed_nodes, evidence):
             variable_node = self.variable_nodes[observed_node]
-            variable_node._all_inputs[-2] = observations
+            variable_node.set_observations(observations)
