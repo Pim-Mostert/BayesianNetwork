@@ -37,7 +37,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         variable_node = self.factor_graph.variable_nodes[node]
 
         value_to_factor_node = variable_node.output_with_indices_to_local_factor_node.output
-        value_from_factor_node = variable_node._all_inputs[-1]
+        value_from_factor_node = variable_node.input_from_local_factor_node
 
         p = value_from_factor_node * value_to_factor_node
 
@@ -107,6 +107,6 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         if self.must_iterate:
             self._iterate()
 
-        log_likelihood = torch.log(self.factor_graph.c).sum()
+        log_likelihood = torch.log(self.factor_graph.local_likelihoods).sum()
 
         return log_likelihood
