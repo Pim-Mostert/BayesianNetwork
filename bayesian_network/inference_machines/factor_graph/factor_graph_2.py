@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import Union, List, Dict, Optional
+from typing import List, Dict, Optional
 
 import torch
 
@@ -106,13 +106,13 @@ class FactorNode(FactorGraphNodeBase):
         if num_observations == 0:
             num_observations = 1
 
-        self._all_inputs: List[torch.Tensor] = [
+        self.all_inputs: List[torch.Tensor] = [
             torch.ones((num_observations, input_num_states), dtype=torch.double, device=device) / input_num_states
             for input_num_states
             in inputs_num_states
         ]
-        self.inputs_from_remote_variable_nodes = self._all_inputs[:-1]
-        self.input_from_local_variable_node = self._all_inputs[-1]
+        self.inputs_from_remote_variable_nodes = self.all_inputs[:-1]
+        self.input_from_local_variable_node = self.all_inputs[-1]
         self._all_outputs: List[torch.Tensor] = \
         [
             torch.empty(())         # Placeholder
@@ -141,7 +141,7 @@ class FactorNode(FactorGraphNodeBase):
         inputs_with_indices = (
             (input, index)
             for input, index
-            in zip(self._all_inputs, all_indices)
+            in zip(self.all_inputs, all_indices)
             if index != output_index
         )
 

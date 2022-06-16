@@ -1,9 +1,9 @@
-from typing import List, Callable
+from typing import List, Callable, Dict
 
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.inference_machines.factor_graph.factor_graph_2 import FactorGraph
+from bayesian_network.inference_machines.factor_graph.factor_graph_2 import FactorGraph, FactorNode
 from bayesian_network.interfaces import IInferenceMachine
 
 
@@ -26,6 +26,11 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         self.observed_nodes = observed_nodes
         self.num_observations = num_observations
         self.must_iterate: bool = True
+        self.einsum_equations_per_node: Dict[Node, List] = {
+            node: self._construct_einsum_equation_for_node(node)
+            for node
+            in bayesian_network.nodes
+        }
 
     def infer_single_nodes(self, nodes: List[Node]) -> List[torch.Tensor]:
         if self.must_iterate:
@@ -43,33 +48,14 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
         return p
 
-    def infer_nodes_with_parents(self, children: List[Node]) -> List[torch.Tensor]:
+    def infer_nodes_with_parents(self, nodes: List[Node]) -> List[torch.Tensor]:
         if self.must_iterate:
             self._iterate()
 
-        return [self._infer_node_with_parents(child) for child in children]
+        return [self._infer_node_with_parents(node) for node in nodes]
 
-    def _infer_node_with_parents(self, child: Node) -> torch.Tensor:
-        child_factor_node = self.factor_graph.factor_nodes[child]
-        num_inputs = len(child_factor_node._all_inputs)
-
-        # Example einsum equation for three inputs:
-        # 'ni, nj, nk, ijk->nijk', x1, x2, x3, cpt
-        # x1, [..., 0], x2, [..., 1], x3, [..., 2], cpt, [..., 0, 1, 2], [..., 0, 1, 2]
-        def einsum_equation_generator():
-            # Each input used to calculate current output
-            for index, input in enumerate(child_factor_node._all_inputs):
-                yield input
-                yield [..., index]
-
-            # Cpt of the factor node
-            yield child_factor_node.cpt
-            yield [..., *range(num_inputs)]
-
-            # Desired output dimensions
-            yield [..., *range(num_inputs)]
-
-        p = torch.einsum(*einsum_equation_generator())
+    def _infer_node_with_parents(self, node: Node) -> torch.Tensor:
+        p = torch.einsum(*self.einsum_equations_per_node[node])
 
         return p
 
@@ -110,3 +96,28 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         log_likelihood = torch.log(self.factor_graph.local_likelihoods).sum()
 
         return log_likelihood
+
+    def _construct_einsum_equation_for_node(self, node: Node) -> List:
+        factor_node = self.factor_graph.factor_nodes[node]
+        num_inputs = len(factor_node.all_inputs)
+
+        # Example einsum equation for three inputs:
+        # 'ni, nj, nk, ijk->nijk', x1, x2, x3, cpt
+        # x1, [..., 0], x2, [..., 1], x3, [..., 2], cpt, [..., 0, 1, 2], [..., 0, 1, 2]
+        einsum_equation = []
+
+        # Each input used to calculate current output
+        for index, input in enumerate(factor_node.all_inputs):
+            einsum_equation.append(input)
+            einsum_equation.append([..., index])
+
+        # Cpt of the factor node
+        einsum_equation.append(factor_node.cpt)
+        einsum_equation.append([..., *range(num_inputs)])
+
+        # Desired output dimensions
+        einsum_equation.append([..., *range(num_inputs)])
+
+        return einsum_equation
+
+
