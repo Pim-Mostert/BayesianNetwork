@@ -118,29 +118,45 @@ class FactorNode(FactorGraphNodeBase):
         ]
         self.cpt = cpt
 
+        self.einsum_equations: List[List] = [
+            self._construct_einsum_equations_for_output(output_index)
+            for output_index, _
+            in enumerate(self.outputs)
+        ]
+
+    def _construct_einsum_equations_for_output(self, output_index: int) -> List:
+        all_indices = range(len(self.outputs))
+
+        # Get all inputs with indices, except for the input corresponding to current output
+        inputs_with_indices = (
+            (input, index)
+            for input, index
+            in zip(self.inputs, all_indices)
+            if index != output_index
+        )
+
+        # Example einsum equation:
+        #   'na, nc, nd, abcd->nb', input0, input2, input3, cpt
+        #   [input0, [..., 0], input2, [..., 2], input3, [..., 3], cpt, [..., 0, 1, 2, 3], [..., 1]]
+        einsum_equation = []
+
+        # Each input used to calculate current output
+        for input, index in inputs_with_indices:
+            einsum_equation.append(input)
+            einsum_equation.append([..., index])
+
+        # Cpt of the factor node
+        einsum_equation.append(self.cpt)
+        einsum_equation.append([..., *all_indices])
+
+        # Desired output dimensions
+        einsum_equation.append([..., output_index])
+
+        return einsum_equation
+
     def calculate_outputs(self) -> None:
-        indices = range(len(self.outputs))
-
-        for i, output in enumerate(self.outputs):
-            indices_with_inputs = ((index, input) for index, input in zip(indices, self.inputs) if index != i)
-
-            # Example einsum equation:
-            #   'na, nc, nd, abcd->nb', input0, input2, input3, cpt
-            #   [input0, [..., 0], input2, [..., 2], input3, [..., 3], cpt, [..., 0, 1, 2, 3], [..., 1]]
-            def einsum_equation_generator():
-                # Each input used to calculate current output
-                for index, input in indices_with_inputs:
-                    yield input
-                    yield [..., index]
-
-                # Cpt of the factor node
-                yield self.cpt
-                yield [..., *indices]
-
-                # Desired output dimensions
-                yield [..., i]
-
-            output[:] = torch.einsum(*einsum_equation_generator())
+        for output, einsum_equation in zip(self.outputs, self.einsum_equations):
+            output[:] = torch.einsum(*einsum_equation)
 
 
 class FactorGraph:
