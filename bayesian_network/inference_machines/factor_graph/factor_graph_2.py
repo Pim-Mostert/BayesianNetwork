@@ -21,6 +21,11 @@ class FactorGraphNodeBase(ABC):
 
 
 class VariableNode(FactorGraphNodeBase):
+    class OutputWithInputIndices:
+        def __init__(self, output: torch.Tensor, input_indices: List[int]):
+            self.output = output
+            self.input_indices = input_indices
+
     def __init__(self,
                  device: torch.device,
                  num_observations: int,
@@ -39,8 +44,15 @@ class VariableNode(FactorGraphNodeBase):
             torch.ones((num_inputs, num_observations, num_states), dtype=torch.double, device=device) / num_states \
             if not is_observed \
             else torch.ones((num_inputs+1, num_observations, num_states), dtype=torch.double, device=device) / num_states
-        self.local_output: Optional[torch.Tensor] = None
-        self.other_outputs: List[Optional[torch.Tensor]] = [None] * (num_inputs - 1)
+        self.local_output: torch.Tensor = torch.empty(())      # Placeholder
+        self.outputs_with_input_indices: List[VariableNode.OutputWithInputIndices] = [
+            VariableNode.OutputWithInputIndices(
+                torch.empty(()),     # Placeholder for output tensor
+                [d for d in range(len(self.inputs)) if d != i]
+            )
+            for i
+            in range(num_inputs-1)
+        ]
         self.c = c
 
     def set_observations(self, observations: torch.Tensor) -> None:
@@ -51,10 +63,12 @@ class VariableNode(FactorGraphNodeBase):
         self.local_output[:] = self.inputs[:-1].prod(axis=0) / c
         self.c[:] = c.squeeze()
 
-        for i, other_output in enumerate(self.other_outputs):
-            indices = [d for d in range(len(self.inputs)) if d != i]
-            other_output[:] = self.inputs[indices].prod(dim=0)
-            other_output /= other_output.sum(dim=1, keepdim=True)
+        for output_with_input_indices in self.outputs_with_input_indices:
+            output = output_with_input_indices.output
+            input_indices = output_with_input_indices.input_indices
+
+            output[:] = self.inputs[input_indices].prod(dim=0)
+            output /= output.sum(dim=1, keepdim=True)
 
 
 class FactorNode(FactorGraphNodeBase):
@@ -153,7 +167,7 @@ class FactorGraph:
             for i, child_node in enumerate(child_nodes):
                 child_factor_node = self.factor_nodes[child_node]
                 child_input_index = bayesian_network.parents[child_node].index(node)
-                variable_node.other_outputs[i] = child_factor_node.inputs[child_input_index]
+                variable_node.outputs_with_input_indices[i].output = child_factor_node.inputs[child_input_index]
 
             ### Factor nodes
             # Parent variable nodes
