@@ -9,12 +9,12 @@ from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.interfaces import IInferenceMachine
 
 
-class TorchInferenceMachineBaseTests:
-    class TorchInferenceMachineBaseTestsBase(TestCaseExtended):
+class TorchInferenceMachineGenericTests:
+    class TorchInferenceMachineGenericTestsBase(TestCaseExtended, ABC):
         def setUp(self):
-            if self.get_torch_device() == torch.device('cuda'):
-                if not torch.cuda.is_available():
-                    self.skipTest('Cuda not available')
+            if self.get_torch_device() == torch.device('cuda') \
+                    and not torch.cuda.is_available():
+                self.skipTest("Skipping cuda tests because cuda is not available")
 
         @abstractmethod
         def get_torch_device(self) -> torch.device:
@@ -27,9 +27,9 @@ class TorchInferenceMachineBaseTests:
                                      num_observations: int) -> IInferenceMachine:
             pass
 
-    class NetworkWithSingleParents(TorchInferenceMachineBaseTestsBase, ABC):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+    class NetworkWithSingleParents(TorchInferenceMachineGenericTestsBase, ABC):
+        def setUp(self):
+            super().setUp()
 
             self.Q1 = Node(
                 generate_random_probability_matrix((2), device=self.get_torch_device()),
@@ -99,11 +99,14 @@ class TorchInferenceMachineBaseTests:
                 evidence_Q2[i_observations, evidence[i_observations, 1]] = 1
                 evidence_Y[i_observations, evidence[i_observations, 2]] = 1
 
-            p_Q1_expected = torch.einsum('i, ij, jk, ni, nj, nk->ni', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y)
+            p_Q1_expected = torch.einsum('i, ij, jk, ni, nj, nk->ni', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1,
+                                         evidence_Q2, evidence_Y)
             p_Q1_expected /= p_Q1_expected.sum(axis=(1), keepdims=True)
-            p_Q2_expected = torch.einsum('i, ij, jk, ni, nj, nk->nj', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y)
+            p_Q2_expected = torch.einsum('i, ij, jk, ni, nj, nk->nj', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1,
+                                         evidence_Q2, evidence_Y)
             p_Q2_expected /= p_Q2_expected.sum(axis=(1), keepdims=True)
-            p_Y_expected = torch.einsum('i, ij, jk, ni, nj, nk->nk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y)
+            p_Y_expected = torch.einsum('i, ij, jk, ni, nj, nk->nk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1,
+                                        evidence_Q2, evidence_Y)
             p_Y_expected /= p_Y_expected.sum(axis=(1), keepdims=True)
 
             # Act
@@ -135,7 +138,8 @@ class TorchInferenceMachineBaseTests:
                 evidence_Q2[i_observations, evidence[i_observations, 1]] = 1
                 evidence_Y[i_observations, evidence[i_observations, 2]] = 1
 
-            c = torch.einsum('i, ij, jk, ni, nj, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y) \
+            c = torch.einsum('i, ij, jk, ni, nj, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1,
+                             evidence_Q2, evidence_Y) \
                 .sum(axis=(1, 2, 3))
             ll_expected = torch.log(c).sum()
 
@@ -166,9 +170,11 @@ class TorchInferenceMachineBaseTests:
                 evidence_Q2[i_observations, evidence[i_observations, 1]] = 1
                 evidence_Y[i_observations, evidence[i_observations, 2]] = 1
 
-            p_Q1xQ2_expected = torch.einsum('i, ij, jk, ni, nj, nk->nij', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y)
+            p_Q1xQ2_expected = torch.einsum('i, ij, jk, ni, nj, nk->nij', self.Q1.cpt, self.Q2.cpt, self.Y.cpt,
+                                            evidence_Q1, evidence_Q2, evidence_Y)
             p_Q1xQ2_expected /= p_Q1xQ2_expected.sum(axis=(1, 2), keepdims=True)
-            p_Q2xY_expected = torch.einsum('i, ij, jk, ni, nj, nk->njk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y)
+            p_Q2xY_expected = torch.einsum('i, ij, jk, ni, nj, nk->njk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt,
+                                           evidence_Q1, evidence_Q2, evidence_Y)
             p_Q2xY_expected /= p_Q2xY_expected.sum(axis=(1, 2), keepdims=True)
 
             # Act
@@ -273,33 +279,41 @@ class TorchInferenceMachineBaseTests:
             self.assertArrayAlmostEqual(p_Q1xQ2_actual, p_Q1xQ2_expected)
             self.assertArrayAlmostEqual(p_Q2xY_actual, p_Q2xY_expected)
 
-    class ComplexNetworkWithSingleParents(TorchInferenceMachineBaseTestsBase, ABC):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+    class ComplexNetworkWithSingleParents(TorchInferenceMachineGenericTestsBase, ABC):
+        def setUp(self):
+            super().setUp()
 
             self.Q1 = Node(
-                torch.tensor(generate_random_probability_matrix((2), device=self.get_torch_device()), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((2), device=self.get_torch_device()),
+                             dtype=torch.double),
                 name='Q1')
             self.Q2 = Node(
-                torch.tensor(generate_random_probability_matrix((2, 3), device=self.get_torch_device()), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((2, 3), device=self.get_torch_device()),
+                             dtype=torch.double),
                 name='Q2')
             self.Q3 = Node(
-                torch.tensor(generate_random_probability_matrix((3, 2), device=self.get_torch_device()), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((3, 2), device=self.get_torch_device()),
+                             dtype=torch.double),
                 name='Q3')
             self.Y1 = Node(
-                torch.tensor(generate_random_probability_matrix((2, 2), device=self.get_torch_device()), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
+                             dtype=torch.double),
                 name='Y1')
             self.Y2 = Node(
-                torch.tensor(generate_random_probability_matrix((3, 3), device=self.get_torch_device()), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((3, 3), device=self.get_torch_device()),
+                             dtype=torch.double),
                 name='Y2')
             self.Y3 = Node(
-                torch.tensor(generate_random_probability_matrix((3, 4), device=self.get_torch_device()), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((3, 4), device=self.get_torch_device()),
+                             dtype=torch.double),
                 name='Y3')
             self.Y4 = Node(
-                torch.tensor(generate_random_probability_matrix((2, 2), device=self.get_torch_device()), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
+                             dtype=torch.double),
                 name='Y4')
             self.Y5 = Node(
-                torch.tensor(generate_random_probability_matrix((2, 3), device=self.get_torch_device()), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((2, 3), device=self.get_torch_device()),
+                             dtype=torch.double),
                 name='Y5')
 
             nodes = [self.Q1, self.Q2, self.Q3, self.Y1, self.Y2, self.Y3, self.Y4, self.Y5]
@@ -333,11 +347,17 @@ class TorchInferenceMachineBaseTests:
                 evidence_Y4[i_observation, evidence[i_observation, 3]] = 1
                 evidence_Y5[i_observation, evidence[i_observation, 4]] = 1
 
-            p_Q1_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->ni', self.Q1.cpt, self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+            p_Q1_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->ni', self.Q1.cpt,
+                                         self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt,
+                                         self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
             p_Q1_expected /= p_Q1_expected.sum(axis=(1), keepdims=True)
-            p_Q2_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nj', self.Q1.cpt, self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+            p_Q2_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nj', self.Q1.cpt,
+                                         self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt,
+                                         self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
             p_Q2_expected /= p_Q2_expected.sum(axis=(1), keepdims=True)
-            p_Q3_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nk', self.Q1.cpt, self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+            p_Q3_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nk', self.Q1.cpt,
+                                         self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt,
+                                         self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
             p_Q3_expected /= p_Q3_expected.sum(axis=(1), keepdims=True)
 
             # Act
@@ -357,7 +377,8 @@ class TorchInferenceMachineBaseTests:
 
         def test_log_likelihood(self):
             # Assign
-            evidence = torch.tensor([[0, 0, 0, 0, 0], [1, 1, 1, 1, 1], [0, 2, 0, 1, 2], [1, 0, 3, 0, 1], [1, 2, 3, 1, 2]] , dtype=torch.int)
+            evidence = torch.tensor(
+                [[0, 0, 0, 0, 0], [1, 1, 1, 1, 1], [0, 2, 0, 1, 2], [1, 0, 3, 0, 1], [1, 2, 3, 1, 2]], dtype=torch.int)
             num_observations = evidence.shape[0]
 
             evidence_Y1 = torch.zeros((num_observations, 2), dtype=torch.double)
@@ -373,7 +394,9 @@ class TorchInferenceMachineBaseTests:
                 evidence_Y4[i_observation, evidence[i_observation, 3]] = 1
                 evidence_Y5[i_observation, evidence[i_observation, 4]] = 1
 
-            c = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->n', self.Q1.cpt, self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+            c = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->n', self.Q1.cpt, self.Q2.cpt,
+                             self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, evidence_Y1,
+                             evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
             ll_expected = torch.log(c).sum()
 
             # Act
@@ -407,19 +430,40 @@ class TorchInferenceMachineBaseTests:
                 evidence_Y4[i_observation, evidence[i_observation, 3]] = 1
                 evidence_Y5[i_observation, evidence[i_observation, 4]] = 1
 
-            p_Q1xQ2_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nij', self.Q1.cpt, self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+            p_Q1xQ2_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nij', self.Q1.cpt,
+                                            self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
+                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
+                                            evidence_Y4, evidence_Y5)
             p_Q1xQ2_expected /= p_Q1xQ2_expected.sum(axis=(1, 2), keepdims=True)
-            p_Q2xQ3_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->njk', self.Q1.cpt, self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+            p_Q2xQ3_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->njk', self.Q1.cpt,
+                                            self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
+                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
+                                            evidence_Y4, evidence_Y5)
             p_Q2xQ3_expected /= p_Q2xQ3_expected.sum(axis=(1, 2), keepdims=True)
-            p_Q1xY1_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nia', self.Q1.cpt, self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+            p_Q1xY1_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nia', self.Q1.cpt,
+                                            self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
+                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
+                                            evidence_Y4, evidence_Y5)
             p_Q1xY1_expected /= p_Q1xY1_expected.sum(axis=(1, 2), keepdims=True)
-            p_Q2xY2_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->njb', self.Q1.cpt, self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+            p_Q2xY2_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->njb', self.Q1.cpt,
+                                            self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
+                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
+                                            evidence_Y4, evidence_Y5)
             p_Q2xY2_expected /= p_Q2xY2_expected.sum(axis=(1, 2), keepdims=True)
-            p_Q2xY3_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->njc', self.Q1.cpt, self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+            p_Q2xY3_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->njc', self.Q1.cpt,
+                                            self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
+                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
+                                            evidence_Y4, evidence_Y5)
             p_Q2xY3_expected /= p_Q2xY3_expected.sum(axis=(1, 2), keepdims=True)
-            p_Q3xY4_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nkd', self.Q1.cpt, self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+            p_Q3xY4_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nkd', self.Q1.cpt,
+                                            self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
+                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
+                                            evidence_Y4, evidence_Y5)
             p_Q3xY4_expected /= p_Q3xY4_expected.sum(axis=(1, 2), keepdims=True)
-            p_Q3xY5_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nke', self.Q1.cpt, self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+            p_Q3xY5_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nke', self.Q1.cpt,
+                                            self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
+                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
+                                            evidence_Y4, evidence_Y5)
             p_Q3xY5_expected /= p_Q3xY5_expected.sum(axis=(1, 2), keepdims=True)
 
             # Act
@@ -430,7 +474,9 @@ class TorchInferenceMachineBaseTests:
 
             sut.enter_evidence(evidence)
 
-            [p_Q1xQ2_actual, p_Q2xQ3_actual, p_Q1xY1_actual, p_Q2xY2_actual, p_Q2xY3_actual, p_Q3xY4_actual, p_Q3xY5_actual] = sut.infer_nodes_with_parents([self.Q2, self.Q3, self.Y1, self.Y2, self.Y3, self.Y4, self.Y5])
+            [p_Q1xQ2_actual, p_Q2xQ3_actual, p_Q1xY1_actual, p_Q2xY2_actual, p_Q2xY3_actual, p_Q3xY4_actual,
+             p_Q3xY5_actual] = sut.infer_nodes_with_parents(
+                [self.Q2, self.Q3, self.Y1, self.Y2, self.Y3, self.Y4, self.Y5])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1xQ2_actual, p_Q1xQ2_expected)
@@ -441,9 +487,9 @@ class TorchInferenceMachineBaseTests:
             self.assertArrayAlmostEqual(p_Q3xY4_actual, p_Q3xY4_expected)
             self.assertArrayAlmostEqual(p_Q3xY5_actual, p_Q3xY5_expected)
 
-    class NetworkWithMultipleParents(TorchInferenceMachineBaseTestsBase, ABC):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+    class NetworkWithMultipleParents(TorchInferenceMachineGenericTestsBase, ABC):
+        def setUp(self):
+            super().setUp()
 
             self.Q1 = Node(
                 generate_random_probability_matrix((2), device=self.get_torch_device()),
@@ -513,11 +559,14 @@ class TorchInferenceMachineBaseTests:
                 evidence_Q2[i_observations, evidence[i_observations, 1]] = 1
                 evidence_Y[i_observations, evidence[i_observations, 2]] = 1
 
-            p_Q1_expected = torch.einsum('i, ij, ijk, ni, nj, nk->ni', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y)
+            p_Q1_expected = torch.einsum('i, ij, ijk, ni, nj, nk->ni', self.Q1.cpt, self.Q2.cpt, self.Y.cpt,
+                                         evidence_Q1, evidence_Q2, evidence_Y)
             p_Q1_expected /= p_Q1_expected.sum(axis=(1), keepdims=True)
-            p_Q2_expected = torch.einsum('i, ij, ijk, ni, nj, nk->nj', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y)
+            p_Q2_expected = torch.einsum('i, ij, ijk, ni, nj, nk->nj', self.Q1.cpt, self.Q2.cpt, self.Y.cpt,
+                                         evidence_Q1, evidence_Q2, evidence_Y)
             p_Q2_expected /= p_Q2_expected.sum(axis=(1), keepdims=True)
-            p_Y_expected = torch.einsum('i, ij, ijk, ni, nj, nk->nk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y)
+            p_Y_expected = torch.einsum('i, ij, ijk, ni, nj, nk->nk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1,
+                                        evidence_Q2, evidence_Y)
             p_Y_expected /= p_Y_expected.sum(axis=(1), keepdims=True)
 
             # Act
@@ -549,7 +598,8 @@ class TorchInferenceMachineBaseTests:
                 evidence_Q2[i_observations, evidence[i_observations, 1]] = 1
                 evidence_Y[i_observations, evidence[i_observations, 2]] = 1
 
-            c = torch.einsum('i, ij, ijk, ni, nj, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y) \
+            c = torch.einsum('i, ij, ijk, ni, nj, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1,
+                             evidence_Q2, evidence_Y) \
                 .sum(axis=(1, 2, 3))
             ll_expected = torch.log(c).sum()
 
@@ -580,9 +630,11 @@ class TorchInferenceMachineBaseTests:
                 evidence_Q2[i_observations, evidence[i_observations, 1]] = 1
                 evidence_Y[i_observations, evidence[i_observations, 2]] = 1
 
-            p_Q1xQ2_expected = torch.einsum('i, ij, ijk, ni, nj, nk->nij', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y)
+            p_Q1xQ2_expected = torch.einsum('i, ij, ijk, ni, nj, nk->nij', self.Q1.cpt, self.Q2.cpt, self.Y.cpt,
+                                            evidence_Q1, evidence_Q2, evidence_Y)
             p_Q1xQ2_expected /= p_Q1xQ2_expected.sum(axis=(1, 2), keepdims=True)
-            p_Q1xQ2xY_expected = torch.einsum('i, ij, ijk, ni, nj, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1, evidence_Q2, evidence_Y)
+            p_Q1xQ2xY_expected = torch.einsum('i, ij, ijk, ni, nj, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt,
+                                              evidence_Q1, evidence_Q2, evidence_Y)
             p_Q1xQ2xY_expected /= p_Q1xQ2xY_expected.sum(axis=(1, 2, 3), keepdims=True)
 
             # Act

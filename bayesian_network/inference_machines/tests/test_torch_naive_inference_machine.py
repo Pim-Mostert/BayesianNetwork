@@ -3,67 +3,46 @@ from typing import List
 
 import torch
 
-from bayesian_network.inference_machines.tests.torch_inference_machine_base_tests import TorchInferenceMachineBaseTests
+from bayesian_network.inference_machines.tests.torch_inference_machine_generic_tests import TorchInferenceMachineGenericTests
 from bayesian_network.inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
 from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.interfaces import IInferenceMachine
 
 
 # Helper classes
-class TorchNaiveInferenceMachineTestBase:
-    class TorchNaiveInferenceMachineTestBase(ABC):
-        @abstractmethod
-        def get_device(self) -> torch.device:
-            pass
+class TestTorchNaiveInferenceMachineBase(ABC):
+    @abstractmethod
+    def get_torch_device(self) -> torch.device:
+        pass
 
-        def create_inference_machine(self,
-                                     bayesian_network: BayesianNetwork,
-                                     observed_nodes: List[Node],
-                                     num_observations: int):
-            return TorchNaiveInferenceMachine(
-                bayesian_network=bayesian_network,
-                observed_nodes=observed_nodes,
-                device=self.get_device())
-
-    class TorchNaiveInferenceMachineTestBaseCpu(TorchNaiveInferenceMachineTestBase):
-        def get_device(self) -> torch.device:
-            return torch.device('cpu')
-
-    class TorchNaiveInferenceMachineTestBaseCuda(TorchNaiveInferenceMachineTestBase):
-        def setUp(self):
-            if not torch.cuda.is_available():
-                self.skipTest('Cuda not available')
-
-        def get_device(self) -> torch.device:
-            return torch.device('cuda')
+    def create_inference_machine(self,
+                                 bayesian_network: BayesianNetwork,
+                                 observed_nodes: List[Node],
+                                 num_observations: int) -> IInferenceMachine:
+        return TorchNaiveInferenceMachine(
+            bayesian_network=bayesian_network,
+            observed_nodes=observed_nodes,
+            device=self.get_torch_device())
 
 
-# Run all tests for cpu
-class TestNetworkWithSingleParentsCpu(TorchNaiveInferenceMachineTestBase.TorchNaiveInferenceMachineTestBaseCpu,
-                                      TorchInferenceMachineBaseTests.NetworkWithSingleParents):
-    pass
+class TestTorchNaiveInferenceMachineBaseCpu(TestTorchNaiveInferenceMachineBase, ABC):
+    def get_torch_device(self) -> torch.device:
+        return torch.device('cpu')
 
 
-class TestComplexNetworkWithSingleParentsCpu(TorchNaiveInferenceMachineTestBase.TorchNaiveInferenceMachineTestBaseCpu,
-                                             TorchInferenceMachineBaseTests.ComplexNetworkWithSingleParents):
-    pass
+class TestTorchNaiveInferenceMachineBaseCuda(TestTorchNaiveInferenceMachineBase, ABC):
+    def get_torch_device(self) -> torch.device:
+        return torch.device('cuda')
 
 
-class TestNetworkWithMultipleParentsCpu(TorchNaiveInferenceMachineTestBase.TorchNaiveInferenceMachineTestBaseCpu,
-                                        TorchInferenceMachineBaseTests.NetworkWithMultipleParents):
-    pass
+# Actual tests
+# Cpu
+class TestNetworkWithSingleParentsCpu(TestTorchNaiveInferenceMachineBaseCpu, TorchInferenceMachineGenericTests.NetworkWithSingleParents): pass
+class TestComplexNetworkWithSingleParentsCpu(TestTorchNaiveInferenceMachineBaseCpu, TorchInferenceMachineGenericTests.ComplexNetworkWithSingleParents): pass
+class TestNetworkWithMultipleParentsCpu(TestTorchNaiveInferenceMachineBaseCpu, TorchInferenceMachineGenericTests.NetworkWithMultipleParents): pass
 
 
-# Run all tests for cuda
-class TestNetworkWithSingleParentsCuda(TorchNaiveInferenceMachineTestBase.TorchNaiveInferenceMachineTestBaseCuda,
-                                       TorchInferenceMachineBaseTests.NetworkWithSingleParents):
-    pass
-
-
-class TestComplexNetworkWithSingleParentsCuda(TorchNaiveInferenceMachineTestBase.TorchNaiveInferenceMachineTestBaseCuda,
-                                              TorchInferenceMachineBaseTests.ComplexNetworkWithSingleParents):
-    pass
-
-
-class TestNetworkWithMultipleParentsCuda(TorchNaiveInferenceMachineTestBase.TorchNaiveInferenceMachineTestBaseCuda,
-                                         TorchInferenceMachineBaseTests.NetworkWithMultipleParents):
-    pass
+# Cuda
+class TestNetworkWithSingleParentsCuda(TestTorchNaiveInferenceMachineBaseCuda, TorchInferenceMachineGenericTests.NetworkWithSingleParents): pass
+class TestComplexNetworkWithSingleParentsCuda(TestTorchNaiveInferenceMachineBaseCuda, TorchInferenceMachineGenericTests.ComplexNetworkWithSingleParents): pass
+class TestNetworkWithMultipleParentsCuda(TestTorchNaiveInferenceMachineBaseCuda, TorchInferenceMachineGenericTests.NetworkWithMultipleParents): pass
