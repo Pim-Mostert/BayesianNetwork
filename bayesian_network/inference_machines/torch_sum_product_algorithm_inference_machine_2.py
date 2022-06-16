@@ -36,8 +36,8 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
     def _infer_single_node(self, node: Node) -> torch.Tensor:
         variable_node = self.factor_graph.variable_nodes[node]
 
-        value_to_factor_node = variable_node.local_output
-        value_from_factor_node = variable_node.inputs[-1]
+        value_to_factor_node = variable_node.output_with_indices_to_local_factor_node.output
+        value_from_factor_node = variable_node._all_inputs[-1]
 
         p = value_from_factor_node * value_to_factor_node
 

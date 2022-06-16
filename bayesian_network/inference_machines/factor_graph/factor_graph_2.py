@@ -40,15 +40,28 @@ class VariableNode(FactorGraphNodeBase):
         if num_observations == 0:
             num_observations = 1
 
-        self.inputs = \
-            torch.ones((num_inputs, num_observations, num_states), dtype=torch.double, device=device) / num_states \
-            if not is_observed \
-            else torch.ones((num_inputs+1, num_observations, num_states), dtype=torch.double, device=device) / num_states
-        self.local_output: torch.Tensor = torch.empty(())      # Placeholder
-        self.outputs_with_input_indices: List[VariableNode.OutputWithInputIndices] = [
+        self.is_observed = is_observed
+
+        if self.is_observed:
+            self._all_inputs: torch.Tensor = torch.ones((num_inputs + 1, num_observations, num_states), dtype=torch.double, device=device) / num_states
+            self.input_from_local_factor_node: torch.Tensor = self._all_inputs[-1]
+            self.input_from_observation: torch.Tensor = self._all_inputs[-2]
+            self.input_from_remote_factor_nodes: torch.Tensor = self._all_inputs[:-2]
+        else:
+            self._all_inputs: torch.Tensor = torch.ones((num_inputs, num_observations, num_states), dtype=torch.double, device=device) / num_states
+            self.input_from_local_factor_node: torch.Tensor = self._all_inputs[-1]
+            self.input_from_remote_factor_nodes: torch.Tensor = self._all_inputs[:-1]
+
+        # self.output_to_local_factor_node: torch.Tensor = torch.empty(())      # Placeholder
+        self.output_with_indices_to_local_factor_node: VariableNode.OutputWithInputIndices = \
             VariableNode.OutputWithInputIndices(
-                torch.empty(()),     # Placeholder for output tensor
-                [d for d in range(len(self.inputs)) if d != i]
+                torch.empty(()),    # Placeholder
+                [d for d in range(len(self._all_inputs) - 1)]
+            )
+        self.outputs_with_indices_to_remote_factor_nodes: List[VariableNode.OutputWithInputIndices] = [
+            VariableNode.OutputWithInputIndices(
+                torch.empty(()),     # Placeholder
+                [d for d in range(len(self._all_inputs)) if d != i]
             )
             for i
             in range(num_inputs-1)
@@ -56,18 +69,27 @@ class VariableNode(FactorGraphNodeBase):
         self.c = c
 
     def set_observations(self, observations: torch.Tensor) -> None:
-        self.inputs[-2] = observations
+        if not self.is_observed:
+            raise Exception("Can't set observation for variable nodes that are not marked as observed")
+
+        self.input_from_observation[:] = observations
 
     def calculate_outputs(self) -> None:
-        c = self.inputs.prod(dim=0, keepdim=True).sum(dim=2, keepdim=True)
-        self.local_output[:] = self.inputs[:-1].prod(axis=0) / c
+        # Output to local factor node
+        output = self.output_with_indices_to_local_factor_node.output
+        indices = self.output_with_indices_to_local_factor_node.input_indices
+
+        c = self._all_inputs.prod(dim=0, keepdim=True).sum(dim=2, keepdim=True)
+        output[:] = self._all_inputs[indices].prod(axis=0) / c
+
+        # Store c for log-likelihood calculation
         self.c[:] = c.squeeze()
 
-        for output_with_input_indices in self.outputs_with_input_indices:
+        for output_with_input_indices in self.outputs_with_indices_to_remote_factor_nodes:
             output = output_with_input_indices.output
             input_indices = output_with_input_indices.input_indices
 
-            output[:] = self.inputs[input_indices].prod(dim=0)
+            output[:] = self._all_inputs[input_indices].prod(dim=0)
             output /= output.sum(dim=1, keepdim=True)
 
 
@@ -160,14 +182,14 @@ class FactorGraph:
 
             ### Variable nodes
             # Corresponding factor node
-            variable_node.local_output = factor_node.inputs[-1]
+            variable_node.output_with_indices_to_local_factor_node.output = factor_node.inputs[-1]
 
             # Child factor nodes
             child_nodes = bayesian_network.children[node]
-            for i, child_node in enumerate(child_nodes):
+            for child_node, outputs_with_input_indices in zip(child_nodes, variable_node.outputs_with_indices_to_remote_factor_nodes):
                 child_factor_node = self.factor_nodes[child_node]
                 child_input_index = bayesian_network.parents[child_node].index(node)
-                variable_node.outputs_with_input_indices[i].output = child_factor_node.inputs[child_input_index]
+                outputs_with_input_indices.output = child_factor_node.inputs[child_input_index]
 
             ### Factor nodes
             # Parent variable nodes
@@ -175,10 +197,10 @@ class FactorGraph:
             for i, parent_node in enumerate(parent_nodes):
                 parent_variable_node = self.variable_nodes[parent_node]
                 parent_input_index = bayesian_network.children[parent_node].index(node)
-                factor_node.outputs[i] = parent_variable_node.inputs[parent_input_index]
+                factor_node.outputs[i] = parent_variable_node._all_inputs[parent_input_index]
 
             # Corresponding variable node
-            factor_node.outputs[-1] = variable_node.inputs[-1]
+            factor_node.outputs[-1] = variable_node._all_inputs[-1]
 
     def iterate(self) -> None:
         for variable_node in self.variable_nodes.values():
@@ -190,4 +212,4 @@ class FactorGraph:
     def enter_evidence(self, evidence):
         for observed_node, observations in zip(self.observed_nodes, evidence):
             variable_node = self.variable_nodes[observed_node]
-            variable_node.inputs[-2] = observations
+            variable_node._all_inputs[-2] = observations
