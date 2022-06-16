@@ -30,6 +30,10 @@ class VariableNode(FactorGraphNodeBase):
                  name: Optional[str] = None):
         super().__init__(name)
 
+        # To handle calculation without any evidence
+        if num_observations == 0:
+            num_observations = 1
+
         self.inputs = \
             torch.ones((num_inputs, num_observations, num_states), dtype=torch.double, device=device) / num_states \
             if not is_observed \
@@ -45,7 +49,7 @@ class VariableNode(FactorGraphNodeBase):
         self.local_output[:] = self.inputs[:-1].prod(axis=0) / c_local
 
         for i, other_output in enumerate(self.other_outputs):
-            indices = [d for d in range(len(self.other_outputs)) if d != i]
+            indices = [d for d in range(len(self.inputs)) if d != i]
             other_output[:] = self.inputs[indices].prod(dim=0)
             other_output /= other_output.sum(dim=1, keepdim=True)
 
@@ -59,6 +63,10 @@ class FactorNode(FactorGraphNodeBase):
                  cpt: torch.Tensor,
                  name: Optional[str] = None):
         super().__init__(name)
+
+        # To handle calculation without any evidence
+        if num_observations == 0:
+            num_observations = 1
 
         self.inputs: List[torch.Tensor] = [
             torch.ones((num_observations, num_states), dtype=torch.double, device=device) / num_states
