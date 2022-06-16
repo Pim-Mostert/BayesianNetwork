@@ -32,10 +32,6 @@ class TorchSumProductAlgorithmInferenceMachineTestBase:
             return torch.device('cpu')
 
     class TorchSumProductAlgorithmInferenceMachineTestBaseCuda(TorchSumProductAlgorithmInferenceMachineTestBase):
-        def setUp(self):
-            if not torch.cuda.is_available():
-                self.skipTest('Cuda not available')
-
         def get_torch_device(self) -> torch.device:
             return torch.device('cuda')
 

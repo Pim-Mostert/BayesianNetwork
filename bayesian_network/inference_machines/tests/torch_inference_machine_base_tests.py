@@ -10,7 +10,16 @@ from bayesian_network.interfaces import IInferenceMachine
 
 
 class TorchInferenceMachineBaseTests:
-    class NetworkWithSingleParents(TestCaseExtended, ABC):
+    class TorchInferenceMachineBaseTestsBase(TestCaseExtended):
+        def setUp(self):
+            if self.get_torch_device() == torch.device('cuda'):
+                if not torch.cuda.is_available():
+                    self.skipTest('Cuda not available')
+
+        @abstractmethod
+        def get_torch_device(self) -> torch.device:
+            pass
+
         @abstractmethod
         def create_inference_machine(self,
                                      bayesian_network: BayesianNetwork,
@@ -18,17 +27,18 @@ class TorchInferenceMachineBaseTests:
                                      num_observations: int) -> IInferenceMachine:
             pass
 
+    class NetworkWithSingleParents(TorchInferenceMachineBaseTestsBase, ABC):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
 
             self.Q1 = Node(
-                torch.tensor([1/5, 4/5], dtype=torch.double),
+                generate_random_probability_matrix((2), device=self.get_torch_device()),
                 name='Q1')
             self.Q2 = Node(
-                torch.tensor([[2/3, 1/3], [1/9, 8/9]], dtype=torch.double),
+                generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
                 name='Q2')
             self.Y = Node(
-                torch.tensor([[4/7, 3/7], [3/11, 8/11]], dtype=torch.double),
+                generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
                 name='Y')
 
             nodes = [self.Q1, self.Q2, self.Y]
@@ -263,40 +273,33 @@ class TorchInferenceMachineBaseTests:
             self.assertArrayAlmostEqual(p_Q1xQ2_actual, p_Q1xQ2_expected)
             self.assertArrayAlmostEqual(p_Q2xY_actual, p_Q2xY_expected)
 
-    class ComplexNetworkWithSingleParents(TestCaseExtended, ABC):
-        @abstractmethod
-        def create_inference_machine(self,
-                                     bayesian_network: BayesianNetwork,
-                                     observed_nodes: List[Node],
-                                     num_observations: int) -> IInferenceMachine:
-            pass
-
+    class ComplexNetworkWithSingleParents(TorchInferenceMachineBaseTestsBase, ABC):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
 
             self.Q1 = Node(
-                torch.tensor(generate_random_probability_matrix((2), device=torch.device('cpu')), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((2), device=self.get_torch_device()), dtype=torch.double),
                 name='Q1')
             self.Q2 = Node(
-                torch.tensor(generate_random_probability_matrix((2, 3), device=torch.device('cpu')), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((2, 3), device=self.get_torch_device()), dtype=torch.double),
                 name='Q2')
             self.Q3 = Node(
-                torch.tensor(generate_random_probability_matrix((3, 2), device=torch.device('cpu')), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((3, 2), device=self.get_torch_device()), dtype=torch.double),
                 name='Q3')
             self.Y1 = Node(
-                torch.tensor(generate_random_probability_matrix((2, 2), device=torch.device('cpu')), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((2, 2), device=self.get_torch_device()), dtype=torch.double),
                 name='Y1')
             self.Y2 = Node(
-                torch.tensor(generate_random_probability_matrix((3, 3), device=torch.device('cpu')), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((3, 3), device=self.get_torch_device()), dtype=torch.double),
                 name='Y2')
             self.Y3 = Node(
-                torch.tensor(generate_random_probability_matrix((3, 4), device=torch.device('cpu')), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((3, 4), device=self.get_torch_device()), dtype=torch.double),
                 name='Y3')
             self.Y4 = Node(
-                torch.tensor(generate_random_probability_matrix((2, 2), device=torch.device('cpu')), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((2, 2), device=self.get_torch_device()), dtype=torch.double),
                 name='Y4')
             self.Y5 = Node(
-                torch.tensor(generate_random_probability_matrix((2, 3), device=torch.device('cpu')), dtype=torch.double),
+                torch.tensor(generate_random_probability_matrix((2, 3), device=self.get_torch_device()), dtype=torch.double),
                 name='Y5')
 
             nodes = [self.Q1, self.Q2, self.Q3, self.Y1, self.Y2, self.Y3, self.Y4, self.Y5]
@@ -438,26 +441,18 @@ class TorchInferenceMachineBaseTests:
             self.assertArrayAlmostEqual(p_Q3xY4_actual, p_Q3xY4_expected)
             self.assertArrayAlmostEqual(p_Q3xY5_actual, p_Q3xY5_expected)
 
-    class NetworkWithMultipleParents(TestCaseExtended, ABC):
-        @abstractmethod
-        def create_inference_machine(self,
-                                     bayesian_network: BayesianNetwork,
-                                     observed_nodes: List[Node],
-                                     num_observations: int) -> IInferenceMachine:
-            pass
-
+    class NetworkWithMultipleParents(TorchInferenceMachineBaseTestsBase, ABC):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
 
             self.Q1 = Node(
-                torch.tensor([1/5, 4/5], dtype=torch.double),
+                generate_random_probability_matrix((2), device=self.get_torch_device()),
                 name='Q1')
             self.Q2 = Node(
-                torch.tensor([[2/3, 1/3], [1/9, 8/9]], dtype=torch.double),
+                generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
                 name='Q2')
             self.Y = Node(
-                torch.tensor([[[3/4, 1/4], [1/2, 1/2]],
-                          [[4/7, 3/7], [3/11, 8/11]]], dtype=torch.double),
+                generate_random_probability_matrix((2, 2, 2), device=self.get_torch_device()),
                 name='Y')
 
             nodes = [self.Q1, self.Q2, self.Y]

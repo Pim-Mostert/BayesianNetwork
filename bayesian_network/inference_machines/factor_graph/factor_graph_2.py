@@ -26,6 +26,7 @@ class VariableNode(FactorGraphNodeBase):
                  num_observations: int,
                  num_inputs: int,
                  num_states: int,
+                 c: torch.Tensor,
                  is_observed: bool,
                  name: Optional[str] = None):
         super().__init__(name)
@@ -40,13 +41,15 @@ class VariableNode(FactorGraphNodeBase):
             else torch.ones((num_inputs+1, num_observations, num_states), dtype=torch.double, device=device) / num_states
         self.local_output: Optional[torch.Tensor] = None
         self.other_outputs: List[Optional[torch.Tensor]] = [None] * (num_inputs - 1)
+        self.c = c
 
     def set_observations(self, observations: torch.Tensor) -> None:
         self.inputs[-2] = observations
 
     def calculate_outputs(self) -> None:
-        c_local = self.inputs.prod(dim=0, keepdim=True).sum(dim=2, keepdim=True)
-        self.local_output[:] = self.inputs[:-1].prod(axis=0) / c_local
+        c = self.inputs.prod(dim=0, keepdim=True).sum(dim=2, keepdim=True)
+        self.local_output[:] = self.inputs[:-1].prod(axis=0) / c
+        self.c[:] = c.squeeze()
 
         for i, other_output in enumerate(self.other_outputs):
             indices = [d for d in range(len(self.inputs)) if d != i]
@@ -109,6 +112,7 @@ class FactorGraph:
                  device: torch.device):
         self.device = device
         self.observed_nodes = observed_nodes
+        self.c: torch.Tensor = torch.zeros((num_observations, len(bayesian_network.nodes)), dtype=torch.double, device=self.device)
 
         # Instantiate nodes
         self.variable_nodes: Dict[Node, VariableNode] = {
@@ -116,11 +120,12 @@ class FactorGraph:
                 num_observations=num_observations,
                 num_inputs=len(bayesian_network.children[node]) + 1,
                 num_states=node.num_states,
+                c=self.c[:, i],
                 is_observed=node in observed_nodes,
                 device=device,
                 name=node.name)
-            for node
-            in bayesian_network.nodes
+            for i, node
+            in enumerate(bayesian_network.nodes)
         }
 
         self.factor_nodes: Dict[Node, FactorNode] = {
