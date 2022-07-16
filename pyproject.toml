@@ -11,3 +11,6 @@ license = { file = "LICENSE" }
 dependencies = [
   'torch'
 ]
+
+[tool.setuptools]
+packages = ["bayesian_network"]

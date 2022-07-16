@@ -1,6 +1,7 @@
 from typing import Callable, List
 
 import torch
+import time
 
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.interfaces import IOptimizer, IInferenceMachine
@@ -13,6 +14,8 @@ class EmOptimizer(IOptimizer):
 
     def optimize(self, evidence, num_iterations, iteration_callback):
         for iteration in range(num_iterations):
+            start_time = time.time()
+
             # Construct inference machine and enter evidence
             inference_machine = self.inference_machine_factory(self.bayesian_network)
             inference_machine.enter_evidence(evidence)
@@ -25,7 +28,8 @@ class EmOptimizer(IOptimizer):
             self._m_step(p_conditionals)
 
             # User feedback
-            iteration_callback(ll, iteration)
+            duration = time.time() - start_time
+            iteration_callback(ll, iteration, duration)
 
     def _e_step(self, inference_machine: IInferenceMachine) -> List[torch.Tensor]:
         # List[torch.Tensor((observations x parent1 x parent2 x ... x child))]
