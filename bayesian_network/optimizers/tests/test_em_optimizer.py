@@ -72,7 +72,7 @@ class EmOptimizerTestBase:
 
             sut = EmOptimizer(untrained_network, inference_machine_factory)
 
-            def callback(ll, i):
+            def callback(ll, i, duration):
                 log_likelihood[i] = ll
 
             sut.optimize(
