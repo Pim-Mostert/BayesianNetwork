@@ -5,5 +5,14 @@
             "`$"
         ]
     ],
-    "markdown-preview-enhanced.scrollSync": false    
+    "markdown-preview-enhanced.scrollSync": false,
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        ".",
+        "-p",
+        "test_*.py"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": true
 }
