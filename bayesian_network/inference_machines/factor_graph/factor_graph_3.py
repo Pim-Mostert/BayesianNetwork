@@ -58,23 +58,25 @@ class VariableNodeGroup:
     def calculate_outputs(self):
         for i_output in range(self._num_outputs):
             output_tensor = self._output_tensors[i_output]
+        
+            indices = [i for i in range(self._num_inputs) if i != i_output]
+            result = self._inputs[:, indices, :, :].prod(axis=1)
             
+            if i_output == self._num_outputs - 1:
+                c = self._inputs.prod(axis=1).sum(axis=2, keepdims=True)
+                result /= c
+            else:
+                result /= result.sum(axis=2, keepdims=True)
+                
+            # construct and evaluate assignment
             # output_tensor[0][:], output_tensor[1][:], ..., output_tensor[self.num_nodes-1][:]
             left_hand = ', '.join([f'{nameof(output_tensor)}[{i_node}][:]' for i_node in range(self._num_nodes)])
-
-            indices = [i for i in range(self._num_inputs) if i != i_output]
-
-            # self._inputs[:, :, indices, :].prod(axis=2)
-            right_hand = f'self.{nameof(self._inputs)}[:, {nameof(indices)}, :, :].prod(axis=1)'
-            fun = left_hand + " = " + right_hand
+    
+            fun = left_hand + f' = {nameof(result)}'
             
             exec(fun)
 
     def set_output_tensor(self, node: Node, output_node: Node, tensor: torch.Tensor):
-        if not ((tensor.shape[0] == self._num_observations) 
-                and (tensor.shape[1] == self._num_states)):
-            raise Exception(f'tensor.shape {tensor.shape} should match (num_observations, num_states) {(self._num_observations, self._num_states)}')
-
         i_node = self.nodes.index(node)
         
         if output_node == node:
@@ -101,7 +103,7 @@ class FactorNodeGroup:
                  children: Dict[Node, List[Node]],
                  parents: Dict[Node, List[Node]],
                  num_inputs: int,
-                 num_states: int,
+                 inputs_num_states: List[int],
                  num_observations: int,
                  device: torch.device):
         self._device = device
@@ -111,35 +113,35 @@ class FactorNodeGroup:
         self._num_nodes = len(self.nodes)
         self._num_observations = num_observations
         self._num_inputs = num_inputs
-        self._num_states = num_states
+        self._inputs_num_states = inputs_num_states
         self._num_outputs = self._num_inputs
+        self._outputs_num_states = self._inputs_num_states
         self._cpts = torch.stack([node.cpt for node in self.nodes])
 
         if self._num_observations == 0:
             self._num_observations = 1
 
-        self._inputs = torch.ones(
-            (
-                self._num_inputs,  
-                self._num_nodes, 
+        # self._inputs = torch.ones(
+        #     (
+        #         self._num_inputs,  
+        #         self._num_nodes, 
+        #         self._num_observations,
+        #         self._num_states
+        #     ), device=self._device, dtype=torch.double) / num_states
+        self._inputs = [
+            torch.ones((
+                self._num_nodes,
                 self._num_observations,
-                self._num_states
-            ), device=self._device, dtype=torch.double) / num_states
-        self.node_inputs = {
-            node: self._inputs[i]
-            for i, node
-            in enumerate(nodes)
-        }        
-        self.node_cpt = {
-            node: node.cpt
-            for node
-            in nodes
-        }        
+                self._inputs_num_states[i_input]), device=self._device, dtype=torch.double) 
+                    / torch.tensor(self._inputs_num_states, device=self._device, dtype=torch.double)
+            for i_input
+            in range(self._num_inputs)
+        ]    
         self._output_tensors = [
             [
                 # Placeholder
-                torch.empty((num_observations, num_states), device=self._device, dtype=torch.double)
-                for _
+                torch.empty((self._num_observations, self._outputs_num_states[i_output]), device=self._device, dtype=torch.double)
+                for i_output
                 in range(self._num_outputs)
             ]
             for _
@@ -154,21 +156,20 @@ class FactorNodeGroup:
             left_hand = ', '.join([f'{nameof(output_tensor)}[{i_node}][:]' for i_node in range(self._num_nodes)])
 
             einsum_equation = self._construct_einsum_equation_for_output(i_output)
+            result = torch.einsum(*einsum_equation)
 
-            # torch.einsum(*einsum_equation)
-            right_hand = f'torch.einsum(*{nameof(einsum_equation)})'
-            fun = left_hand + " = " + right_hand
-            # 'output_tensor[0][:], output_tensor[1][:] = torch.einsum(*einsum_equation)'
+            fun = left_hand + f' = {nameof(result)}'
+            # 'output_tensor[0][:], output_tensor[1][:] = result'
             exec(fun)
 
     def _construct_einsum_equation_for_output(self, i_output: int) -> List:
         # Get all inputs with indices, except for the input corresponding to current output
-        inputs_with_indices = (
+        inputs_with_indices = [
             (input, index)
             for input, index
             in zip(self._inputs, range(self._num_inputs))
             if index != i_output
-        )
+        ]
 
         # Example einsum equation:
         #   'kna, knc, knd, kabcd->knb', input0, input2, input3, cpt
@@ -177,6 +178,10 @@ class FactorNodeGroup:
         # k: num_nodes
         # n: num_observations
         einsum_equation = []
+
+        if not inputs_with_indices:
+            einsum_equation.append(torch.ones((self._num_observations), device=self._device, dtype=torch.double))
+            einsum_equation.append([1])
 
         # Each input used to calculate current output
         for input, index in inputs_with_indices:
@@ -193,10 +198,6 @@ class FactorNodeGroup:
         return einsum_equation
         
     def set_output_tensor(self, node: Node, output_node: Node, tensor: torch.Tensor):
-        if not ((tensor.shape[0] == self._num_observations) 
-                and (tensor.shape[1] == self._num_states)):
-            raise Exception(f'tensor.shape {tensor.shape} should match (num_observations, num_states) {(self._num_observations, self._num_states)}')
-
         i_node = self.nodes.index(node)
         
         if output_node == node:
@@ -214,7 +215,7 @@ class FactorNodeGroup:
         else:
             i_input = self._parents[node].index(input_node)
 
-        return self._inputs[i_input, i_node]
+        return self._inputs[i_input][i_node]
 
 
 class FactorGraph:
@@ -249,16 +250,14 @@ class FactorGraph:
         ]
 
         # Instantiate factor node groups
-        factor_node_groups_key_func = lambda node: NodeGroupKey(
-            len(bayesian_network.parents[node]) + 1, 
-            node.num_states)
+        factor_node_groups_key_func = lambda node: node.cpt.shape
         self.factor_node_groups = [
             FactorNodeGroup(
                 list(nodes),
                 bayesian_network.children,
                 bayesian_network.parents,
-                key.num_inputs,
-                key.num_states,
+                len(key),
+                list(key),
                 num_observations,
                 self._device
             )
