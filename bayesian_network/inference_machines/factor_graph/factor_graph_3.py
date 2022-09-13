@@ -31,39 +31,38 @@ class VariableNodeGroup:
         if self._num_observations == 0:
             self._num_observations = 1
 
-        num_nodes = len(nodes)
         self._inputs = torch.ones(
             (
-                self._num_nodes, 
                 self._num_inputs, 
+                self._num_nodes, 
                 self._num_observations,
                 self._num_states
             ), device=self._device, dtype=torch.double) / num_states
         self.node_inputs = {
             node: self._inputs[i]
             for i, node
-            in enumerate(nodes)
+            in enumerate(self.nodes)
         }        
         self._output_tensors = [
             [
                 # Placeholder
-                torch.empty((num_observations, num_states), device=self._device, dtype=torch.double)
+                torch.zeros((self._num_observations, self._num_states), device=self._device, dtype=torch.double)
                 for _
-                in range(self._num_outputs)
+                in self.nodes
             ]
             for _
-            in range(self._num_nodes)
+            in range(self._num_outputs)
         ]
 
     def calculate_outputs(self):
         for i_output in range(self._num_outputs):
             output_tensor = self._output_tensors[i_output]
-        
+
             indices = [i for i in range(self._num_inputs) if i != i_output]
-            result = self._inputs[:, indices, :, :].prod(axis=1)
+            result = self._inputs[indices, :, :, :].prod(axis=0)
             
             if i_output == self._num_outputs - 1:
-                c = self._inputs.prod(axis=1).sum(axis=2, keepdims=True)
+                c = self._inputs.prod(axis=0).sum(axis=2, keepdims=True)
                 result /= c
             else:
                 result /= result.sum(axis=2, keepdims=True)
@@ -84,7 +83,7 @@ class VariableNodeGroup:
         else:
             i_output = self._children[node].index(output_node)
 
-        self._output_tensors[i_node][i_output] = tensor
+        self._output_tensors[i_output][i_node] = tensor
 
     def get_input_tensor(self, node: Node, input_node: Node) -> torch.Tensor:
         i_node = self.nodes.index(node)
@@ -94,7 +93,7 @@ class VariableNodeGroup:
         else:
             i_input = self._children[node].index(input_node)
 
-        return self._inputs[i_node, i_input]
+        return self._inputs[i_input, i_node]
 
 
 class FactorNodeGroup:
@@ -121,13 +120,6 @@ class FactorNodeGroup:
         if self._num_observations == 0:
             self._num_observations = 1
 
-        # self._inputs = torch.ones(
-        #     (
-        #         self._num_inputs,  
-        #         self._num_nodes, 
-        #         self._num_observations,
-        #         self._num_states
-        #     ), device=self._device, dtype=torch.double) / num_states
         self._inputs = [
             torch.ones((
                 self._num_nodes,
@@ -140,12 +132,12 @@ class FactorNodeGroup:
         self._output_tensors = [
             [
                 # Placeholder
-                torch.empty((self._num_observations, self._outputs_num_states[i_output]), device=self._device, dtype=torch.double)
-                for i_output
-                in range(self._num_outputs)
+                torch.zeros((self._num_observations, self._outputs_num_states[i_output]), device=self._device, dtype=torch.double)
+                for _
+                in range(self._num_nodes)
             ]
-            for _
-            in range(self._num_nodes)
+            for i_output
+            in range(self._num_outputs)
         ]
 
     def calculate_outputs(self):
@@ -159,7 +151,7 @@ class FactorNodeGroup:
             result = torch.einsum(*einsum_equation)
 
             fun = left_hand + f' = {nameof(result)}'
-            # 'output_tensor[0][:], output_tensor[1][:] = result'
+
             exec(fun)
 
     def _construct_einsum_equation_for_output(self, i_output: int) -> List:
@@ -205,8 +197,8 @@ class FactorNodeGroup:
         else:
             i_output = self._parents[node].index(output_node)
 
-        self._output_tensors[i_node][i_output] = tensor
-
+        self._output_tensors[i_output][i_node] = tensor
+        
     def get_input_tensor(self, node: Node, input_node: Node) -> torch.Tensor:
         i_node = self.nodes.index(node)
         
@@ -289,8 +281,8 @@ class FactorGraph:
 
             # Parent variable nodes
             for parent_node in bayesian_network.parents[node]:
-                child_variable_node_group = self.get_variable_node_group(parent_node)
-                child_variable_node_group.get_input_tensor(parent_node, node)
+                parent_variable_node_group = self.get_variable_node_group(parent_node)
+                tensor = parent_variable_node_group.get_input_tensor(parent_node, node)
 
                 factor_node_group.set_output_tensor(node, parent_node, tensor)
 
