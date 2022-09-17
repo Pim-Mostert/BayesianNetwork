@@ -11,6 +11,7 @@ from bayesian_network.bayesian_network import BayesianNetwork, Node
 class VariableNodeGroup:
     def __init__(self,
                  nodes: List[Node],
+                 local_likelihoods: List[torch.Tensor],
                  children: Dict[Node, List[Node]],
                  parents: Dict[Node, List[Node]],
                  num_inputs: int,
@@ -19,6 +20,7 @@ class VariableNodeGroup:
                  device: torch.device):
         self._device = device
         self.nodes = nodes
+        self.local_likelihoods = local_likelihoods
         self._children = children
         self._parents = parents
         self._num_nodes = len(self.nodes)
@@ -50,6 +52,11 @@ class VariableNodeGroup:
         ]
 
     def calculate_outputs(self):
+        c = self._inputs.prod(axis=0).sum(axis=2)
+
+        for local_likelihood, c_node in zip(self.local_likelihoods, c):
+            local_likelihood[:] = c_node
+
         for i_output in range(self._num_outputs):
             output_tensor = self._output_tensors[i_output]
 
@@ -57,8 +64,7 @@ class VariableNodeGroup:
             result = self._inputs[indices, :, :, :].prod(axis=0)
             
             if i_output == self._num_outputs - 1:
-                c = self._inputs.prod(axis=0).sum(axis=2, keepdims=True)
-                result /= c
+                result /= c[:, :, None]
             else:
                 result /= result.sum(axis=2, keepdims=True)
                 
@@ -136,6 +142,7 @@ class FactorNodeGroup:
             for i, node
             in enumerate(self.nodes)
         }
+
         self._output_tensors = [
             [
                 # Placeholder
@@ -233,7 +240,7 @@ class FactorGraph:
                  device: torch.device):
         self._device = device
         self._observed_nodes = observed_nodes
-        # self._local_likelihoods: torch.Tensor = torch.zeros((num_observations, len(bayesian_network.nodes)), dtype=torch.double, device=self._device)
+        self._local_likelihoods: torch.Tensor = torch.zeros((num_observations, len(bayesian_network.nodes)), dtype=torch.double, device=self._device)
 
         NodeGroupKey = namedtuple("NodeGroupKey", f'num_inputs num_states')
         
@@ -246,7 +253,12 @@ class FactorGraph:
 
         self.variable_node_groups = [
             VariableNodeGroup(
-                list(nodes),
+                nodes,
+                [
+                    self._local_likelihoods[:, bayesian_network.nodes.index(node)]
+                    for node
+                    in nodes
+                ],
                 bayesian_network.children,
                 bayesian_network.parents,
                 key.num_inputs,
@@ -255,7 +267,12 @@ class FactorGraph:
                 self._device
             )
             for key, nodes
-            in itertools.groupby(sorted(bayesian_network.nodes, key=variable_node_groups_key_func), key=variable_node_groups_key_func)
+            in 
+            [
+                (key, list(nodes))
+                for key, nodes
+                in itertools.groupby(sorted(bayesian_network.nodes, key=variable_node_groups_key_func), key=variable_node_groups_key_func)
+            ]
         ]
 
         # Instantiate factor node groups

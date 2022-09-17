@@ -91,12 +91,10 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
             evidence_list.append(e)
 
         self.factor_graph.enter_evidence(evidence_list)
-        
+
         self.must_iterate = True
 
     def log_likelihood(self) -> float:
-        raise Exception('Not implemented yet')
-
         if not self.observed_nodes:
             raise Exception("Log likelihood can't be calculated with 0 observed nodes")
 
