@@ -1,4 +1,3 @@
-from abc import ABC
 from collections import namedtuple
 import itertools
 from typing import List, Dict
@@ -38,11 +37,7 @@ class VariableNodeGroup:
                 self._num_observations,
                 self._num_states
             ), device=self._device, dtype=torch.double) / num_states
-        self.node_inputs = {
-            node: self._inputs[i]
-            for i, node
-            in enumerate(self.nodes)
-        }        
+
         self._output_tensors = [
             [
                 # Placeholder
@@ -94,6 +89,12 @@ class VariableNodeGroup:
             i_input = self._children[node].index(input_node)
 
         return self._inputs[i_input, i_node]
+
+    def set_observations(self, observed_node: Node, observations: torch.Tensor):
+        i_node = self.nodes.index(observed_node)
+        i_input = -2
+
+        self._inputs[i_input, i_node] = observations
 
 
 class FactorNodeGroup:
@@ -231,14 +232,16 @@ class FactorGraph:
                  observed_nodes: List[Node],
                  device: torch.device):
         self._device = device
-        # self._observed_nodes = observed_nodes
+        self._observed_nodes = observed_nodes
         # self._local_likelihoods: torch.Tensor = torch.zeros((num_observations, len(bayesian_network.nodes)), dtype=torch.double, device=self._device)
 
         NodeGroupKey = namedtuple("NodeGroupKey", f'num_inputs num_states')
         
         # Instantiate variable node groups
         variable_node_groups_key_func = lambda node: NodeGroupKey(
-            len(bayesian_network.children[node]) + 1, 
+            len(bayesian_network.children[node]) + 2 
+                if node in self._observed_nodes 
+                else len(bayesian_network.children[node]) + 1, 
             node.num_states)
 
         self.variable_node_groups = [
@@ -316,7 +319,6 @@ class FactorGraph:
             factor_node_group.calculate_outputs()
 
     def enter_evidence(self, evidence):
-        raise Exception("not implemented");
-        # for observed_node, observations in zip(self._observed_nodes, evidence):
-        #     variable_node = self.variable_nodes[observed_node]
-        #     variable_node.set_observations(observations)
+        for observed_node, observations in zip(self._observed_nodes, evidence):
+            variable_node_group = self.get_variable_node_group(observed_node)
+            variable_node_group.set_observations(observed_node, observations)

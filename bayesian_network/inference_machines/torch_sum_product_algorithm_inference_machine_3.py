@@ -76,8 +76,6 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         self.must_iterate = False
 
     def enter_evidence(self, evidence: torch.Tensor):
-        raise Exception('Not implemented yet')
-
         # evidence.shape: [num_observations x num_observed_nodes], label-encoded
         if evidence.shape[0] != self.num_observations:
             raise Exception(f'First dimension of evidence should match num_observations ({self.num_observations}), but is {evidence.shape[0]}')
@@ -93,7 +91,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
             evidence_list.append(e)
 
         self.factor_graph.enter_evidence(evidence_list)
-
+        
         self.must_iterate = True
 
     def log_likelihood(self) -> float:
