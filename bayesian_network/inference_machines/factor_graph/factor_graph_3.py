@@ -132,7 +132,7 @@ class FactorNodeGroup:
                 self._num_nodes,
                 self._num_observations,
                 self._inputs_num_states[i_input]), device=self._device, dtype=torch.double) 
-                    / torch.tensor(self._inputs_num_states, device=self._device, dtype=torch.double)
+                    / torch.tensor(self._inputs_num_states[i_input], device=self._device, dtype=torch.double)
             for i_input
             in range(self._num_inputs)
         ]    
