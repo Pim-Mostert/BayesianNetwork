@@ -54,14 +54,14 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         factor_node_group = self.factor_graph.get_factor_node_group(node)
 
         einsum_equation = []
-        for index, input in enumerate(factor_node_group.node_inputs[node]):
+        for index, input in enumerate(factor_node_group.get_node_inputs(node)):
             einsum_equation.append(input)
             einsum_equation.append([0, index+1])
 
-        einsum_equation.append(factor_node_group.node_cpt[node])
-        einsum_equation.append([0, *range(factor_node_group._num_inputs)])
+        einsum_equation.append(factor_node_group.node_cpts[node])
+        einsum_equation.append(range(1, factor_node_group._num_inputs+1))
 
-        einsum_equation.append([0, *range(factor_node_group._num_inputs)])
+        einsum_equation.append(range(0, factor_node_group._num_inputs+1))
 
         p = torch.einsum(*einsum_equation)
 

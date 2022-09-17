@@ -129,6 +129,12 @@ class FactorNodeGroup:
             for i_input
             in range(self._num_inputs)
         ]    
+
+        self.node_cpts = {
+            node: self._cpts[i]
+            for i, node
+            in enumerate(self.nodes)
+        }
         self._output_tensors = [
             [
                 # Placeholder
@@ -209,6 +215,14 @@ class FactorNodeGroup:
 
         return self._inputs[i_input][i_node]
 
+    def get_node_inputs(self, node: Node) -> List[torch.Tensor]:
+        node_index = self.nodes.index(node)
+
+        return [
+            input[node_index]
+            for input
+            in self._inputs
+        ]
 
 class FactorGraph:
     def __init__(self,
