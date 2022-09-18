@@ -154,19 +154,28 @@ class FactorNodeGroup:
             in range(self._num_outputs)
         ]
 
+        # self._output_tensor[0][:], self._output_tensor[1][:], ..., self._output_tensor[self.num_nodes-1][:]
+        self._calculation_output_tensor = torch.empty(())      # Placeholder
+        self._calculation_result = torch.empty(())             # Placeholder
+        self._calculation_assignment_statement =  \
+            ', '.join([f'self.{nameof(self._calculation_output_tensor)}[{i_node}][:]' for i_node in range(self._num_nodes)]) \
+                + f' = self.{nameof(self._calculation_result)}'
+
+        self._calculation_einsum_equation_per_output = [
+            self._construct_einsum_equation_for_output(i_output)
+            for i_output
+            in range(self._num_outputs)
+        ]
+
+
     def calculate_outputs(self):
         for i_output in range(self._num_outputs):
-            output_tensor = self._output_tensors[i_output]
+            self._calculation_output_tensor = self._output_tensors[i_output]
             
-            # output_tensor[0][:], output_tensor[1][:], ..., output_tensor[self.num_nodes-1][:]
-            left_hand = ', '.join([f'{nameof(output_tensor)}[{i_node}][:]' for i_node in range(self._num_nodes)])
+            einsum_equation = self._calculation_einsum_equation_per_output[i_output]
+            self._calculation_result = torch.einsum(*einsum_equation)
 
-            einsum_equation = self._construct_einsum_equation_for_output(i_output)
-            result = torch.einsum(*einsum_equation)
-
-            fun = left_hand + f' = {nameof(result)}'
-
-            exec(fun)
+            exec(self._calculation_assignment_statement)
 
     def _construct_einsum_equation_for_output(self, i_output: int) -> List:
         # Get all inputs with indices, except for the input corresponding to current output
