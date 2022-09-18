@@ -51,36 +51,50 @@ class VariableNodeGroup:
             in range(self._num_outputs)
         ]
 
+        self._i_output_to_local_factor_node = self._num_outputs - 1
+
+        # output_tensor[0][:], output_tensor[1][:], ..., output_tensor[self.num_nodes-1][:]
+        self._calculation_output_tensor = torch.empty(())      # Placeholder
+        self._calculation_result = torch.empty(())             # Placeholder
+        self._calculation_assignment_statement =  \
+            ', '.join([f'self.{nameof(self._calculation_output_tensor)}[{i_node}][:]' for i_node in range(self._num_nodes)]) \
+                + f' = self.{nameof(self._calculation_result)}'
+
+        self._calculation_indices_per_i_output = {
+            i_output: [
+                i_output_inner
+                for i_output_inner
+                in range(self._num_outputs)
+                if i_output_inner != i_output
+            ]
+            for i_output
+            in range(self._num_outputs)
+        }
+
     def calculate_outputs(self):
         c = self._inputs.prod(axis=0).sum(axis=2)
 
         for local_likelihood, c_node in zip(self.local_likelihoods, c):
             local_likelihood[:] = c_node
 
-        for i_output in range(self._num_outputs):
-            output_tensor = self._output_tensors[i_output]
+        for i_output, output_tensors in enumerate(self._output_tensors):
+            self._calculation_output_tensor = output_tensors
 
-            indices = [i for i in range(self._num_inputs) if i != i_output]
-            result = self._inputs[indices, :, :, :].prod(axis=0)
+            indices = self._calculation_indices_per_i_output[i_output]
+            self._calculation_result = self._inputs[indices, :, :, :].prod(axis=0)
             
-            if i_output == self._num_outputs - 1:
-                result /= c[:, :, None]
+            if i_output == self._i_output_to_local_factor_node:
+                self._calculation_result /= c[:, :, None]
             else:
-                result /= result.sum(axis=2, keepdims=True)
-                
-            # construct and evaluate assignment
-            # output_tensor[0][:], output_tensor[1][:], ..., output_tensor[self.num_nodes-1][:]
-            left_hand = ', '.join([f'{nameof(output_tensor)}[{i_node}][:]' for i_node in range(self._num_nodes)])
-    
-            fun = left_hand + f' = {nameof(result)}'
-            
-            exec(fun)
+                self._calculation_result /= self._calculation_result.sum(axis=2, keepdims=True)
+                            
+            exec(self._calculation_assignment_statement)
 
     def set_output_tensor(self, node: Node, output_node: Node, tensor: torch.Tensor):
         i_node = self.nodes.index(node)
         
         if output_node == node:
-            i_output = -1
+            i_output = self._i_output_to_local_factor_node
         else:
             i_output = self._children[node].index(output_node)
 
@@ -90,7 +104,7 @@ class VariableNodeGroup:
         i_node = self.nodes.index(node)
         
         if input_node == node:
-            i_input = -1
+            i_input = self._i_output_to_local_factor_node
         else:
             i_input = self._children[node].index(input_node)
 
@@ -135,7 +149,7 @@ class FactorNodeGroup:
                     / torch.tensor(self._inputs_num_states[i_input], device=self._device, dtype=torch.double)
             for i_input
             in range(self._num_inputs)
-        ]    
+        ]
 
         self.node_cpts = {
             node: self._cpts[i]
