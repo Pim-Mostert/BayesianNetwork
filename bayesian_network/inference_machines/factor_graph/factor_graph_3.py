@@ -53,9 +53,10 @@ class VariableNodeGroup:
 
         self._i_output_to_local_factor_node = self._num_outputs - 1
 
-        # output_tensor[0][:], output_tensor[1][:], ..., output_tensor[self.num_nodes-1][:]
         self._calculation_output_tensor = torch.empty(())      # Placeholder
         self._calculation_result = torch.empty(())             # Placeholder
+
+        # output_tensor[0][:], output_tensor[1][:], ..., output_tensor[self.num_nodes-1][:]
         self._calculation_assignment_statement =  \
             ', '.join([f'self.{nameof(self._calculation_output_tensor)}[{i_node}][:]' for i_node in range(self._num_nodes)]) \
                 + f' = self.{nameof(self._calculation_result)}'
@@ -72,7 +73,8 @@ class VariableNodeGroup:
         }
 
     def calculate_outputs(self):
-        c = self._inputs.prod(axis=0).sum(axis=2)
+        x = self._inputs.prod(axis=0)
+        c = x.sum(axis=2)
 
         for local_likelihood, c_node in zip(self.local_likelihoods, c):
             local_likelihood[:] = c_node
@@ -80,8 +82,7 @@ class VariableNodeGroup:
         for i_output, output_tensors in enumerate(self._output_tensors):
             self._calculation_output_tensor = output_tensors
 
-            indices = self._calculation_indices_per_i_output[i_output]
-            self._calculation_result = self._inputs[indices, :, :, :].prod(axis=0)
+            self._calculation_result = x / self._inputs[i_output]
             
             if i_output == self._i_output_to_local_factor_node:
                 self._calculation_result /= c[:, :, None]
