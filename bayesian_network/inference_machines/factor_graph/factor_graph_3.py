@@ -52,14 +52,35 @@ class VariableNodeGroup:
         ]
 
         self._i_output_to_local_factor_node = self._num_outputs - 1
+        self._is_outputs_to_remote_factor_nodes = [
+            i
+            for i
+            in range(self._num_outputs)
+            if i != self._i_output_to_local_factor_node
+        ]
 
         self._calculation_output_tensor = torch.empty(())      # Placeholder
         self._calculation_result = torch.empty(())             # Placeholder
 
-        # output_tensor[0][:], output_tensor[1][:], ..., output_tensor[self.num_nodes-1][:]
+        # output_tensor[0][0][:], output_tensor[0][1][:], ..., output_tensor[0][K], 
+        # output_tensor[1][0][:], output_tensor[1][1][:], ..., output_tensor[1][K], 
+        # ...
+        # output_tensor[J][0][:], output_tensor[J][1][:], ..., output_tensor[J][K]
+        #     = self._calculation_result.reshape[J * K, N, F]
+        # 
+        #  J: Number of outputs
+        #  K: Number of nodes
+        #  N: Number of observations
+        #  F: Number of states
         self._calculation_assignment_statement =  \
-            ', '.join([f'self.{nameof(self._calculation_output_tensor)}[{i_node}][:]' for i_node in range(self._num_nodes)]) \
-                + f' = self.{nameof(self._calculation_result)}'
+            ', '.join(
+                [
+                    f'self.{nameof(self._output_tensors)}[{i_output}][{i_node}][:]' 
+                    for i_output in range(self._num_outputs)
+                    for i_node in range(self._num_nodes)
+                ]) \
+                + f' = self.{nameof(self._calculation_result)}' \
+                + f'.reshape(self.{nameof(self._num_outputs)}*self.{nameof(self._num_nodes)}, self.{nameof(self._num_observations)}, self.{nameof(self._num_states)})'
 
         self._calculation_indices_per_i_output = {
             i_output: [
@@ -73,23 +94,25 @@ class VariableNodeGroup:
         }
 
     def calculate_outputs(self):
+        # Calculation
         x = self._inputs.prod(axis=0)
-        c = x.sum(axis=2)
 
+        self._calculation_result = x / self._inputs
+
+        # Normalization to remote factor nodes
+        self._calculation_result[self._is_outputs_to_remote_factor_nodes] /= \
+            self._calculation_result[self._is_outputs_to_remote_factor_nodes].sum(axis=3, keepdim=True)
+
+        # Normalization to local factor node
+        c = x.sum(axis=2)
+        self._calculation_result[self._i_output_to_local_factor_node] /= c[:, :, None]
+
+        # Assign calculation result to output vectors
+        exec(self._calculation_assignment_statement)
+
+        # Store local likelihood
         for local_likelihood, c_node in zip(self.local_likelihoods, c):
             local_likelihood[:] = c_node
-
-        for i_output, output_tensors in enumerate(self._output_tensors):
-            self._calculation_output_tensor = output_tensors
-
-            self._calculation_result = x / self._inputs[i_output]
-            
-            if i_output == self._i_output_to_local_factor_node:
-                self._calculation_result /= c[:, :, None]
-            else:
-                self._calculation_result /= self._calculation_result.sum(axis=2, keepdims=True)
-                            
-            exec(self._calculation_assignment_statement)
 
     def set_output_tensor(self, node: Node, output_node: Node, tensor: torch.Tensor):
         i_node = self.nodes.index(node)
