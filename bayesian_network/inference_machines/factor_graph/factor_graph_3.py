@@ -11,7 +11,6 @@ from bayesian_network.bayesian_network import BayesianNetwork, Node
 class VariableNodeGroup:
     def __init__(self,
                  nodes: List[Node],
-                 local_likelihoods: List[torch.Tensor],
                  children: Dict[Node, List[Node]],
                  parents: Dict[Node, List[Node]],
                  num_inputs: int,
@@ -20,7 +19,6 @@ class VariableNodeGroup:
                  device: torch.device):
         self._device = device
         self.nodes = nodes
-        self.local_likelihoods = local_likelihoods
         self._children = children
         self._parents = parents
         self._num_nodes = len(self.nodes)
@@ -31,6 +29,9 @@ class VariableNodeGroup:
 
         if self._num_observations == 0:
             self._num_observations = 1
+
+        # Placeholder
+        self.local_log_likelihoods = torch.zeros((self._num_nodes, self._num_observations), device=self._device, dtype=torch.double)
 
         self._inputs = torch.ones(
             (
@@ -95,8 +96,10 @@ class VariableNodeGroup:
 
     def calculate_outputs(self):
         # Calculation
+        # [num_inputs, num_nodes, num_observations, num_states]
         x = self._inputs.prod(axis=0)
 
+        # [num_outputs, num_nodes, num_observations, num_states]
         self._calculation_result = x / self._inputs
 
         # Normalization to remote factor nodes
@@ -104,15 +107,15 @@ class VariableNodeGroup:
             self._calculation_result[self._is_outputs_to_remote_factor_nodes].sum(axis=3, keepdim=True)
 
         # Normalization to local factor node
-        c = x.sum(axis=2)
-        self._calculation_result[self._i_output_to_local_factor_node] /= c[:, :, None]
+        # [num_nodes, num_observations, 1]
+        c = x.sum(axis=2, keepdim=True)
+        self._calculation_result[self._i_output_to_local_factor_node] /= c
 
         # Assign calculation result to output vectors
         exec(self._calculation_assignment_statement)
 
-        # Store local likelihood
-        for local_likelihood, c_node in zip(self.local_likelihoods, c):
-            local_likelihood[:] = c_node
+        # Store local likelihoods
+        self.local_log_likelihoods = c.squeeze(dim=2).log()
 
     def set_output_tensor(self, node: Node, output_node: Node, tensor: torch.Tensor):
         i_node = self.nodes.index(node)
@@ -287,7 +290,6 @@ class FactorGraph:
                  device: torch.device):
         self._device = device
         self._observed_nodes = observed_nodes
-        self._local_likelihoods: torch.Tensor = torch.zeros((num_observations, len(bayesian_network.nodes)), dtype=torch.double, device=self._device)
 
         NodeGroupKey = namedtuple("NodeGroupKey", f'num_inputs num_states')
         
@@ -301,11 +303,6 @@ class FactorGraph:
         self.variable_node_groups = [
             VariableNodeGroup(
                 nodes,
-                [
-                    self._local_likelihoods[:, bayesian_network.nodes.index(node)]
-                    for node
-                    in nodes
-                ],
                 bayesian_network.children,
                 bayesian_network.parents,
                 key.num_inputs,
