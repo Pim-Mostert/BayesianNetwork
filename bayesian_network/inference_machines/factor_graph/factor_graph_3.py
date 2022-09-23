@@ -1,6 +1,6 @@
 from collections import namedtuple
 import itertools
-from typing import List, Dict
+from typing import Callable, List, Dict, Tuple
 from varname import nameof
 
 import torch
@@ -16,6 +16,7 @@ class VariableNodeGroup:
                  num_inputs: int,
                  num_states: int,
                  num_observations: int,
+                 observed_nodes: List[Node],
                  device: torch.device):
         self._device = device
         self.nodes = nodes
@@ -24,7 +25,7 @@ class VariableNodeGroup:
         self._num_nodes = len(self.nodes)
         self._num_observations = num_observations
         self._num_inputs = num_inputs
-        self._num_states = num_states
+        self.num_states = num_states
         self._num_outputs = self._num_inputs
 
         if self._num_observations == 0:
@@ -33,18 +34,20 @@ class VariableNodeGroup:
         # Placeholder
         self.local_log_likelihoods = torch.zeros((self._num_nodes, self._num_observations), device=self._device, dtype=torch.double)
 
+        self._i_observed_nodes = [self.nodes.index(observed_node) for observed_node in observed_nodes]
+
         self._inputs = torch.ones(
             (
                 self._num_inputs, 
                 self._num_nodes, 
                 self._num_observations,
-                self._num_states
+                self.num_states
             ), device=self._device, dtype=torch.double) / num_states
 
         self._output_tensors = [
             [
                 # Placeholder
-                torch.zeros((self._num_observations, self._num_states), device=self._device, dtype=torch.double)
+                torch.zeros((self._num_observations, self.num_states), device=self._device, dtype=torch.double)
                 for _
                 in self.nodes
             ]
@@ -53,7 +56,7 @@ class VariableNodeGroup:
         ]
 
         self._i_output_to_local_factor_node = self._num_outputs - 1
-        self._is_outputs_to_remote_factor_nodes = [
+        self._i_outputs_to_remote_factor_nodes = [
             i
             for i
             in range(self._num_outputs)
@@ -81,7 +84,7 @@ class VariableNodeGroup:
                     for i_node in range(self._num_nodes)
                 ]) \
                 + f' = self.{nameof(self._calculation_result)}' \
-                + f'.reshape(self.{nameof(self._num_outputs)}*self.{nameof(self._num_nodes)}, self.{nameof(self._num_observations)}, self.{nameof(self._num_states)})'
+                + f'.reshape(self.{nameof(self._num_outputs)}*self.{nameof(self._num_nodes)}, self.{nameof(self._num_observations)}, self.{nameof(self.num_states)})'
 
         self._calculation_indices_per_i_output = {
             i_output: [
@@ -103,8 +106,8 @@ class VariableNodeGroup:
         self._calculation_result = x / self._inputs
 
         # Normalization to remote factor nodes
-        self._calculation_result[self._is_outputs_to_remote_factor_nodes] /= \
-            self._calculation_result[self._is_outputs_to_remote_factor_nodes].sum(axis=3, keepdim=True)
+        self._calculation_result[self._i_outputs_to_remote_factor_nodes] /= \
+            self._calculation_result[self._i_outputs_to_remote_factor_nodes].sum(axis=3, keepdim=True)
 
         # Normalization to local factor node
         # [num_nodes, num_observations, 1]
@@ -137,11 +140,11 @@ class VariableNodeGroup:
 
         return self._inputs[i_input, i_node]
 
-    def set_observations(self, observed_node: Node, observations: torch.Tensor):
-        i_node = self.nodes.index(observed_node)
+    def set_observations(self, observations: torch.Tensor):
+        # observations: torch.Tensor[num_nodes, num_observations, num_states]
         i_input = -2
 
-        self._inputs[i_input, i_node] = observations
+        self._inputs[i_input, self._i_observed_nodes, :, :] = observations
 
 
 class FactorNodeGroup:
@@ -308,7 +311,8 @@ class FactorGraph:
                 key.num_inputs,
                 key.num_states,
                 num_observations,
-                self._device
+                observed_nodes=[observed_node for observed_node in self._observed_nodes if observed_node in set(nodes)],
+                device=self._device
             )
             for key, nodes
             in 
@@ -379,7 +383,22 @@ class FactorGraph:
         for factor_node_group in self.factor_node_groups:
             factor_node_group.calculate_outputs()
 
-    def enter_evidence(self, evidence):
-        for observed_node, observations in zip(self._observed_nodes, evidence):
-            variable_node_group = self.get_variable_node_group(observed_node)
-            variable_node_group.set_observations(observed_node, observations)
+    def enter_evidence(self, all_evidence: List[torch.Tensor]):
+        # evidence: List[(num_observed_nodes)], torch.Tensor: [num_observations, num_states]
+
+        evidence_groups = (
+            (variable_node_group, torch.stack(evidence))
+            for variable_node_group, evidence
+            in (
+                (variable_node_group, [
+                    evidence
+                    for evidence, observed_node in zip(all_evidence, self._observed_nodes) 
+                    if observed_node in variable_node_group.nodes
+                ])
+                for variable_node_group in self.variable_node_groups
+            )            
+            if evidence
+        )
+
+        for variable_node_group, evidence_group in evidence_groups:
+            variable_node_group.set_observations(evidence_group)

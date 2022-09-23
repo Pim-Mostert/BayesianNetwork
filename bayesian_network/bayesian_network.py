@@ -15,7 +15,7 @@ class Node:
         if not is_valid_probability_matrix(cpt):
             raise Exception('The CPT should sum to 1 along the last dimension')
 
-        self.num_states = cpt.shape[-1]
+        self.num_states: int = cpt.shape[-1]
         self.cpt = cpt
         self.name = name
 

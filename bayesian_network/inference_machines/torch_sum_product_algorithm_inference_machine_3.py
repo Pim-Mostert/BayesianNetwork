@@ -1,4 +1,6 @@
-from typing import List, Callable, Dict
+import itertools
+from typing import List, Callable, Tuple
+from torch.nn.functional import one_hot
 
 import torch
 
@@ -79,17 +81,14 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         # evidence.shape: [num_observations x num_observed_nodes], label-encoded
         if evidence.shape[0] != self.num_observations:
             raise Exception(f'First dimension of evidence should match num_observations ({self.num_observations}), but is {evidence.shape[0]}')
+        
+        evidence_list = [
+            one_hot(evidence, node.num_states).double()
+            for evidence, node
+            in zip(evidence.long().transpose(0, 1), self.observed_nodes)
+        ]
 
-        evidence_list: List[torch.Tensor] = []
-
-        for i, observed_node in enumerate(self.observed_nodes):
-            e = torch.zeros((self.num_observations, observed_node.num_states), device=self.device, dtype=torch.float64)
-
-            for n in range(evidence.shape[0]):
-                e[n, evidence[n, i]] = 1
-
-            evidence_list.append(e)
-
+        # evidence: List[(num_nodes)], torch.Tensor: [num_observations, num_states]
         self.factor_graph.enter_evidence(evidence_list)
 
         self.must_iterate = True
