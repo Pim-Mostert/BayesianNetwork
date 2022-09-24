@@ -211,7 +211,6 @@ class FactorNodeGroup:
             in range(self._num_outputs)
         ]
 
-
     def calculate_outputs(self):
         for i_output in range(self._num_outputs):
             self._calculation_output_tensor = self._output_tensors[i_output]

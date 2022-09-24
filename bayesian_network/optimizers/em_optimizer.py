@@ -10,11 +10,9 @@ from bayesian_network.interfaces import IOptimizer, IInferenceMachine
 class EmOptimizer(IOptimizer):
     def __init__(self, 
                  bayesian_network: BayesianNetwork, 
-                 inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
-                 regularization: float):
+                 inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine]):
         self.bayesian_network = bayesian_network
         self.inference_machine_factory = inference_machine_factory
-        self.regularization = regularization
 
     def optimize(self, evidence, num_iterations, iteration_callback):
         for iteration in range(num_iterations):
@@ -52,9 +50,6 @@ class EmOptimizer(IOptimizer):
         for node, p_conditional in zip(self.bayesian_network.nodes, p_conditionals):
             # Normalize to conditional probability distribution
             cpt = p_conditional / p_conditional.sum(dim=-1, keepdim=True)
-
-            cpt *= self.regularization
-            cpt += (1-self.regularization)/2
 
             # Update node
             node.cpt = cpt
