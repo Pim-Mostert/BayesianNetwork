@@ -67,22 +67,8 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
         self.must_iterate = False
 
-    def enter_evidence(self, evidence: torch.Tensor):
-        # evidence.shape: [num_observations x num_observed_nodes], label-encoded
-        if evidence.shape[0] != self.num_observations:
-            raise Exception(f'First dimension of evidence should match num_observations ({self.num_observations}), but is {evidence.shape[0]}')
-
-        evidence_list: List[torch.Tensor] = []
-
-        for i, observed_node in enumerate(self.observed_nodes):
-            e = torch.zeros((self.num_observations, observed_node.num_states), device=self.device, dtype=torch.float64)
-
-            for n in range(evidence.shape[0]):
-                e[n, evidence[n, i]] = 1
-
-            evidence_list.append(e)
-
-        self.factor_graph.enter_evidence(evidence_list)
+    def enter_evidence(self, evidence: List[torch.Tensor]):
+        self.factor_graph.enter_evidence(evidence)
 
         self.must_iterate = True
 

@@ -38,17 +38,17 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
 
         return p
 
-    def enter_evidence(self, evidence: torch.tensor):
-        if evidence.shape[1] != self.num_observed_nodes:
-            raise Exception(f'Second dimension of evidence must match number of observed nodes: {len(self.observed_nodes_indices)}')
+    def enter_evidence(self, evidence: List[torch.tensor]):
+        if len(evidence) != self.num_observed_nodes:
+            raise Exception(f'Length of evidence must match number of observed nodes: {len(self.observed_nodes_indices)}')
 
-        num_trials = evidence.shape[0]
+        num_trials = evidence[0].shape[0]
         dims = [num_trials] + self.dims
 
         p_evidence = torch.ones(dims, device=self.device)
 
         for (i, observed_node_index) in enumerate(self.observed_nodes_indices):
-            p_evidence_node = self._calculate_p_evidence_for_observed_node(observed_node_index, evidence[:, i])
+            p_evidence_node = self._calculate_p_evidence_for_observed_node(observed_node_index, evidence[i])
 
             node_dims = [1] * self.num_nodes
             node_dims[observed_node_index] = self.dims[observed_node_index]
@@ -65,11 +65,13 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
         self._log_likelihood = torch.log(c).sum()
 
     def _calculate_p_evidence_for_observed_node(self, observed_node_index, evidence):
-        num_trials = evidence.shape[0]
+        p_evidence = evidence
 
-        p_evidence = torch.zeros((num_trials, self.dims[observed_node_index]), device=self.device)
-        for i_trial in torch.arange(num_trials, device=self.device):
-            p_evidence[i_trial, evidence[i_trial]] = 1
+        # num_trials = evidence.shape[0]
+
+        # p_evidence = torch.zeros((num_trials, self.dims[observed_node_index]), device=self.device)
+        # for i_trial in torch.arange(num_trials, device=self.device):
+        #     p_evidence[i_trial, evidence[i_trial]] = 1
 
         return p_evidence
 
