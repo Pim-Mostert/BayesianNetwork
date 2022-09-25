@@ -14,7 +14,7 @@ class IBayesianNetworkSampler(ABC):
 
 class IInferenceMachine(ABC):
     @abstractmethod
-    def enter_evidence(self, evidence) -> None:
+    def enter_evidence(self, evidence: List[torch.Tensor]) -> None:
         pass
 
     @abstractmethod

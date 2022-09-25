@@ -87,26 +87,18 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_single_nodes(self):
             # Assign
-            evidence = torch.tensor([[0, 0, 0], [0, 1, 1]], dtype=torch.int)
-            num_observations = evidence.shape[0]
+            evidence = [
+                torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
+            ]
+            num_observations = evidence[0].shape[0]
 
-            evidence_Q1 = torch.zeros((num_observations, 2), dtype=torch.double)
-            evidence_Q2 = torch.zeros((num_observations, 2), dtype=torch.double)
-            evidence_Y = torch.zeros((num_observations, 2), dtype=torch.double)
-
-            for i_observations in range(num_observations):
-                evidence_Q1[i_observations, evidence[i_observations, 0]] = 1
-                evidence_Q2[i_observations, evidence[i_observations, 1]] = 1
-                evidence_Y[i_observations, evidence[i_observations, 2]] = 1
-
-            p_Q1_expected = torch.einsum('i, ij, jk, ni, nj, nk->ni', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1,
-                                         evidence_Q2, evidence_Y)
+            p_Q1_expected = torch.einsum('i, ij, jk, ni, nj, nk->ni', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q1_expected /= p_Q1_expected.sum(axis=(1), keepdims=True)
-            p_Q2_expected = torch.einsum('i, ij, jk, ni, nj, nk->nj', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1,
-                                         evidence_Q2, evidence_Y)
+            p_Q2_expected = torch.einsum('i, ij, jk, ni, nj, nk->nj', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q2_expected /= p_Q2_expected.sum(axis=(1), keepdims=True)
-            p_Y_expected = torch.einsum('i, ij, jk, ni, nj, nk->nk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1,
-                                        evidence_Q2, evidence_Y)
+            p_Y_expected = torch.einsum('i, ij, jk, ni, nj, nk->nk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Y_expected /= p_Y_expected.sum(axis=(1), keepdims=True)
 
             # Act
@@ -126,20 +118,14 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_log_likelihood(self):
             # Assign
-            evidence = torch.tensor([[0, 0, 0], [0, 1, 1]], dtype=torch.int)
-            num_observations = evidence.shape[0]
+            evidence = [
+                torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
+            ]
+            num_observations = evidence[0].shape[0]
 
-            evidence_Q1 = torch.zeros((num_observations, 2), dtype=torch.double)
-            evidence_Q2 = torch.zeros((num_observations, 2), dtype=torch.double)
-            evidence_Y = torch.zeros((num_observations, 2), dtype=torch.double)
-
-            for i_observations in range(num_observations):
-                evidence_Q1[i_observations, evidence[i_observations, 0]] = 1
-                evidence_Q2[i_observations, evidence[i_observations, 1]] = 1
-                evidence_Y[i_observations, evidence[i_observations, 2]] = 1
-
-            c = torch.einsum('i, ij, jk, ni, nj, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Q1,
-                             evidence_Q2, evidence_Y) \
+            c = torch.einsum('i, ij, jk, ni, nj, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence) \
                 .sum(axis=(1, 2, 3))
             ll_expected = torch.log(c).sum()
 
@@ -158,23 +144,16 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_nodes_with_parents(self):
             # Assign
-            evidence = torch.tensor([[0, 0, 0], [0, 1, 1]], dtype=torch.int)
-            num_observations = evidence.shape[0]
+            evidence = [
+                torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
+            ]
+            num_observations = evidence[0].shape[0]
 
-            evidence_Q1 = torch.zeros((num_observations, 2), dtype=torch.double)
-            evidence_Q2 = torch.zeros((num_observations, 2), dtype=torch.double)
-            evidence_Y = torch.zeros((num_observations, 2), dtype=torch.double)
-
-            for i_observations in range(num_observations):
-                evidence_Q1[i_observations, evidence[i_observations, 0]] = 1
-                evidence_Q2[i_observations, evidence[i_observations, 1]] = 1
-                evidence_Y[i_observations, evidence[i_observations, 2]] = 1
-
-            p_Q1xQ2_expected = torch.einsum('i, ij, jk, ni, nj, nk->nij', self.Q1.cpt, self.Q2.cpt, self.Y.cpt,
-                                            evidence_Q1, evidence_Q2, evidence_Y)
+            p_Q1xQ2_expected = torch.einsum('i, ij, jk, ni, nj, nk->nij', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q1xQ2_expected /= p_Q1xQ2_expected.sum(axis=(1, 2), keepdims=True)
-            p_Q2xY_expected = torch.einsum('i, ij, jk, ni, nj, nk->njk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt,
-                                           evidence_Q1, evidence_Q2, evidence_Y)
+            p_Q2xY_expected = torch.einsum('i, ij, jk, ni, nj, nk->njk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q2xY_expected /= p_Q2xY_expected.sum(axis=(1, 2), keepdims=True)
 
             # Act
@@ -193,19 +172,16 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_single_nodes(self):
             # Assign
-            evidence = torch.tensor([[0], [1]], dtype=torch.int)
-            num_observations = evidence.shape[0]
+            evidence = [
+                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+            ]
+            num_observations = evidence[0].shape[0]
 
-            evidence_Y = torch.zeros((num_observations, 2), dtype=torch.double)
-
-            for i_observation in range(num_observations):
-                evidence_Y[i_observation, evidence[i_observation, 0]] = 1
-
-            p_Q1_expected = torch.einsum('i, ij, jk, nk->ni', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Y)
+            p_Q1_expected = torch.einsum('i, ij, jk, nk->ni', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q1_expected /= p_Q1_expected.sum(axis=(1), keepdims=True)
-            p_Q2_expected = torch.einsum('i, ij, jk, nk->nj', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Y)
+            p_Q2_expected = torch.einsum('i, ij, jk, nk->nj', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q2_expected /= p_Q2_expected.sum(axis=(1), keepdims=True)
-            p_Y_expected = torch.einsum('i, ij, jk, nk->nk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Y)
+            p_Y_expected = torch.einsum('i, ij, jk, nk->nk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Y_expected /= p_Y_expected.sum(axis=(1), keepdims=True)
 
             # Act
@@ -225,15 +201,12 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_log_likelihood(self):
             # Assign
-            evidence = torch.tensor([[0], [0], [0], [0], [1], [1], [1]], dtype=torch.int)
-            num_observations = evidence.shape[0]
+            evidence = [
+                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+            ]
+            num_observations = evidence[0].shape[0]
 
-            evidence_Y = torch.zeros((num_observations, 2), dtype=torch.double)
-
-            for i_observation in range(num_observations):
-                evidence_Y[i_observation, evidence[i_observation, 0]] = 1
-
-            c = torch.einsum('i, ij, jk, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Y) \
+            c = torch.einsum('i, ij, jk, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence) \
                 .sum(axis=(1, 2, 3))
             ll_expected = torch.log(c).sum()
 
@@ -252,17 +225,14 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_with_parents(self):
             # Assign
-            evidence = torch.tensor([[0], [1]], dtype=torch.int)
-            num_observations = evidence.shape[0]
+            evidence = [
+                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+            ]
+            num_observations = evidence[0].shape[0]
 
-            evidence_Y = torch.zeros((num_observations, 2), dtype=torch.double)
-
-            for i_observations in range(num_observations):
-                evidence_Y[i_observations, evidence[i_observations, 0]] = 1
-
-            p_Q1xQ2_expected = torch.einsum('i, ij, jk, nk->nij', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Y)
+            p_Q1xQ2_expected = torch.einsum('i, ij, jk, nk->nij', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q1xQ2_expected /= p_Q1xQ2_expected.sum(axis=(1, 2), keepdims=True)
-            p_Q2xY_expected = torch.einsum('i, ij, jk, nk->njk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, evidence_Y)
+            p_Q2xY_expected = torch.einsum('i, ij, jk, nk->njk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q2xY_expected /= p_Q2xY_expected.sum(axis=(1, 2), keepdims=True)
 
             # Act
@@ -323,33 +293,26 @@ class TorchInferenceMachineGenericTests:
 
         def test_inference_single_nodes(self):
             # Assign
-            evidence = torch.tensor([[1, 2, 3, 1, 2], [0, 0, 0, 0, 0]], dtype=torch.int)
-            num_observations = evidence.shape[0]
-
-            evidence_Y1 = torch.zeros((num_observations, 2), dtype=torch.double)
-            evidence_Y2 = torch.zeros((num_observations, 3), dtype=torch.double)
-            evidence_Y3 = torch.zeros((num_observations, 4), dtype=torch.double)
-            evidence_Y4 = torch.zeros((num_observations, 2), dtype=torch.double)
-            evidence_Y5 = torch.zeros((num_observations, 3), dtype=torch.double)
-
-            for i_observation in range(num_observations):
-                evidence_Y1[i_observation, evidence[i_observation, 0]] = 1
-                evidence_Y2[i_observation, evidence[i_observation, 1]] = 1
-                evidence_Y3[i_observation, evidence[i_observation, 2]] = 1
-                evidence_Y4[i_observation, evidence[i_observation, 3]] = 1
-                evidence_Y5[i_observation, evidence[i_observation, 4]] = 1
+            evidence = [
+                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
+            ]
+            num_observations = evidence[0].shape[0]
 
             p_Q1_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->ni', self.Q1.cpt,
                                          self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt,
-                                         self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+                                         self.Y5.cpt, *evidence)
             p_Q1_expected /= p_Q1_expected.sum(axis=(1), keepdims=True)
             p_Q2_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nj', self.Q1.cpt,
                                          self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt,
-                                         self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+                                         self.Y5.cpt, *evidence)
             p_Q2_expected /= p_Q2_expected.sum(axis=(1), keepdims=True)
             p_Q3_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nk', self.Q1.cpt,
                                          self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt,
-                                         self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+                                         self.Y5.cpt, *evidence)
             p_Q3_expected /= p_Q3_expected.sum(axis=(1), keepdims=True)
 
             # Act
@@ -369,26 +332,17 @@ class TorchInferenceMachineGenericTests:
 
         def test_log_likelihood(self):
             # Assign
-            evidence = torch.tensor(
-                [[0, 0, 0, 0, 0], [1, 1, 1, 1, 1], [0, 2, 0, 1, 2], [1, 0, 3, 0, 1], [1, 2, 3, 1, 2]], dtype=torch.int)
-            num_observations = evidence.shape[0]
-
-            evidence_Y1 = torch.zeros((num_observations, 2), dtype=torch.double)
-            evidence_Y2 = torch.zeros((num_observations, 3), dtype=torch.double)
-            evidence_Y3 = torch.zeros((num_observations, 4), dtype=torch.double)
-            evidence_Y4 = torch.zeros((num_observations, 2), dtype=torch.double)
-            evidence_Y5 = torch.zeros((num_observations, 3), dtype=torch.double)
-
-            for i_observation in range(num_observations):
-                evidence_Y1[i_observation, evidence[i_observation, 0]] = 1
-                evidence_Y2[i_observation, evidence[i_observation, 1]] = 1
-                evidence_Y3[i_observation, evidence[i_observation, 2]] = 1
-                evidence_Y4[i_observation, evidence[i_observation, 3]] = 1
-                evidence_Y5[i_observation, evidence[i_observation, 4]] = 1
+            evidence = [
+                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
+            ]
+            num_observations = evidence[0].shape[0]
 
             c = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->n', self.Q1.cpt, self.Q2.cpt,
-                             self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, evidence_Y1,
-                             evidence_Y2, evidence_Y3, evidence_Y4, evidence_Y5)
+                             self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt, self.Y4.cpt, self.Y5.cpt, *evidence)
             ll_expected = torch.log(c).sum()
 
             # Act
@@ -406,56 +360,42 @@ class TorchInferenceMachineGenericTests:
 
         def test_inference_nodes_with_parents(self):
             # Assign
-            evidence = torch.tensor([[1, 2, 3, 1, 2], [0, 0, 0, 0, 0]], dtype=torch.int)
-            num_observations = evidence.shape[0]
-
-            evidence_Y1 = torch.zeros((num_observations, 2), dtype=torch.double)
-            evidence_Y2 = torch.zeros((num_observations, 3), dtype=torch.double)
-            evidence_Y3 = torch.zeros((num_observations, 4), dtype=torch.double)
-            evidence_Y4 = torch.zeros((num_observations, 2), dtype=torch.double)
-            evidence_Y5 = torch.zeros((num_observations, 3), dtype=torch.double)
-
-            for i_observation in range(num_observations):
-                evidence_Y1[i_observation, evidence[i_observation, 0]] = 1
-                evidence_Y2[i_observation, evidence[i_observation, 1]] = 1
-                evidence_Y3[i_observation, evidence[i_observation, 2]] = 1
-                evidence_Y4[i_observation, evidence[i_observation, 3]] = 1
-                evidence_Y5[i_observation, evidence[i_observation, 4]] = 1
+            evidence = [
+                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
+            ]
+            num_observations = evidence[0].shape[0]
 
             p_Q1xQ2_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nij', self.Q1.cpt,
                                             self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
-                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
-                                            evidence_Y4, evidence_Y5)
+                                            self.Y4.cpt, self.Y5.cpt, *evidence)
             p_Q1xQ2_expected /= p_Q1xQ2_expected.sum(axis=(1, 2), keepdims=True)
             p_Q2xQ3_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->njk', self.Q1.cpt,
                                             self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
-                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
-                                            evidence_Y4, evidence_Y5)
+                                            self.Y4.cpt, self.Y5.cpt, *evidence)
             p_Q2xQ3_expected /= p_Q2xQ3_expected.sum(axis=(1, 2), keepdims=True)
             p_Q1xY1_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nia', self.Q1.cpt,
                                             self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
-                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
-                                            evidence_Y4, evidence_Y5)
+                                            self.Y4.cpt, self.Y5.cpt, *evidence)
             p_Q1xY1_expected /= p_Q1xY1_expected.sum(axis=(1, 2), keepdims=True)
             p_Q2xY2_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->njb', self.Q1.cpt,
                                             self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
-                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
-                                            evidence_Y4, evidence_Y5)
+                                            self.Y4.cpt, self.Y5.cpt, *evidence)
             p_Q2xY2_expected /= p_Q2xY2_expected.sum(axis=(1, 2), keepdims=True)
             p_Q2xY3_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->njc', self.Q1.cpt,
                                             self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
-                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
-                                            evidence_Y4, evidence_Y5)
+                                            self.Y4.cpt, self.Y5.cpt, *evidence)
             p_Q2xY3_expected /= p_Q2xY3_expected.sum(axis=(1, 2), keepdims=True)
             p_Q3xY4_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nkd', self.Q1.cpt,
                                             self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
-                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
-                                            evidence_Y4, evidence_Y5)
+                                            self.Y4.cpt, self.Y5.cpt, *evidence)
             p_Q3xY4_expected /= p_Q3xY4_expected.sum(axis=(1, 2), keepdims=True)
             p_Q3xY5_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nke', self.Q1.cpt,
                                             self.Q2.cpt, self.Q3.cpt, self.Y1.cpt, self.Y2.cpt, self.Y3.cpt,
-                                            self.Y4.cpt, self.Y5.cpt, evidence_Y1, evidence_Y2, evidence_Y3,
-                                            evidence_Y4, evidence_Y5)
+                                            self.Y4.cpt, self.Y5.cpt, *evidence)
             p_Q3xY5_expected /= p_Q3xY5_expected.sum(axis=(1, 2), keepdims=True)
 
             # Act
