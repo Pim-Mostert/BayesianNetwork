@@ -730,3 +730,91 @@ class TorchInferenceMachineGenericTests:
 
             # Assert
             self.assertArrayAlmostEqual(ll_actual, ll_expected)
+
+    class HandleNumericalUnderflow(TorchInferenceMachineGenericTestsBase, ABC):
+        def setUp(self):
+            super().setUp()
+
+            self.num_inputs = 10
+            self.num_observations = 2
+
+            self.Q = Node(
+                torch.tensor([0.5, 0.5], device=self.get_torch_device(), dtype=torch.double),
+                name='Q')
+            self.Ys = [
+                Node(
+                torch.tensor([[1E-100, 1 - 1E-100], [1E-100, 1 - 1E-100]], device=self.get_torch_device(), dtype=torch.double),
+                name=f'Y{i}')
+                for i
+                in range(self.num_inputs)
+            ]
+
+            nodes = [self.Q, *self.Ys]
+            parents = {
+                y: [self.Q]
+                for y
+                in self.Ys
+            }
+            parents[self.Q] = []
+
+            self.network = BayesianNetwork(nodes, parents)
+            
+            self.evidence = [
+                torch.tensor([[1 - 1E-100, 1E-100]], device=self.get_torch_device(), dtype=torch.double) \
+                    .repeat((self.num_observations, 1))
+                for _
+                in range(self.num_inputs)
+            ]
+
+        def test_inference_single_nodes(self):
+            # Assign
+
+            # Act
+            sut = self.create_inference_machine(
+                bayesian_network=self.network,
+                observed_nodes=self.Ys,
+                num_observations=self.num_observations)
+
+            sut.enter_evidence(self.evidence)
+
+            [p_Q_actual] = sut.infer_single_nodes([self.Q])
+            p_Ys_actual = sut.infer_single_nodes(self.Ys)
+
+            # Assert
+            self.assertFalse(p_Q_actual.isnan().any())
+            
+            for p_Y_actual in p_Ys_actual:
+                self.assertFalse(p_Y_actual.isnan().any())
+
+        def test_log_likelihood(self):
+            # Assign
+
+            # Act
+            sut = self.create_inference_machine(
+                bayesian_network=self.network,
+                observed_nodes=self.Ys,
+                num_observations=self.num_observations)
+
+            sut.enter_evidence(self.evidence)
+
+            ll_actual = sut.log_likelihood()
+
+            # Assert
+            self.assertFalse(ll_actual.isnan())
+
+        def test_inference_nodes_with_parents(self):
+            # Assign
+
+            # Act
+            sut = self.create_inference_machine(
+                bayesian_network=self.network,
+                observed_nodes=self.Ys,
+                num_observations=self.num_observations)
+
+            sut.enter_evidence(self.evidence)
+
+            p_YxQs_actual = sut.infer_nodes_with_parents(self.Ys)
+
+            # Assert
+            for p_YxQ_actual in p_YxQs_actual:
+                self.assertFalse(p_YxQ_actual.isnan().any())

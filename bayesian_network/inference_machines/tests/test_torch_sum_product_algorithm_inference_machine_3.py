@@ -22,7 +22,7 @@ class TestTorchSumProductAlgorithmInferenceMachineBase(ABC):
             bayesian_network=bayesian_network,
             observed_nodes=observed_nodes,
             device=self.get_torch_device(),
-            num_iterations=20,
+            num_iterations=7,
             num_observations=num_observations,
             callback=lambda factor_graph, iteration: None)
 
@@ -41,9 +41,11 @@ class TestTorchSumProductAlgorithmInferenceMachineBaseCuda(TestTorchSumProductAl
 # Cpu
 class TestNetworkWithSingleParentsCpu(TestTorchSumProductAlgorithmInferenceMachineBaseCpu, TorchInferenceMachineGenericTests.NetworkWithSingleParents): pass
 class TestComplexNetworkWithSingleParentsCpu(TestTorchSumProductAlgorithmInferenceMachineBaseCpu, TorchInferenceMachineGenericTests.ComplexNetworkWithSingleParents): pass
+class HandleNumericalUnderflowCpu(TestTorchSumProductAlgorithmInferenceMachineBaseCpu, TorchInferenceMachineGenericTests.HandleNumericalUnderflow): pass
 
 
 # Cuda
 class TestNetworkWithSingleParentsCuda(TestTorchSumProductAlgorithmInferenceMachineBaseCuda, TorchInferenceMachineGenericTests.NetworkWithSingleParents): pass
 class TestComplexNetworkWithSingleParentsCuda(TestTorchSumProductAlgorithmInferenceMachineBaseCuda, TorchInferenceMachineGenericTests.ComplexNetworkWithSingleParents): pass
+class HandleNumericalUnderflowCuda(TestTorchSumProductAlgorithmInferenceMachineBaseCuda, TorchInferenceMachineGenericTests.HandleNumericalUnderflow): pass
 

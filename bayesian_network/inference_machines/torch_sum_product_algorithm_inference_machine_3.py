@@ -1,6 +1,5 @@
 import itertools
 from typing import List, Callable, Tuple
-from torch.nn.functional import one_hot
 
 import torch
 
