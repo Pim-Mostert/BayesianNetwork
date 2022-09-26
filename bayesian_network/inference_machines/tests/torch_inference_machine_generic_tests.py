@@ -87,11 +87,11 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_single_nodes(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             p_Q1_expected = torch.einsum('i, ij, jk, ni, nj, nk->ni', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
@@ -118,11 +118,11 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_log_likelihood(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             c = torch.einsum('i, ij, jk, ni, nj, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence) \
@@ -144,11 +144,11 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_nodes_with_parents(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             p_Q1xQ2_expected = torch.einsum('i, ij, jk, ni, nj, nk->nij', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
@@ -172,9 +172,9 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_single_nodes(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             p_Q1_expected = torch.einsum('i, ij, jk, nk->ni', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
@@ -201,9 +201,9 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_log_likelihood(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             c = torch.einsum('i, ij, jk, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence) \
@@ -225,9 +225,9 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_with_parents(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             p_Q1xQ2_expected = torch.einsum('i, ij, jk, nk->nij', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
@@ -293,13 +293,13 @@ class TorchInferenceMachineGenericTests:
 
         def test_inference_single_nodes(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             p_Q1_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->ni', self.Q1.cpt,
@@ -332,13 +332,13 @@ class TorchInferenceMachineGenericTests:
 
         def test_log_likelihood(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             c = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->n', self.Q1.cpt, self.Q2.cpt,
@@ -360,13 +360,13 @@ class TorchInferenceMachineGenericTests:
 
         def test_inference_nodes_with_parents(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             p_Q1xQ2_expected = torch.einsum('i, ij, jk, ia, jb, jc, kd, ke, na, nb, nc, nd, ne->nij', self.Q1.cpt,
@@ -479,11 +479,11 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_single_nodes(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             p_Q1_expected = torch.einsum('i, ij, ijk, ni, nj, nk->ni', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
@@ -510,11 +510,11 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_log_likelihood(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
             c = torch.einsum('i, ij, ijk, ni, nj, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence) \
                 .sum(axis=(1, 2, 3))
@@ -535,11 +535,11 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_nodes_with_parents(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             p_Q1xQ2_expected = torch.einsum('i, ij, ijk, ni, nj, nk->nij', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
@@ -563,9 +563,9 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_single_nodes(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             p_Q1_expected = torch.einsum('i, ij, ijk, nk->ni', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
@@ -592,9 +592,9 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_with_parents(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             p_Q1xQ2_expected = torch.einsum('i, ij, ijk, nk->nij', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
@@ -618,9 +618,9 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_log_likelihood(self):
             # Assign
-            evidence = [
+            evidence = self.rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-            ]
+            ])
             num_observations = evidence[0].shape[0]
 
             c = torch.einsum('i, ij, ijk, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence) \

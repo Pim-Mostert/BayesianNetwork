@@ -48,13 +48,11 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
         p_evidence = torch.ones(dims, device=self.device)
 
         for (i, observed_node_index) in enumerate(self.observed_nodes_indices):
-            p_evidence_node = self._calculate_p_evidence_for_observed_node(observed_node_index, evidence[i])
-
             node_dims = [1] * self.num_nodes
             node_dims[observed_node_index] = self.dims[observed_node_index]
             node_dims = [num_trials] + node_dims
 
-            p_evidence *= p_evidence_node.reshape(node_dims)
+            p_evidence *= evidence[i].reshape(node_dims)
 
         self.p = self.p * p_evidence
 
@@ -63,17 +61,6 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
         self.p /= c
 
         self._log_likelihood = torch.log(c).sum()
-
-    def _calculate_p_evidence_for_observed_node(self, observed_node_index, evidence):
-        p_evidence = evidence
-
-        # num_trials = evidence.shape[0]
-
-        # p_evidence = torch.zeros((num_trials, self.dims[observed_node_index]), device=self.device)
-        # for i_trial in torch.arange(num_trials, device=self.device):
-        #     p_evidence[i_trial, evidence[i_trial]] = 1
-
-        return p_evidence
 
     def _infer(self, nodes):
         node_indices = [self.node_to_index[node] for node in nodes]

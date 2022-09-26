@@ -1,8 +1,9 @@
 from abc import abstractmethod
-from typing import List
+from typing import List, Tuple
 from unittest import TestCase
 
 import torch
+from torch.nn.functional import one_hot
 
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
@@ -17,7 +18,7 @@ class EmOptimizerTestBase:
         def get_torch_device(self) -> torch.device:
             pass
 
-        def _generate_random_network(self) -> (BayesianNetwork, List[Node]):
+        def _generate_random_network(self) -> Tuple[BayesianNetwork, List[Node]]:
             cpt1 = generate_random_probability_matrix((2), device=self.get_torch_device())
             cpt2 = generate_random_probability_matrix((2, 3), device=self.get_torch_device())
             cpt3_1 = generate_random_probability_matrix((2, 3, 4), device=self.get_torch_device())
@@ -55,7 +56,12 @@ class EmOptimizerTestBase:
                 device=self.get_torch_device())
 
             num_samples = 10000
-            self.data = sampler.sample(num_samples, self.observed_nodes)
+            data = sampler.sample(num_samples, self.observed_nodes)
+            self.data = [
+                one_hot(node_data.long())
+                for node_data
+                in data.T
+            ]
 
         def test_optimize_increase_log_likelihood(self):
             # Assign
