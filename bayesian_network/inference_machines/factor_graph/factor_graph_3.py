@@ -97,39 +97,38 @@ class VariableNodeGroup:
         }
 
     def calculate_outputs(self):
-        # Calculation
+        # Calculation in logs to handle numerical underflow
         # [num_inputs, num_nodes, num_observations, num_states]
         x = self._inputs.log()
+
+        # [num_nodes, num_observations, num_states]
         y = x.sum(axis=0)
 
         # [num_outputs, num_nodes, num_observations, num_states]
         self._calculation_result = y - x
 
         # Normalization to remote factor nodes 
-        r = self._calculation_result[self._i_outputs_to_remote_factor_nodes]
+        self._calculation_result[self._i_outputs_to_remote_factor_nodes] -= \
+            self._calculation_result[self._i_outputs_to_remote_factor_nodes].mean(axis=3, keepdim=True)
 
-        r -= r.mean(axis=3, keepdim=True)
-        z = r.exp().sum(axis=3, keepdim=True)
-
-        r = r.exp() / z
-
-        self._calculation_result[self._i_outputs_to_remote_factor_nodes] = r
-
-        # self._calculation_result[self._i_outputs_to_remote_factor_nodes] /= \
-        #     self._calculation_result[self._i_outputs_to_remote_factor_nodes].sum(axis=3, keepdim=True)
+        self._calculation_result[self._i_outputs_to_remote_factor_nodes] -= \
+            self._calculation_result[self._i_outputs_to_remote_factor_nodes].exp().sum(axis=3, keepdim=True).log()
 
         # Normalization to local factor node
         # [num_nodes, num_observations, 1]
-        c = y.exp().sum(axis=2, keepdim=True)
+        z = y.mean(axis=2, keepdim=True)
+        c = (y - z).exp().sum(axis=2, keepdim=True).log() + z
 
-        self._calculation_result[self._i_output_to_local_factor_node] = \
-            self._calculation_result[self._i_output_to_local_factor_node].exp() / c
+        self._calculation_result[self._i_output_to_local_factor_node] -= c
+        
+        # Back to exp
+        self._calculation_result = self._calculation_result.exp()
 
         # Assign calculation result to output vectors
         exec(self._calculation_assignment_statement)
 
         # Store local likelihoods
-        self.local_log_likelihoods = c.squeeze(dim=2).log()
+        self.local_log_likelihoods = c.squeeze(dim=2)
 
     def set_output_tensor(self, node: Node, output_node: Node, tensor: torch.Tensor):
         i_node = self.nodes.index(node)
