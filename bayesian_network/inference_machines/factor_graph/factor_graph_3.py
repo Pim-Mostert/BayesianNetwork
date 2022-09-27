@@ -1,7 +1,6 @@
 from collections import namedtuple
 import itertools
-from typing import Callable, List, Dict, Tuple
-from varname import nameof
+from typing import List, Dict
 
 import torch
 
@@ -65,7 +64,6 @@ class VariableNodeGroup:
         ]
 
         self._calculation_result = torch.empty(())             # Placeholder
-
         # output_tensor[0][0][:], output_tensor[0][1][:], ..., output_tensor[0][K], 
         # output_tensor[1][0][:], output_tensor[1][1][:], ..., output_tensor[1][K], 
         # ...
@@ -79,12 +77,12 @@ class VariableNodeGroup:
         self._calculation_assignment_statement =  \
             ', '.join(
                 [
-                    f'self.{nameof(self._output_tensors)}[{i_output}][{i_node}][:]' 
+                    f'self._output_tensors[{i_output}][{i_node}][:]' 
                     for i_output in range(self._num_outputs)
                     for i_node in range(self._num_nodes)
                 ]) \
-                + f' = self.{nameof(self._calculation_result)}' \
-                + f'.reshape(self.{nameof(self._num_outputs)}*self.{nameof(self._num_nodes)}, self.{nameof(self._num_observations)}, self.{nameof(self.num_states)})'
+                + f' = self._calculation_result' \
+                + f'.reshape(self._num_outputs*self._num_nodes, self._num_observations, self.num_states)'
 
         self._calculation_indices_per_i_output = {
             i_output: [
@@ -204,8 +202,8 @@ class FactorNodeGroup:
         self._calculation_output_tensor = torch.empty(())      # Placeholder
         self._calculation_result = torch.empty(())             # Placeholder
         self._calculation_assignment_statement =  \
-            ', '.join([f'self.{nameof(self._calculation_output_tensor)}[{i_node}][:]' for i_node in range(self._num_nodes)]) \
-                + f' = self.{nameof(self._calculation_result)}'
+            ', '.join([f'self._calculation_output_tensor[{i_node}][:]' for i_node in range(self._num_nodes)]) \
+                + f' = self._calculation_result'
 
         self._calculation_einsum_equation_per_output = [
             self._construct_einsum_equation_for_output(i_output)
