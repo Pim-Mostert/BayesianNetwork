@@ -6,6 +6,7 @@ from varname import nameof
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.common.tensor_helpers import min_pos_value
 
 
 class VariableNodeGroup:
@@ -100,6 +101,7 @@ class VariableNodeGroup:
         # Calculation
         # [num_inputs, num_nodes, num_observations, num_states]
         x = self._inputs.prod(axis=0)
+        x[x == 0] = min_pos_value
 
         # [num_outputs, num_nodes, num_observations, num_states]
         self._calculation_result = x / self._inputs

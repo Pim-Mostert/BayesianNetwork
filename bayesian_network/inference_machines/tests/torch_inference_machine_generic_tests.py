@@ -4,6 +4,7 @@ from typing import List
 import torch
 
 from bayesian_network.common.statistics import generate_random_probability_matrix
+from bayesian_network.common.tensor_helpers import rescale_tensors
 from bayesian_network.common.testcase_extensions import TestCaseExtended
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.interfaces import IInferenceMachine
@@ -87,7 +88,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_single_nodes(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
@@ -118,7 +119,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_log_likelihood(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
@@ -144,7 +145,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_nodes_with_parents(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
@@ -172,7 +173,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_single_nodes(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
             ])
             num_observations = evidence[0].shape[0]
@@ -201,7 +202,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_log_likelihood(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
             ])
             num_observations = evidence[0].shape[0]
@@ -225,7 +226,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_with_parents(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
             ])
             num_observations = evidence[0].shape[0]
@@ -293,7 +294,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_inference_single_nodes(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
@@ -332,7 +333,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_log_likelihood(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
@@ -360,7 +361,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_inference_nodes_with_parents(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
@@ -479,7 +480,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_single_nodes(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
@@ -510,7 +511,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_log_likelihood(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
@@ -535,7 +536,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_nodes_with_parents(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
                 torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
@@ -563,7 +564,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_single_nodes(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
             ])
             num_observations = evidence[0].shape[0]
@@ -592,7 +593,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_with_parents(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
             ])
             num_observations = evidence[0].shape[0]
@@ -618,7 +619,7 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_log_likelihood(self):
             # Assign
-            evidence = self.rescale_tensors([
+            evidence = rescale_tensors([
                 torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
             ])
             num_observations = evidence[0].shape[0]
