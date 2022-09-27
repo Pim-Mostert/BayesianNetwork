@@ -99,31 +99,20 @@ class VariableNodeGroup:
     def calculate_outputs(self):
         # Calculation
         # [num_inputs, num_nodes, num_observations, num_states]
-        x = self._inputs.log()
-        y = x.sum(axis=0)
+        x = self._inputs.prod(axis=0)
 
         # [num_outputs, num_nodes, num_observations, num_states]
-        self._calculation_result = y - x
+        self._calculation_result = x / self._inputs
 
-        # Normalization to remote factor nodes 
-        r = self._calculation_result[self._i_outputs_to_remote_factor_nodes]
-
-        r -= r.mean(axis=3, keepdim=True)
-        z = r.exp().sum(axis=3, keepdim=True)
-
-        r = r.exp() / z
-
-        self._calculation_result[self._i_outputs_to_remote_factor_nodes] = r
-
-        # self._calculation_result[self._i_outputs_to_remote_factor_nodes] /= \
-        #     self._calculation_result[self._i_outputs_to_remote_factor_nodes].sum(axis=3, keepdim=True)
+        # Normalization to remote factor nodes
+        self._calculation_result[self._i_outputs_to_remote_factor_nodes] /= \
+            self._calculation_result[self._i_outputs_to_remote_factor_nodes].sum(axis=3, keepdim=True)
 
         # Normalization to local factor node
         # [num_nodes, num_observations, 1]
-        c = y.exp().sum(axis=2, keepdim=True)
+        c = x.sum(axis=2, keepdim=True)
 
-        self._calculation_result[self._i_output_to_local_factor_node] = \
-            self._calculation_result[self._i_output_to_local_factor_node].exp() / c
+        self._calculation_result[self._i_output_to_local_factor_node] /= c
 
         # Assign calculation result to output vectors
         exec(self._calculation_assignment_statement)
