@@ -1,265 +1,403 @@
-from abc import abstractmethod
-from typing import Union, List, Dict
+from collections import namedtuple
+import itertools
+from typing import List, Dict
 
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.common.tensor_helpers import min_pos_value
 
+
+class VariableNodeGroup:
+    def __init__(self,
+                 nodes: List[Node],
+                 children: Dict[Node, List[Node]],
+                 parents: Dict[Node, List[Node]],
+                 num_inputs: int,
+                 num_states: int,
+                 num_observations: int,
+                 observed_nodes: List[Node],
+                 device: torch.device):
+        self._device = device
+        self.nodes = nodes
+        self._children = children
+        self._parents = parents
+        self._num_nodes = len(self.nodes)
+        self._num_observations = num_observations
+        self._num_inputs = num_inputs
+        self.num_states = num_states
+        self._num_outputs = self._num_inputs
+
+        if self._num_observations == 0:
+            self._num_observations = 1
+
+        # Placeholder
+        self.local_log_likelihoods = torch.zeros((self._num_nodes, self._num_observations), device=self._device, dtype=torch.double)
+
+        self._i_observed_nodes = [self.nodes.index(observed_node) for observed_node in observed_nodes]
+
+        self._inputs = torch.ones(
+            (
+                self._num_inputs, 
+                self._num_nodes, 
+                self._num_observations,
+                self.num_states
+            ), device=self._device, dtype=torch.double) / num_states
+
+        self._output_tensors = [
+            [
+                # Placeholder
+                torch.zeros((self._num_observations, self.num_states), device=self._device, dtype=torch.double)
+                for _
+                in self.nodes
+            ]
+            for _
+            in range(self._num_outputs)
+        ]
+
+        self._i_output_to_local_factor_node = self._num_outputs - 1
+        self._i_outputs_to_remote_factor_nodes = [
+            i
+            for i
+            in range(self._num_outputs)
+            if i != self._i_output_to_local_factor_node
+        ]
+
+        self._calculation_result = torch.empty(())             # Placeholder
+        # output_tensor[0][0][:], output_tensor[0][1][:], ..., output_tensor[0][K], 
+        # output_tensor[1][0][:], output_tensor[1][1][:], ..., output_tensor[1][K], 
+        # ...
+        # output_tensor[J][0][:], output_tensor[J][1][:], ..., output_tensor[J][K]
+        #     = self._calculation_result.reshape[J * K, N, F]
+        # 
+        #  J: Number of outputs
+        #  K: Number of nodes
+        #  N: Number of observations
+        #  F: Number of states
+        self._calculation_assignment_statement =  \
+            ', '.join(
+                [
+                    f'self._output_tensors[{i_output}][{i_node}][:]' 
+                    for i_output in range(self._num_outputs)
+                    for i_node in range(self._num_nodes)
+                ]) \
+                + f' = self._calculation_result' \
+                + f'.reshape(self._num_outputs*self._num_nodes, self._num_observations, self.num_states)'
+
+        self._calculation_indices_per_i_output = {
+            i_output: [
+                i_output_inner
+                for i_output_inner
+                in range(self._num_outputs)
+                if i_output_inner != i_output
+            ]
+            for i_output
+            in range(self._num_outputs)
+        }
+
+    def calculate_outputs(self):
+        # Calculation
+        # [num_inputs, num_nodes, num_observations, num_states]
+        x = self._inputs.prod(axis=0)
+        x[x == 0] = min_pos_value
+
+        # [num_outputs, num_nodes, num_observations, num_states]
+        self._calculation_result = x / self._inputs
+
+        # Normalization to remote factor nodes
+        self._calculation_result[self._i_outputs_to_remote_factor_nodes] /= \
+            self._calculation_result[self._i_outputs_to_remote_factor_nodes].sum(axis=3, keepdim=True)
+
+        # Normalization to local factor node
+        # [num_nodes, num_observations, 1]
+        c = x.sum(axis=2, keepdim=True)
+
+        self._calculation_result[self._i_output_to_local_factor_node] /= c
+
+        # Assign calculation result to output vectors
+        exec(self._calculation_assignment_statement)
+
+        # Store local likelihoods
+        self.local_log_likelihoods = c.squeeze(dim=2).log()
+
+    def set_output_tensor(self, node: Node, output_node: Node, tensor: torch.Tensor):
+        i_node = self.nodes.index(node)
+        
+        if output_node == node:
+            i_output = self._i_output_to_local_factor_node
+        else:
+            i_output = self._children[node].index(output_node)
+
+        self._output_tensors[i_output][i_node] = tensor
+
+    def get_input_tensor(self, node: Node, input_node: Node) -> torch.Tensor:
+        i_node = self.nodes.index(node)
+        
+        if input_node == node:
+            i_input = self._i_output_to_local_factor_node
+        else:
+            i_input = self._children[node].index(input_node)
+
+        return self._inputs[i_input, i_node]
+
+    def set_observations(self, observations: torch.Tensor):
+        # observations: torch.Tensor[num_nodes, num_observations, num_states]
+        i_input = -2
+
+        self._inputs[i_input, self._i_observed_nodes, :, :] = observations
+
+
+class FactorNodeGroup:
+    def __init__(self,
+                 nodes: List[Node],
+                 children: Dict[Node, List[Node]],
+                 parents: Dict[Node, List[Node]],
+                 num_inputs: int,
+                 inputs_num_states: List[int],
+                 num_observations: int,
+                 device: torch.device):
+        self._device = device
+        self.nodes = nodes
+        self._children = children
+        self._parents = parents
+        self._num_nodes = len(self.nodes)
+        self._num_observations = num_observations
+        self._num_inputs = num_inputs
+        self._inputs_num_states = inputs_num_states
+        self._num_outputs = self._num_inputs
+        self._outputs_num_states = self._inputs_num_states
+        self._cpts = torch.stack([node.cpt for node in self.nodes])
+
+        if self._num_observations == 0:
+            self._num_observations = 1
+
+        self._inputs = [
+            torch.ones((
+                self._num_nodes,
+                self._num_observations,
+                self._inputs_num_states[i_input]), device=self._device, dtype=torch.double) 
+                    / torch.tensor(self._inputs_num_states[i_input], device=self._device, dtype=torch.double)
+            for i_input
+            in range(self._num_inputs)
+        ]
+
+        self.node_cpts = {
+            node: self._cpts[i]
+            for i, node
+            in enumerate(self.nodes)
+        }
+
+        self._output_tensors = [
+            [
+                # Placeholder
+                torch.zeros((self._num_observations, self._outputs_num_states[i_output]), device=self._device, dtype=torch.double)
+                for _
+                in range(self._num_nodes)
+            ]
+            for i_output
+            in range(self._num_outputs)
+        ]
+
+        # self._output_tensor[0][:], self._output_tensor[1][:], ..., self._output_tensor[self.num_nodes-1][:]
+        self._calculation_output_tensor = torch.empty(())      # Placeholder
+        self._calculation_result = torch.empty(())             # Placeholder
+        self._calculation_assignment_statement =  \
+            ', '.join([f'self._calculation_output_tensor[{i_node}][:]' for i_node in range(self._num_nodes)]) \
+                + f' = self._calculation_result'
+
+        self._calculation_einsum_equation_per_output = [
+            self._construct_einsum_equation_for_output(i_output)
+            for i_output
+            in range(self._num_outputs)
+        ]
+
+    def calculate_outputs(self):
+        for i_output in range(self._num_outputs):
+            self._calculation_output_tensor = self._output_tensors[i_output]
+            
+            einsum_equation = self._calculation_einsum_equation_per_output[i_output]
+            self._calculation_result = torch.einsum(*einsum_equation)
+
+            exec(self._calculation_assignment_statement)
+
+    def _construct_einsum_equation_for_output(self, i_output: int) -> List:
+        # Get all inputs with indices, except for the input corresponding to current output
+        inputs_with_indices = [
+            (input, index)
+            for input, index
+            in zip(self._inputs, range(self._num_inputs))
+            if index != i_output
+        ]
+
+        # Example einsum equation:
+        #   'kna, knc, knd, kabcd->knb', input0, input2, input3, cpt
+        #   [input0, [..., 0], input2, [..., 2], input3, [..., 3], cpt, [..., 0, 1, 2, 3], [..., 1]]
+        #
+        # k: num_nodes
+        # n: num_observations
+        einsum_equation = []
+
+        if not inputs_with_indices:
+            einsum_equation.append(torch.ones((self._num_observations), device=self._device, dtype=torch.double))
+            einsum_equation.append([1])
+
+        # Each input used to calculate current output
+        for input, index in inputs_with_indices:
+            einsum_equation.append(input)
+            einsum_equation.append([0, 1, index+2])
+
+        # Cpts of the factor nodes
+        einsum_equation.append(self._cpts)
+        einsum_equation.append([0, *range(2, self._num_inputs+2)])
+
+        # Desired output dimensions
+        einsum_equation.append([0, 1, i_output+2])
+
+        return einsum_equation
+        
+    def set_output_tensor(self, node: Node, output_node: Node, tensor: torch.Tensor):
+        i_node = self.nodes.index(node)
+        
+        if output_node == node:
+            i_output = -1
+        else:
+            i_output = self._parents[node].index(output_node)
+
+        self._output_tensors[i_output][i_node] = tensor
+        
+    def get_input_tensor(self, node: Node, input_node: Node) -> torch.Tensor:
+        i_node = self.nodes.index(node)
+        
+        if input_node == node:
+            i_input = -1
+        else:
+            i_input = self._parents[node].index(input_node)
+
+        return self._inputs[i_input][i_node]
+
+    def get_node_inputs(self, node: Node) -> List[torch.Tensor]:
+        node_index = self.nodes.index(node)
+
+        return [
+            input[node_index]
+            for input
+            in self._inputs
+        ]
 
 class FactorGraph:
     def __init__(self,
                  bayesian_network: BayesianNetwork,
+                 num_observations: int,
                  observed_nodes: List[Node],
-                 device: torch.device,
-                 num_observations: int):
-        self.device = device
-        self.num_observations = num_observations if num_observations > 0 else 1
-        self.observed_nodes = observed_nodes
+                 device: torch.device):
+        self._device = device
+        self._observed_nodes = observed_nodes
 
-        # Instantiate nodes
-        self.factor_nodes: Dict[Node, FactorNode] = {
-            node: FactorNode(node.cpt, self.num_observations, self.device, name=node.name)
-            for node
-            in bayesian_network.nodes
-        }
-        self.variable_nodes: Dict[Node, VariableNode] = {
-            node: VariableNode(
-                self.num_observations,
-                node.num_states,
-                corresponding_factor_node=self.factor_nodes[node],
-                is_leaf_node=bayesian_network.is_leaf_node(node),
-                is_observed=node in observed_nodes,
-                device=self.device,
-                name=node.name)
-            for node
-            in bayesian_network.nodes
-        }
+        NodeGroupKey = namedtuple("NodeGroupKey", f'num_inputs num_states')
+        
+        # Instantiate variable node groups
+        variable_node_groups_key_func = lambda node: NodeGroupKey(
+            len(bayesian_network.children[node]) + 2 
+                if node in self._observed_nodes 
+                else len(bayesian_network.children[node]) + 1, 
+            node.num_states)
 
-        # Create output messages
+        self.variable_node_groups = [
+            VariableNodeGroup(
+                nodes,
+                bayesian_network.children,
+                bayesian_network.parents,
+                key.num_inputs,
+                key.num_states,
+                num_observations,
+                observed_nodes=[observed_node for observed_node in self._observed_nodes if observed_node in set(nodes)],
+                device=self._device
+            )
+            for key, nodes
+            in 
+            [
+                (key, list(nodes))
+                for key, nodes
+                in itertools.groupby(sorted(bayesian_network.nodes, key=variable_node_groups_key_func), key=variable_node_groups_key_func)
+            ]
+        ]
+
+        # Instantiate factor node groups
+        factor_node_groups_key_func = lambda node: node.cpt.shape
+        self.factor_node_groups = [
+            FactorNodeGroup(
+                list(nodes),
+                bayesian_network.children,
+                bayesian_network.parents,
+                len(key),
+                list(key),
+                num_observations,
+                self._device
+            )
+            for key, nodes
+            in itertools.groupby(sorted(bayesian_network.nodes, key=factor_node_groups_key_func), key=factor_node_groups_key_func)
+        ]
+
+        # Connect the node groups
         for node in bayesian_network.nodes:
-            variable_node = self.variable_nodes[node]
-            factor_node = self.factor_nodes[node]
+            variable_node_group = self.get_variable_node_group(node)
+            factor_node_group = self.get_factor_node_group(node)
 
-            ### Variable node
-            # To children's factor nodes
-            for child in bayesian_network.children[node]:
-                variable_node.add_output_message(destination=self.factor_nodes[child])
+            # ### Variable nodes
+            # Corresponding factor node
+            tensor = factor_node_group.get_input_tensor(node, node)
+            variable_node_group.set_output_tensor(node, node, tensor)
+            
+            # Child factor nodes
+            for child_node in bayesian_network.children[node]:
+                child_factor_node_group = self.get_factor_node_group(child_node)
+                tensor = child_factor_node_group.get_input_tensor(child_node, node)
 
-            # To corresponding factor node
-            variable_node.add_output_message(factor_node)
+                variable_node_group.set_output_tensor(node, child_node, tensor)
 
-            ### Factor node
-            # To parents' variable nodes
-            for parent in bayesian_network.parents[node]:
-                factor_node.add_output_message(self.variable_nodes[parent])
+            # ### Factor nodes
+            # Corresponding variable node
+            tensor = variable_node_group.get_input_tensor(node, node)
+            factor_node_group.set_output_tensor(node, node, tensor)
 
-            # To corresponding variable node
-            factor_node.add_output_message(variable_node)
+            # Parent variable nodes
+            for parent_node in bayesian_network.parents[node]:
+                parent_variable_node_group = self.get_variable_node_group(parent_node)
+                tensor = parent_variable_node_group.get_input_tensor(parent_node, node)
 
-        # Configure nodes' input messages
-        all_factor_graph_nodes: List[FactorGraphNodeBase] = [*self.factor_nodes.values(), *self.variable_nodes.values()]
-        for factor_graph_node in all_factor_graph_nodes:
-            factor_graph_node.discover_input_messages()
+                factor_node_group.set_output_tensor(node, parent_node, tensor)
 
-    def enter_evidence(self, evidence: List[torch.Tensor]):
-        # evidence:
-        # - len(evidence) = number of observed nodes
-        # - torch.Tensor.shape = [number of trials, number of states]
-        for i, observed_node in enumerate(self.observed_nodes):
-            variable_node = self.variable_nodes[observed_node]
-            variable_node.observation_message.value = evidence[i]
+    def get_variable_node_group(self, node: Node) -> VariableNodeGroup:
+        [variable_node_group] = [variable_node_group for variable_node_group in self.variable_node_groups if node in variable_node_group.nodes]
+        return variable_node_group
+        
+    def get_factor_node_group(self, node: Node) -> FactorNodeGroup:
+        [factor_node_group] = [factor_node_group for factor_node_group in self.factor_node_groups if node in factor_node_group.nodes]
+        return factor_node_group
 
-    def iterate(self):
-        # First evaluate factor nodes
-        for factor_node in self.factor_nodes.values():
-            factor_node.calculate_output_values()
+    def iterate(self) -> None:
+        for variable_node_group in self.variable_node_groups:
+            variable_node_group.calculate_outputs()
 
-        # Then variable nodes
-        for variable_node in self.variable_nodes.values():
-            variable_node.calculate_output_values()
+        for factor_node_group in self.factor_node_groups:
+            factor_node_group.calculate_outputs()
 
+    def enter_evidence(self, all_evidence: List[torch.Tensor]):
+        # evidence: List[(num_observed_nodes)], torch.Tensor: [num_observations, num_states]
 
-class FactorGraphNodeBase:
-    def __repr__(self):
-        return super().__repr__() \
-            if self.name is None \
-            else f'{type(self).__name__} - {self.name}'
+        evidence_groups = (
+            (variable_node_group, torch.stack(evidence))
+            for variable_node_group, evidence
+            in (
+                (variable_node_group, [
+                    evidence
+                    for evidence, observed_node in zip(all_evidence, self._observed_nodes) 
+                    if observed_node in variable_node_group.nodes
+                ])
+                for variable_node_group in self.variable_node_groups
+            )            
+            if evidence
+        )
 
-    def __init__(self, num_observations: int, num_states: int, device: torch.device, name=None):
-        self.name = name
-        self.num_observations = num_observations
-        self.num_states = num_states
-        self.device = device
-
-        self.output_messages: List[Message] = []
-        self.input_messages: List[Message] = []
-
-        self.inputs_for_output: Dict[Message, List[Message]] = {}
-
-    def _add_output_message(self, destination: 'FactorGraphNodeBase'):
-        initial_value = torch.ones(
-            (self.num_observations, self.num_states),
-            dtype=torch.float64,
-            device=self.device) / self.num_states
-
-        output_message = Message(
-            source=self,
-            destination=destination,
-            initial_value=initial_value)
-
-        self.output_messages.append(output_message)
-
-    def discover_input_messages(self):
-        for output_message in self.output_messages:
-            [corresponding_input_message] = [
-                other_output_message for
-                other_output_message
-                in output_message.destination.output_messages
-                if other_output_message.destination is self
-            ]
-
-            self.input_messages.append(corresponding_input_message)
-
-        for output_message in self.output_messages:
-            corresponding_input_messages = [
-                input_message
-                for input_message
-                in self.input_messages
-                if input_message.source is not output_message.destination
-            ]
-
-            self.inputs_for_output[output_message] = corresponding_input_messages
-
-    @abstractmethod
-    def calculate_output_values(self):
-        pass
-
-
-class VariableNode(FactorGraphNodeBase):
-    def __init__(
-            self,
-            num_observations: int,
-            num_states: int,
-            corresponding_factor_node: 'FactorNode',
-            is_leaf_node: bool,
-            is_observed: bool,
-            device: torch.device,
-            name=None):
-        super().__init__(num_observations, num_states, device, name=name)
-
-        self.factor_node = corresponding_factor_node
-        self.local_likelihood: torch.tensor = torch.nan
-        self.is_leaf_node = is_leaf_node
-        self.is_observed = is_observed
-        self.observation_message: Union[Message, None] = \
-            Message(
-                source=None,
-                destination=self,
-                initial_value=torch.ones((self.num_observations, self.num_states), dtype=torch.double, device=self.device)) \
-            if self.is_observed \
-            else None
-
-    def discover_input_messages(self):
-        if self.is_observed:
-            self.input_messages.append(self.observation_message)
-
-        super().discover_input_messages()
-
-    def add_output_message(self, destination: 'FactorNode'):
-        self._add_output_message(destination)
-
-    def calculate_output_values(self):
-        # all_input_tensors: [num_observations x num_inputs x num_states]
-        all_input_tensors = torch.stack([
-            input_message.value
-            for input_message
-            in self.input_messages
-        ], dim=1)
-
-        # local_likelihood: [num_observations]
-        self.local_likelihood = all_input_tensors.prod(dim=1).sum(axis=1)
-
-        if self.is_leaf_node and not self.is_observed:
-            [output_message] = self.output_messages
-            output_message.value = torch.ones(
-                (self.num_observations, self.num_states),
-                dtype=torch.double,
-                device=self.device) / self.local_likelihood[:, None]
-        else:
-            for output_message in self.output_messages:
-                # input_tensors: [num_observations x num_inputs x num_states]
-                input_tensors = torch.stack([
-                    input_message.value
-                    for input_message
-                    in self.inputs_for_output[output_message]
-                ], dim=1)
-
-                # [num_observations x num_states]
-                result = input_tensors.prod(dim=1)
-
-                if output_message.destination is self.factor_node:
-                    result /= self.local_likelihood[:, None]
-                else:
-                    result /= result.sum(axis=1, keepdim=True)
-
-                output_message.value = result
-
-
-class FactorNode(FactorGraphNodeBase):
-    def __init__(self, cpt: torch.Tensor, num_observations: int, device: torch.device, name=None):
-        super().__init__(num_observations, num_states=cpt.shape[-1], device=device, name=name)
-
-        self.cpt = cpt
-        self.is_root_node = len(cpt.shape) == 1
-
-    def add_output_message(self, destination: 'VariableNode'):
-        self._add_output_message(destination)
-
-    def calculate_output_values(self):
-        for (i, output_message) in enumerate(self.output_messages):
-            input_tensors = [
-                input_message.value
-                for input_message
-                in self.inputs_for_output[output_message]
-            ]
-
-            # Construct einsum equation
-            all_indices = range(len(self.input_messages))
-            current_indices = list(all_indices)
-            del current_indices[i]
-
-            equation = []
-
-            for j, input_tensor in enumerate(input_tensors):
-                equation.append(input_tensor)
-                equation.append([..., current_indices[j]])
-
-            all_inputs_symbol = [..., *all_indices]
-            equation.append(self.cpt)
-            equation.append(all_inputs_symbol)
-
-            equation.append([..., i])
-
-            # Perform calculation using einsum
-            result = torch.einsum(*equation)
-
-            # If root node, manually broadcast to number of observations
-            if self.is_root_node:
-                result = result.repeat((self.num_observations, 1))
-
-            # Set new value for output message
-            output_message.value = result
-
-
-class Message:
-    def __repr__(self):
-        return f'{self.source} -> {self.destination}'
-
-    def __init__(
-            self,
-            source: Union[FactorGraphNodeBase, None],
-            destination: FactorGraphNodeBase,
-            initial_value: torch.Tensor):
-        self.source = source
-        self.destination = destination
-        self.value: torch.Tensor = initial_value
+        for variable_node_group, evidence_group in evidence_groups:
+            variable_node_group.set_observations(evidence_group)
