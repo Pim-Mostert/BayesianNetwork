@@ -2,6 +2,7 @@ from abc import abstractmethod, ABC
 from typing import List
 
 import torch
+from bayesian_network.common.torch_settings import TorchSettings
 
 from bayesian_network.inference_machines.tests.torch_inference_machine_generic_tests import TorchInferenceMachineGenericTests
 from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_machine import TorchSumProductAlgorithmInferenceMachine
@@ -11,7 +12,7 @@ from bayesian_network.bayesian_network import BayesianNetwork, Node
 # Helper classes
 class TestTorchSumProductAlgorithmInferenceMachineBase(ABC):
     @abstractmethod
-    def get_torch_device(self) -> torch.device:
+    def get_torch_settings(self) -> TorchSettings:
         pass
 
     def create_inference_machine(self,
@@ -21,20 +22,25 @@ class TestTorchSumProductAlgorithmInferenceMachineBase(ABC):
         return TorchSumProductAlgorithmInferenceMachine(
             bayesian_network=bayesian_network,
             observed_nodes=observed_nodes,
-            device=self.get_torch_device(),
-            num_iterations=7,
+            device=self.get_torch_settings(),
+            num_iterations=20,
             num_observations=num_observations,
             callback=lambda factor_graph, iteration: None)
 
 
 class TestTorchSumProductAlgorithmInferenceMachineBaseCpu(TestTorchSumProductAlgorithmInferenceMachineBase, ABC):
-    def get_torch_device(self) -> torch.device:
-        return torch.device('cpu')
+    def get_torch_settings(self) -> TorchSettings:
+        return TorchSettings(torch.device('cpu'), torch.double)
 
 
 class TestTorchSumProductAlgorithmInferenceMachineBaseCuda(TestTorchSumProductAlgorithmInferenceMachineBase, ABC):
-    def get_torch_device(self) -> torch.device:
-        return torch.device('cuda')
+    def get_torch_settings(self) -> TorchSettings:
+        return TorchSettings(torch.device('cpu'), torch.double)
+
+
+class TestTorchSumProductAlgorithmInferenceMachineBaseMps(TestTorchSumProductAlgorithmInferenceMachineBase, ABC):
+    def get_torch_settings(self) -> TorchSettings:
+        return TorchSettings(torch.device('mps'), torch.float32)
 
 
 # Actual tests
@@ -49,3 +55,7 @@ class TestNetworkWithSingleParentsCuda(TestTorchSumProductAlgorithmInferenceMach
 class TestComplexNetworkWithSingleParentsCuda(TestTorchSumProductAlgorithmInferenceMachineBaseCuda, TorchInferenceMachineGenericTests.ComplexNetworkWithSingleParents): pass
 class HandleNumericalUnderflowCuda(TestTorchSumProductAlgorithmInferenceMachineBaseCuda, TorchInferenceMachineGenericTests.HandleNumericalUnderflow): pass
 
+
+# Mps
+class TestNetworkWithSingleParentsMps(TestTorchSumProductAlgorithmInferenceMachineBaseMps, TorchInferenceMachineGenericTests.NetworkWithSingleParents): pass
+class TestComplexNetworkWithSingleParentsMps(TestTorchSumProductAlgorithmInferenceMachineBaseMps, TorchInferenceMachineGenericTests.ComplexNetworkWithSingleParents): pass

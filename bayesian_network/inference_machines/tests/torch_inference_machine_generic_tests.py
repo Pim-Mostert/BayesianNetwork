@@ -7,18 +7,19 @@ from bayesian_network.common.statistics import generate_random_probability_matri
 from bayesian_network.common.tensor_helpers import rescale_tensors
 from bayesian_network.common.testcase_extensions import TestCaseExtended
 from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.interfaces import IInferenceMachine
 
 
 class TorchInferenceMachineGenericTests:
     class TorchInferenceMachineGenericTestsBase(TestCaseExtended, ABC):
         def setUp(self):
-            if self.get_torch_device() == torch.device('cuda') \
+            if self.get_torch_settings().device == torch.device('cuda') \
                     and not torch.cuda.is_available():
                 self.skipTest("Skipping cuda tests because cuda is not available")
 
         @abstractmethod
-        def get_torch_device(self) -> torch.device:
+        def get_torch_settings(self) -> TorchSettings:
             pass
 
         @abstractmethod
@@ -32,14 +33,17 @@ class TorchInferenceMachineGenericTests:
         def setUp(self):
             super().setUp()
 
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             self.Q1 = Node(
-                generate_random_probability_matrix((2), device=self.get_torch_device()),
+                generate_random_probability_matrix((2), device=device, dtype=dtype),
                 name='Q1')
             self.Q2 = Node(
-                generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
+                generate_random_probability_matrix((2, 2), device=device, dtype=dtype),
                 name='Q2')
             self.Y = Node(
-                generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
+                generate_random_probability_matrix((2, 2), device=device, dtype=dtype),
                 name='Y')
 
             nodes = [self.Q1, self.Q2, self.Y]
@@ -88,10 +92,13 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_single_nodes(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[1, 0], [1, 0]], device=device, dtype=dtype),
+                torch.tensor([[1, 0], [0, 1]], device=device, dtype=dtype),
+                torch.tensor([[1, 0], [0, 1]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -119,10 +126,13 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_log_likelihood(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[1, 0], [1, 0]], device=device, dtype=dtype),
+                torch.tensor([[1, 0], [0, 1]], device=device, dtype=dtype),
+                torch.tensor([[1, 0], [0, 1]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -145,10 +155,13 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_nodes_with_parents(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[1, 0], [1, 0]], device=device, dtype=dtype),
+                torch.tensor([[1, 0], [0, 1]], device=device, dtype=dtype),
+                torch.tensor([[1, 0], [0, 1]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -173,8 +186,11 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_single_nodes(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -202,8 +218,11 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_log_likelihood(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -226,8 +245,11 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_with_parents(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -254,29 +276,32 @@ class TorchInferenceMachineGenericTests:
         def setUp(self):
             super().setUp()
 
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             self.Q1 = Node(
-                generate_random_probability_matrix((2), device=self.get_torch_device()),
+                generate_random_probability_matrix((2), device=device, dtype=dtype),
                 name='Q1')
             self.Q2 = Node(
-                generate_random_probability_matrix((2, 3), device=self.get_torch_device()),
+                generate_random_probability_matrix((2, 3), device=device, dtype=dtype),
                 name='Q2')
             self.Q3 = Node(
-                generate_random_probability_matrix((3, 2), device=self.get_torch_device()),
+                generate_random_probability_matrix((3, 2), device=device, dtype=dtype),
                 name='Q3')
             self.Y1 = Node(
-                generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
+                generate_random_probability_matrix((2, 2), device=device, dtype=dtype),
                 name='Y1')
             self.Y2 = Node(
-                generate_random_probability_matrix((3, 3), device=self.get_torch_device()),
+                generate_random_probability_matrix((3, 3), device=device, dtype=dtype),
                 name='Y2')
             self.Y3 = Node(
-                generate_random_probability_matrix((3, 4), device=self.get_torch_device()),
+                generate_random_probability_matrix((3, 4), device=device, dtype=dtype),
                 name='Y3')
             self.Y4 = Node(
-                generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
+                generate_random_probability_matrix((2, 2), device=device, dtype=dtype),
                 name='Y4')
             self.Y5 = Node(
-                generate_random_probability_matrix((2, 3), device=self.get_torch_device()),
+                generate_random_probability_matrix((2, 3), device=device, dtype=dtype),
                 name='Y5')
 
             nodes = [self.Q1, self.Q2, self.Q3, self.Y1, self.Y2, self.Y3, self.Y4, self.Y5]
@@ -294,12 +319,15 @@ class TorchInferenceMachineGenericTests:
 
         def test_inference_single_nodes(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
+                torch.tensor([[0, 0, 1], [1, 0, 0]], device=device, dtype=dtype),
+                torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=device, dtype=dtype),
+                torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
+                torch.tensor([[0, 0, 1], [1, 0, 0]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -333,12 +361,15 @@ class TorchInferenceMachineGenericTests:
 
         def test_log_likelihood(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
+                torch.tensor([[0, 0, 1], [1, 0, 0]], device=device, dtype=dtype),
+                torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=device, dtype=dtype),
+                torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
+                torch.tensor([[0, 0, 1], [1, 0, 0]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -361,12 +392,15 @@ class TorchInferenceMachineGenericTests:
 
         def test_inference_nodes_with_parents(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[0, 0, 1], [1, 0, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
+                torch.tensor([[0, 0, 1], [1, 0, 0]], device=device, dtype=dtype),
+                torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=device, dtype=dtype),
+                torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
+                torch.tensor([[0, 0, 1], [1, 0, 0]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -424,14 +458,17 @@ class TorchInferenceMachineGenericTests:
         def setUp(self):
             super().setUp()
 
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             self.Q1 = Node(
-                generate_random_probability_matrix((2), device=self.get_torch_device()),
+                generate_random_probability_matrix((2), device=device, dtype=dtype),
                 name='Q1')
             self.Q2 = Node(
-                generate_random_probability_matrix((2, 2), device=self.get_torch_device()),
+                generate_random_probability_matrix((2, 2), device=device, dtype=dtype),
                 name='Q2')
             self.Y = Node(
-                generate_random_probability_matrix((2, 2, 2), device=self.get_torch_device()),
+                generate_random_probability_matrix((2, 2, 2), device=device, dtype=dtype),
                 name='Y')
 
             nodes = [self.Q1, self.Q2, self.Y]
@@ -480,10 +517,13 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_single_nodes(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[1, 0], [1, 0]], device=device, dtype=dtype),
+                torch.tensor([[1, 0], [0, 1]], device=device, dtype=dtype),
+                torch.tensor([[1, 0], [0, 1]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -511,10 +551,13 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_log_likelihood(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[1, 0], [1, 0]], device=device, dtype=dtype),
+                torch.tensor([[1, 0], [0, 1]], device=device, dtype=dtype),
+                torch.tensor([[1, 0], [0, 1]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
             c = torch.einsum('i, ij, ijk, ni, nj, nk->nijk', self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence) \
@@ -536,10 +579,13 @@ class TorchInferenceMachineGenericTests:
 
         def test_all_observed_nodes_with_parents(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[1, 0], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
-                torch.tensor([[1, 0], [0, 1]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[1, 0], [1, 0]], device=device, dtype=dtype),
+                torch.tensor([[1, 0], [0, 1]], device=device, dtype=dtype),
+                torch.tensor([[1, 0], [0, 1]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -564,8 +610,11 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_single_nodes(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -593,8 +642,11 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_with_parents(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -619,8 +671,11 @@ class TorchInferenceMachineGenericTests:
 
         def test_single_node_observed_log_likelihood(self):
             # Assign
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             evidence = rescale_tensors([
-                torch.tensor([[0, 1], [1, 0]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
             ])
             num_observations = evidence[0].shape[0]
 
@@ -645,15 +700,18 @@ class TorchInferenceMachineGenericTests:
         def setUp(self):
             super().setUp()
 
+            device = self.get_torch_settings().device
+            dtype = self.get_torch_settings().dtype
+
             self.num_inputs = 10
             self.num_observations = 2
 
             self.Q = Node(
-                torch.tensor([0.5, 0.5], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([0.5, 0.5], device=device, dtype=dtype),
                 name='Q')
             self.Ys = [
                 Node(
-                torch.tensor([[1E-100, 1 - 1E-100], [1E-100, 1 - 1E-100]], device=self.get_torch_device(), dtype=torch.double),
+                torch.tensor([[1E-100, 1 - 1E-100], [1E-100, 1 - 1E-100]], device=device, dtype=dtype),
                 name=f'Y{i}')
                 for i
                 in range(self.num_inputs)
@@ -670,7 +728,7 @@ class TorchInferenceMachineGenericTests:
             self.network = BayesianNetwork(nodes, parents)
             
             self.evidence = [
-                torch.tensor([[1 - 1E-100, 1E-100]], device=self.get_torch_device(), dtype=torch.double) \
+                torch.tensor([[1 - 1E-100, 1E-100]], device=device, dtype=dtype) \
                     .repeat((self.num_observations, 1))
                 for _
                 in range(self.num_inputs)

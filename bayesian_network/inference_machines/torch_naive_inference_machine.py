@@ -3,12 +3,13 @@ from typing import List, Dict
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.interfaces import IInferenceMachine
 
 
 class TorchNaiveInferenceMachine(IInferenceMachine):
-    def __init__(self, bayesian_network: BayesianNetwork, observed_nodes: List[Node], device: torch.device):
-        self.device = device
+    def __init__(self, bayesian_network: BayesianNetwork, observed_nodes: List[Node], torch_settings: TorchSettings):
+        self.torch_settings = torch_settings
 
         self.dims = [node.num_states for node in bayesian_network.nodes]
         self.num_nodes = len(bayesian_network.nodes)
@@ -22,7 +23,7 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
 
     def _calculate_p_complete(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
         dims = [node.num_states for node in nodes]
-        p = torch.ones(dims, dtype=torch.float64, device=self.device)
+        p = torch.ones(dims, dtype=self.torch_settings.dtype, device=self.torch_settings.device)
 
         for node in nodes:
             new_shape = [1] * self.num_nodes
@@ -45,7 +46,7 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
         num_trials = evidence[0].shape[0]
         dims = [num_trials] + self.dims
 
-        p_evidence = torch.ones(dims, device=self.device)
+        p_evidence = torch.ones(dims, dtype=self.torch_settings.dtype, device=self.torch_settings.device)
 
         for (i, observed_node_index) in enumerate(self.observed_nodes_indices):
             node_dims = [1] * self.num_nodes
