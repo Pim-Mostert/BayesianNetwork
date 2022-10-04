@@ -1,7 +1,7 @@
 import torch
 import torchvision as torchvision
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_machine import \
+from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_machine_3 import \
     TorchSumProductAlgorithmInferenceMachine
 from bayesian_network.interfaces import IInferenceMachine
 from bayesian_network.optimizers.em_optimizer import EmOptimizer
