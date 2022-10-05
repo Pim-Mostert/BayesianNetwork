@@ -4,6 +4,7 @@ from typing import List, Callable, Tuple
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.factor_graph.factor_graph import FactorGraph
 from bayesian_network.interfaces import IInferenceMachine
 
@@ -12,15 +13,14 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
     def __init__(self,
                  bayesian_network: BayesianNetwork,
                  observed_nodes: List[Node],
-                 device: torch.device,
+                 torch_settings: TorchSettings,
                  num_iterations: int,
                  num_observations: int,
                  callback: Callable[[FactorGraph, int], None]):
-        self.device = device
         self.factor_graph = FactorGraph(
             bayesian_network=bayesian_network,
             observed_nodes=observed_nodes,
-            device=device,
+            torch_settings=torch_settings,
             num_observations=num_observations)
         self.num_iterations = num_iterations
         self.callback = callback

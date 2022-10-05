@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+import os
 from typing import List
 
 import torch
@@ -22,7 +23,7 @@ class TestTorchSumProductAlgorithmInferenceMachineBase(ABC):
         return TorchSumProductAlgorithmInferenceMachine(
             bayesian_network=bayesian_network,
             observed_nodes=observed_nodes,
-            device=self.get_torch_settings(),
+            torch_settings=self.get_torch_settings(),
             num_iterations=20,
             num_observations=num_observations,
             callback=lambda factor_graph, iteration: None)
@@ -39,7 +40,7 @@ class TestTorchSumProductAlgorithmInferenceMachineBaseCuda(TestTorchSumProductAl
 
 
 class TestTorchSumProductAlgorithmInferenceMachineBaseMps(TestTorchSumProductAlgorithmInferenceMachineBase, ABC):
-    def get_torch_settings(self) -> TorchSettings:
+    def get_torch_settings(self) -> TorchSettings:        
         return TorchSettings(torch.device('mps'), torch.float32)
 
 

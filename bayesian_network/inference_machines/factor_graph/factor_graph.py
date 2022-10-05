@@ -5,7 +5,8 @@ from typing import List, Dict
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.common.tensor_helpers import min_pos_value
+from bayesian_network.common.tensor_helpers import get_min_pos_value
+from bayesian_network.common.torch_settings import TorchSettings
 
 
 class VariableNodeGroup:
@@ -17,8 +18,8 @@ class VariableNodeGroup:
                  num_states: int,
                  num_observations: int,
                  observed_nodes: List[Node],
-                 device: torch.device):
-        self._device = device
+                 torch_settings: TorchSettings):
+        self._torch_settings = torch_settings
         self.nodes = nodes
         self._children = children
         self._parents = parents
@@ -32,7 +33,7 @@ class VariableNodeGroup:
             self._num_observations = 1
 
         # Placeholder
-        self.local_log_likelihoods = torch.zeros((self._num_nodes, self._num_observations), device=self._device, dtype=torch.double)
+        self.local_log_likelihoods = torch.zeros((self._num_nodes, self._num_observations), device=self._torch_settings.device, dtype=self._torch_settings.dtype)
 
         self._i_observed_nodes = [self.nodes.index(observed_node) for observed_node in observed_nodes]
 
@@ -42,12 +43,12 @@ class VariableNodeGroup:
                 self._num_nodes, 
                 self._num_observations,
                 self.num_states
-            ), device=self._device, dtype=torch.double) / num_states
+            ), device=self._torch_settings.device, dtype=self._torch_settings.dtype) / num_states
 
         self._output_tensors = [
             [
                 # Placeholder
-                torch.zeros((self._num_observations, self.num_states), device=self._device, dtype=torch.double)
+                torch.zeros((self._num_observations, self.num_states), device=self._torch_settings.device, dtype=self._torch_settings.dtype)
                 for _
                 in self.nodes
             ]
@@ -99,7 +100,7 @@ class VariableNodeGroup:
         # Calculation
         # [num_inputs, num_nodes, num_observations, num_states]
         x = self._inputs.prod(axis=0)
-        x[x == 0] = min_pos_value
+        x[x == 0] = get_min_pos_value(self._torch_settings.dtype)
 
         # [num_outputs, num_nodes, num_observations, num_states]
         self._calculation_result = x / self._inputs
@@ -155,8 +156,8 @@ class FactorNodeGroup:
                  num_inputs: int,
                  inputs_num_states: List[int],
                  num_observations: int,
-                 device: torch.device):
-        self._device = device
+                 torch_settings: TorchSettings):
+        self._torch_settings = torch_settings
         self.nodes = nodes
         self._children = children
         self._parents = parents
@@ -175,8 +176,8 @@ class FactorNodeGroup:
             torch.ones((
                 self._num_nodes,
                 self._num_observations,
-                self._inputs_num_states[i_input]), device=self._device, dtype=torch.double) 
-                    / torch.tensor(self._inputs_num_states[i_input], device=self._device, dtype=torch.double)
+                self._inputs_num_states[i_input]), device=self._torch_settings.device, dtype=self._torch_settings.dtype) 
+                    / torch.tensor(self._inputs_num_states[i_input], device=self._torch_settings.device, dtype=self._torch_settings.dtype)
             for i_input
             in range(self._num_inputs)
         ]
@@ -190,7 +191,7 @@ class FactorNodeGroup:
         self._output_tensors = [
             [
                 # Placeholder
-                torch.zeros((self._num_observations, self._outputs_num_states[i_output]), device=self._device, dtype=torch.double)
+                torch.zeros((self._num_observations, self._outputs_num_states[i_output]), device=self._torch_settings.device, dtype=self._torch_settings.dtype)
                 for _
                 in range(self._num_nodes)
             ]
@@ -238,7 +239,7 @@ class FactorNodeGroup:
         einsum_equation = []
 
         if not inputs_with_indices:
-            einsum_equation.append(torch.ones((self._num_observations), device=self._device, dtype=torch.double))
+            einsum_equation.append(torch.ones((self._num_observations), device=self._torch_settings.device, dtype=self._torch_settings.dtype))
             einsum_equation.append([1])
 
         # Each input used to calculate current output
@@ -289,8 +290,8 @@ class FactorGraph:
                  bayesian_network: BayesianNetwork,
                  num_observations: int,
                  observed_nodes: List[Node],
-                 device: torch.device):
-        self._device = device
+                 torch_settings: TorchSettings):
+        self._torch_settings = torch_settings
         self._observed_nodes = observed_nodes
 
         NodeGroupKey = namedtuple("NodeGroupKey", f'num_inputs num_states')
@@ -311,7 +312,7 @@ class FactorGraph:
                 key.num_states,
                 num_observations,
                 observed_nodes=[observed_node for observed_node in self._observed_nodes if observed_node in set(nodes)],
-                device=self._device
+                torch_settings=self._torch_settings
             )
             for key, nodes
             in 
@@ -332,7 +333,7 @@ class FactorGraph:
                 len(key),
                 list(key),
                 num_observations,
-                self._device
+                torch_settings=self._torch_settings
             )
             for key, nodes
             in itertools.groupby(sorted(bayesian_network.nodes, key=factor_node_groups_key_func), key=factor_node_groups_key_func)

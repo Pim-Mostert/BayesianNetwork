@@ -7,4 +7,8 @@ def rescale_tensor(tensor: torch.Tensor, gamma=0.999999999):
 def rescale_tensors(tensors: List[torch.Tensor], gamma=0.999999999):
     return [rescale_tensor(t, gamma) for t in tensors]
 
-min_pos_value = torch.tensor(4.9407e-324, dtype=torch.float64)
+def get_min_pos_value(dtype: torch.dtype):
+    if dtype == torch.float32: 
+        return torch.tensor(1.4013e-45, dtype=torch.float32)
+    else:
+        return torch.tensor(4.9407e-324, dtype=torch.float64)
