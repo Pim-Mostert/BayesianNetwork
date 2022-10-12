@@ -18,6 +18,10 @@ class TorchInferenceMachineGenericTests:
                     and not torch.cuda.is_available():
                 self.skipTest("Skipping cuda tests because cuda is not available")
 
+            if self.get_torch_settings().device == torch.device('mps') \
+                    and not torch.has_mps:
+                self.skipTest("Skipping mps tests because mps is not available")
+
         @abstractmethod
         def get_torch_settings(self) -> TorchSettings:
             pass
