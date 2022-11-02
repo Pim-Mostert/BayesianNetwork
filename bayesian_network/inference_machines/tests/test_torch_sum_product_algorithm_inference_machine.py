@@ -36,7 +36,7 @@ class TestTorchSumProductAlgorithmInferenceMachineBaseCpu(TestTorchSumProductAlg
 
 class TestTorchSumProductAlgorithmInferenceMachineBaseCuda(TestTorchSumProductAlgorithmInferenceMachineBase, ABC):
     def get_torch_settings(self) -> TorchSettings:
-        return TorchSettings(torch.device('cpu'), torch.double)
+        return TorchSettings(torch.device('cuda'), torch.double)
 
 
 class TestTorchSumProductAlgorithmInferenceMachineBaseMps(TestTorchSumProductAlgorithmInferenceMachineBase, ABC):
