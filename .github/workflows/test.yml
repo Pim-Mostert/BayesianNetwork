@@ -2,12 +2,12 @@ name: Test
 on: [push]
 env:
   python_version: "3.10"
-  runs-on: ubuntu-latest
+  runs_on: ubuntu-latest
 
 jobs:
   call-workflow-passing-data:
     uses: ./.github/workflows/reusable_unittests.yml
     with:
       python_version: ${{ env.python_version }}
-      runs-on: ${{ env.runs-on }}
+      runs-on: ${{ env.runs_on }}
       
