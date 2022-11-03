@@ -46,6 +46,7 @@ class TorchNodeSamplerTestBase:
             _, p = stats.chisquare(actual, expected)
 
             self.assertGreater(p, self.alpha)
+            self.assertEqual(5, 6) # try fail in github actions
 
 
 class TestTorchNodeSamplersCpu(TorchNodeSamplerTestBase.TestTorchNodeSampler):
