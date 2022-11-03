@@ -1,8 +1,8 @@
 name: Build, unittest and publish
-on: 
-  push:
-      branches:
-          - "master"
+on: [push]
+  # push:
+  #     branches:
+  #         - "master"
 env:
   PYTHON_VERSION: "3.10"
   RUNS_ON: "ubuntu-latest"
