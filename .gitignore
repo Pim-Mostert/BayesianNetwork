@@ -245,4 +245,4 @@ fabric.properties
 
 results.prof
 
-tests/results
+xmlrunner
