@@ -21,13 +21,14 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Test with unittest-xml-reporting
         run: |
-          pip install unittest-xml-reporting
-          python -m xmlrunner -o ./xmlrunner
-      - name: Upload test results
-        uses: actions/upload-artifact@v3
-        with:
-          name: unittest-results
-          path: ./xmlrunner/TEST-*.xml
+          python -m unittest
+      #     pip install unittest-xml-reporting
+      #     python -m xmlrunner -o ./xmlrunner
+      # - name: Upload test results
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: unittest-results
+      #     path: ./xmlrunner/TEST-*.xml
         # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
                   
