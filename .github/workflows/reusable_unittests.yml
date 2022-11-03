@@ -10,7 +10,7 @@ on:
         type: string
 
 jobs:
-  build:
+  unittests:
     runs-on: ${{ inputs.runs-on }}
     steps:
       - uses: actions/checkout@v3

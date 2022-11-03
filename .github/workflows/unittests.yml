@@ -1,4 +1,4 @@
-name: Test
+name: Unittests
 on: [push]
 env:
   PYTHON_VERSION: "3.10"
