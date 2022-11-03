@@ -9,5 +9,5 @@ jobs:
     uses: ./.github/workflows/reusable_unittests.yml
     with:
       python_version: ${{ env.python_version }}
-      runs-on: ${{ env.runs-on }}
+      runs-on: "ubuntu-latest"
       
