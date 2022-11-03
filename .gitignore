@@ -244,3 +244,5 @@ fabric.properties
 **/MNIST/raw
 
 results.prof
+
+tests/results
