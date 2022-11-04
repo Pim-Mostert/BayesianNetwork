@@ -11,7 +11,7 @@ on:
 
 jobs:
   unittests:
-    runs-on: "ubuntu-latest"
+    runs-on: ${{ inputs.runs-on }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ inputs.python_version }}

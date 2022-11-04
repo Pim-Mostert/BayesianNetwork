@@ -11,6 +11,6 @@ jobs:
   call-workflow-passing-data:
     uses: ./.github/workflows/reusable_unittests.yml
     with:
-      python_version: $PYTHON_VERSION
-      runs-on: $RUNS_ON
+      python_version: ${{ env.PYTHON_VERSION }}
+      runs-on: ${{ env.RUNS_ON }}
       
