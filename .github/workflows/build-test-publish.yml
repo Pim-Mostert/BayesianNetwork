@@ -45,6 +45,8 @@ jobs:
         run: |
           pip install twine
           echo $TWINE_PASSWORD
+          export BLEGH=$TWINE_PASSWORD
+          echo $BLEGH
           echo $NAAM
           
           # python -m twine upload \
