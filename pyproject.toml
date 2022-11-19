@@ -6,8 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bayesian_network"
-version = "0.0.5"
-license = { file = "LICENSE" }
+version = "0.0.1"
 dependencies = [
   "torch==1.13.0"
 ]
