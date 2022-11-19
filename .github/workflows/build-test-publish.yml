@@ -2,6 +2,7 @@ name: Build, unittest and publish
 on: [push]
 env:
   PYTHON_VERSION: "3.10"
+  AZURE_ARTIFACTS_UPLOAD_URL: "https://pkgs.dev.azure.com/PimMostert0588/BayesianNetwork/_packaging/BayesianNetwork/pypi/upload/"
 
 jobs:
   # unittests:
@@ -40,12 +41,14 @@ jobs:
           python -m build
       - name: Publish package
         env:
+          TWINE_USERNAME: ""
           TWINE_PASSWORD: ${{ secrets.AZURE_ARTIFACTS_READWRITE_TOKEN }}
+          TWINE_REPOSITORY_URL: ${{ env.AZURE_ARTIFACTS_UPLOAD_URL }}
         run: |
+          echo $TWINE_PASSWORD
+          echo $TWINE_REPOSITORY_URL
           pip install twine
-          python -m twine upload \
-            --repository-url https://pkgs.dev.azure.com/PimMostert0588/BayesianNetwork/_packaging/BayesianNetwork/pypi/upload/ \
-            ./dist/*          
+          python -m twine upload ./dist/*          
         
         # uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
         # with:
