@@ -1,16 +1,16 @@
-name: Unittests
-on: 
-  push:
-      branches-ignore:
-          - "master"
-env:
-  PYTHON_VERSION: "3.10"
-  RUNS_ON: "ubuntu-latest"
+# name: Unittests
+# on: 
+#   push:
+#       branches-ignore:
+#           - "master"
+# env:
+#   PYTHON_VERSION: "3.10"
+#   RUNS_ON: "ubuntu-latest"
 
-jobs:
-  call-workflow-passing-data:
-    uses: ./.github/workflows/reusable_unittests.yml
-    with:
-      python_version: ${{ env.PYTHON_VERSION }}
-      runs-on: ${{ env.RUNS_ON }}
+# jobs:
+#   call-workflow-passing-data:
+#     uses: ./.github/workflows/reusable_unittests.yml
+#     with:
+#       python_version: ${{ env.PYTHON_VERSION }}
+#       runs-on: ${{ env.RUNS_ON }}
       

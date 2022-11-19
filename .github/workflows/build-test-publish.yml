@@ -1,26 +1,35 @@
 name: Build, unittest and publish
 on: [push]
-  # push:
-  #     branches:
-  #         - "master"
 env:
   PYTHON_VERSION: "3.10"
   RUNS_ON: "ubuntu-latest"
 
 jobs:
-  call-workflow-passing-data:
-    uses: ./.github/workflows/reusable_unittests.yml
-    with:
-      python_version: $PYTHON_VERSION
-      runs-on: $RUNS_ON
+  unittests:
+    runs-on: ${{ env.RUNS_ON }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Test with unittest
+        run: |
+          python -m unittest
   package-and-publish:
-    runs-on: $RUNS_ON
+    if: github.ref == 'refs/heads/master'
+    runs-on: ${{ env.RUNS_ON }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: $PYTHON_VERSION
+          python-version: ${{ env.PYTHON_VERSION }}
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
