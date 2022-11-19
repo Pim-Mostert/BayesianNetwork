@@ -40,7 +40,7 @@ jobs:
       #     python -m build
       - name: Publish package
         env:
-          TWINE_PASSWORD: ${{ secrets.AZURE_ARTIFACTS_READWRITE_TOKEN }}
+          TWINE_PASSWORD: ${{ secrets.AZURE_ARTIFACTS_READWRITE_TOKENS }}
           NAAM: "pim"
         run: |
           pip install twine
