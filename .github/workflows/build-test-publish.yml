@@ -2,11 +2,10 @@ name: Build, unittest and publish
 on: [push]
 env:
   PYTHON_VERSION: "3.10"
-  RUNS_ON: "ubuntu-latest"
 
 jobs:
   unittests:
-    runs-on: ${{ env.RUNS_ON }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ env.PYTHON_VERSION }}
@@ -23,7 +22,7 @@ jobs:
           python -m unittest
   package-and-publish:
     if: github.ref == 'refs/heads/master'
-    runs-on: ${{ env.RUNS_ON }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
