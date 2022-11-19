@@ -21,7 +21,7 @@ jobs:
         run: |
           python -m unittest
   package-and-publish:
-    if: github.ref == 'refs/heads/master'
+    # if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -35,9 +35,18 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Build package
         run: python -m build
-      # - name: Publish package
-      #   uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
-      #   with:
-      #     user: __token__
-      #     password: ${{ secrets.PYPI_API_TOKEN }}  
+      - name: Publish package
+        env:
+          AZURE_ARTIFACTS_READWRITE_TOKEN: ${{ env.AZURE_ARTIFACTS_READWRITE_TOKEN }}
+        run: |
+          pip install twine
+          python -m twine upload \
+            --repository-url https://pkgs.dev.azure.com/PimMostert0588/BayesianNetwork/_packaging/BayesianNetwork/pypi/upload/ \
+            --password $AZURE_ARTIFACTS_READWRITE_TOKEN \
+            ./dist/*          
+        
+        # uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+        # with:
+        #   user: __token__
+        #   password: ${{ secrets.PYPI_API_TOKEN }}  
       
