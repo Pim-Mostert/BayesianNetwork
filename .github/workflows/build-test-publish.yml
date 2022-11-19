@@ -34,7 +34,9 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Build package
-        run: python -m build
+        run: |
+          pip install build \
+          python -m build
       - name: Publish package
         env:
           AZURE_ARTIFACTS_READWRITE_TOKEN: ${{ env.AZURE_ARTIFACTS_READWRITE_TOKEN }}
