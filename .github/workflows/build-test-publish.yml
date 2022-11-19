@@ -22,6 +22,7 @@ jobs:
           python -m unittest
   package-and-publish:
     # if: github.ref == 'refs/heads/master'
+    needs: unittests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -35,7 +36,7 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Build package
         run: |
-          pip install build \
+          pip install build
           python -m build
       - name: Publish package
         env:
