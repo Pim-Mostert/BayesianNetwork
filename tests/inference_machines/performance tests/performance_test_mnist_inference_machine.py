@@ -1,6 +1,7 @@
 import torch
 import torchvision as torchvision
 from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_machine import \
     TorchSumProductAlgorithmInferenceMachine
 from bayesian_network.interfaces import IInferenceMachine
@@ -58,7 +59,7 @@ def inference_machine_factory(bayesian_network: BayesianNetwork) -> IInferenceMa
     return TorchSumProductAlgorithmInferenceMachine(
         bayesian_network=bayesian_network,
         observed_nodes=Ys,
-        device=device,
+        torch_settings=TorchSettings(torch.device('cpu'), torch.float64),
         num_iterations=8,
         num_observations=num_observations,
         callback=lambda x, y: None)
