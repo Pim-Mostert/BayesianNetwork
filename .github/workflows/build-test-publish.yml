@@ -2,7 +2,7 @@ name: Build, unittest and publish
 on: [push]
 env:
   PYTHON_VERSION: "3.10"
-  AZURE_ARTIFACTS_UPLOAD_URL: "https://pkgs.dev.azure.com/mostertpim/7be5100b-e6d5-4929-9d35-e0df6e70ed56/_packaging/BayesianNetwork/pypi/upload/"
+  AZURE_ARTIFACTS_UPLOAD_URL: "https://pkgs.dev.azure.com/mostertpim/BayesianNetwork/_packaging/BayesianNetwork/pypi/upload/"
 
 jobs:
   unittests:
