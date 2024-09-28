@@ -61,7 +61,7 @@ graph BT
     
 ```
 
-Note how I labeled each link going into a factor node $a$ and each link going into a variable node $b$. The evidence links are labeled with the letter $d$.
+Note that each link going into a factor node is labeled $a$ and each link going into a variable node is labeled $b$. The evidence links are labeled with the letter $d$.
 
 Furthermore, note that by the above procedure there is always one and exactly one variable node and factor node for each node in the original Bayesian network. These two may be considered each other's *local* factor/variable node. For example, factor node $f_1$ is variable node $Q$'s local factor node and, vice versa, $Q$ is $f_1$'s local variable node. Furthermore, their links can be called *local* links. Thus, $a_1$ and $b_1$ are local links. Conversely, links between nodes stemming from different nodes in the original Bayesian network may be called *remote* links. For example, $a_2$ and $b_2$ are remote links.
 
@@ -80,3 +80,39 @@ f_2(q, y) = P(Y|Q)
 
 ### Message definitions
 
+```math
+
+\begin{align}
+
+d_3(y) & = 
+    P(\hat{Y}|Y)
+    \qquad \qquad \qquad \qquad \qquad \qquad \qquad 
+    & \begin{cases}
+        1 & \text{if } \hat{y} = y \\
+        0 & \text{if } \hat{y} \ne y \\
+    \end{cases} \\
+a_3(y) & = 
+    d_3(y)
+    & P(\hat{Y}|Y) \\
+b_3(y) & =
+    \sum_{q}{f_2(q, y)a_2(q)} 
+    = \sum_{q}{P(Y|Q)P(Q)}
+    & P(Y) \\
+b_2(q) & =
+    \sum_{q}{f_2(q, y)a_3(q)} 
+    = \sum_{q}{P(Y|Q)P(\hat{Y}|Y)}
+    & P(\hat{Y}|Q) \\
+a_2(q) & = 
+    b_1(q)
+    & P(Q) \\
+a_1(q) & = 
+    b_2(q)
+    & P(\hat{Y}|Q) \\
+b_1(q) & = 
+    f_1(q)
+    & P(Q) \\
+        
+
+\end{align}
+
+```
