@@ -1,6 +1,8 @@
+[TOC]
+
 # Original sum-product algorithm
 
-## Simple example Baysian network
+## Simple example Bayesian network
 
 First consider a simple Bayesian network, in which there is one hidden variable $Q$ and one observed variable $Y$.
 
@@ -78,7 +80,7 @@ f_1(q) = P(Q) \\
 f_2(q, y) = P(Y|Q)
 ```
 
-### Message definitions
+#### Message definitions
 
 ```math
 
@@ -88,8 +90,8 @@ d_3(y) & =
     P(\hat{Y}|Y)
     \qquad \qquad \qquad \qquad \qquad \qquad \qquad 
     & \begin{cases}
-        1 & \text{if } \hat{y} = y \\
-        0 & \text{if } \hat{y} \ne y \\
+        1 & \text{if } y = \hat{y} \\
+        0 & \text{if } y \ne \hat{y} \\
     \end{cases} \\
 a_3(y) & = 
     d_3(y)
@@ -114,5 +116,35 @@ b_1(q) & =
         
 
 \end{align}
+
+```
+
+#### Inference
+
+Since most messages depend on other message, a number of iterations is needed to calculate the final values for all messages (in this case 4 iterations: $d_3$→$a_3$→$b_2$→$a_2$→$b_3$).
+
+After that, the messages can be used to perform inference on the hidden variable $Q$:
+
+```math
+
+a_1(q)b_1(q) = P(\hat{Y}|Q)P(Q)
+
+```
+
+Normalizing yields the posterior distribution for $Q$:
+
+```math
+
+P(Q|\hat{Y}) = \frac{P(\hat{Y}|Q)P(Q)}{P(\hat{Y})} 
+     = \frac{P(\hat{Y}|Q)P(Q)}{\sum\limits_{q}{P(\hat{Y}|Q)P(Q)}} 
+    =  \frac{a_1(q)b_1(q)}{\sum\limits_{q}{a_1(q)b_1(q)}}
+
+```
+
+Furthermore, the messages can be used to calculate the conditional probability distributions between hidden and/or observed variables:
+
+```math
+
+
 
 ```
