@@ -1,25 +1,66 @@
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 import torch
-import time
 
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.interfaces import IOptimizer, IInferenceMachine
+import random
+
+
+class EmOptimizerSettings:
+    def __init__(
+        self,
+        num_iterations=10,
+        mini_batch_size=None,
+        learning_rate=1,
+        iteration_callback=None,
+    ):
+        self.num_iterations = num_iterations
+        self.mini_batch_size = mini_batch_size
+        self.learning_rate = learning_rate
+        self.iteration_callback = iteration_callback
 
 
 class EmOptimizer(IOptimizer):
-    def __init__(self, 
-                 bayesian_network: BayesianNetwork, 
-                 inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine]):
+    def __init__(
+        self,
+        bayesian_network: BayesianNetwork,
+        inference_machine_factory: Callable[
+            [BayesianNetwork], IInferenceMachine
+        ],
+        settings: Optional[EmOptimizerSettings] = None,
+    ):
         self.bayesian_network = bayesian_network
         self.inference_machine_factory = inference_machine_factory
+        self.settings = settings or EmOptimizerSettings()
 
-    def optimize(self, evidence, num_iterations, iteration_callback):
-        for iteration in range(num_iterations):
-            start_time = time.time()
+    def optimize(self, evidence):
+        if self.settings.mini_batch_size:
+            self._iterate_mini_batches(evidence)
+        else:
+            self._iterate(evidence)
 
+    def _iterate_mini_batches(self, evidence):
+        assert self.settings.mini_batch_size
+
+        data = evidence[:]
+        random.shuffle(evidence)
+
+        # Split the data into minibatches
+        mini_batches = [
+            data[i : (i + self.settings.mini_batch_size)]
+            for i in range(0, len(data), self.settings.mini_batch_size)
+        ]
+
+        for mini_batch in mini_batches:
+            self._iterate(mini_batch)
+
+    def _iterate(self, evidence):
+        for iteration in range(self.settings.num_iterations):
             # Construct inference machine and enter evidence
-            inference_machine = self.inference_machine_factory(self.bayesian_network)
+            inference_machine = self.inference_machine_factory(
+                self.bayesian_network
+            )
             inference_machine.enter_evidence(evidence)
             ll = inference_machine.log_likelihood()
 
@@ -30,26 +71,31 @@ class EmOptimizer(IOptimizer):
             self._m_step(p_conditionals)
 
             # User feedback
-            duration = time.time() - start_time
-            iteration_callback(ll, iteration, duration)
+            if self.settings.iteration_callback:
+                self.settings.iteration_callback(
+                    iteration, ll, self.bayesian_network
+                )
 
-    def _e_step(self, inference_machine: IInferenceMachine) -> List[torch.Tensor]:
+    def _e_step(
+        self, inference_machine: IInferenceMachine
+    ) -> List[torch.Tensor]:
         # List[torch.Tensor((observations x parent1 x parent2 x ... x child))]
-        p_all = inference_machine.infer_nodes_with_parents(self.bayesian_network.nodes)
+        p_all = inference_machine.infer_nodes_with_parents(
+            self.bayesian_network.nodes
+        )
 
         # Average over observations
-        p_conditionals = [
-            p.mean(dim=0)
-            for p
-            in p_all
-        ]
+        p_conditionals = [p.mean(dim=0) for p in p_all]
 
         return p_conditionals
 
     def _m_step(self, p_conditionals: List[torch.Tensor]):
-        for node, p_conditional in zip(self.bayesian_network.nodes, p_conditionals):
+        for node, p_conditional in zip(
+            self.bayesian_network.nodes, p_conditionals
+        ):
             # Normalize to conditional probability distribution
             cpt = p_conditional / p_conditional.sum(dim=-1, keepdim=True)
 
             # Update node
-            node.cpt = cpt
+            alpha = self.settings.learning_rate
+            node.cpt = (1 - alpha) * node.cpt + alpha * cpt

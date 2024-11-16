@@ -7,13 +7,15 @@ from bayesian_network.common.statistics import is_valid_probability_matrix
 
 class Node:
     def __repr__(self):
-        return super().__repr__() \
-            if self.name is None \
-            else f'{type(self).__name__} - {self.name}'
+        return (
+            super().__repr__()
+            if self.name is None
+            else f"{type(self).__name__} - {self.name}"
+        )
 
-    def __init__(self, cpt: torch.tensor, name=None):
+    def __init__(self, cpt: torch.Tensor, name=None):
         if not is_valid_probability_matrix(cpt):
-            raise Exception('The CPT should sum to 1 along the last dimension')
+            raise Exception("The CPT should sum to 1 along the last dimension")
 
         self.num_states: int = cpt.shape[-1]
         self.cpt = cpt
@@ -27,21 +29,21 @@ class BayesianNetwork:
         self.num_nodes = len(self.nodes)
 
         self.children: Dict[Node, List[Node]] = {
-            node: [child for child in self.nodes if node in self.parents[child]]
+            node: [
+                child for child in self.nodes if node in self.parents[child]
+            ]
             for node in self.nodes
         }
 
         self.root_nodes = [
             node
-            for node
-            in self.nodes
+            for node in self.nodes
             if not self.parents[node] and self.children[node]
         ]
 
         self.leaf_nodes = [
             node
-            for node
-            in self.nodes
+            for node in self.nodes
             if self.parents[node] and not self.children[node]
         ]
 
@@ -50,5 +52,3 @@ class BayesianNetwork:
 
     def are_neighbours(self, node1, node2) -> bool:
         return node1 in self.parents[node1] or node2 in self.parents[node2]
-
-

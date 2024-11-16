@@ -22,7 +22,9 @@ class IInferenceMachine(ABC):
         pass
 
     @abstractmethod
-    def infer_nodes_with_parents(self, child_nodes: List[Node]) -> List[torch.Tensor]:
+    def infer_nodes_with_parents(
+        self, child_nodes: List[Node]
+    ) -> List[torch.Tensor]:
         pass
 
     @abstractmethod
@@ -32,6 +34,10 @@ class IInferenceMachine(ABC):
 
 class IOptimizer(ABC):
     @abstractmethod
-    def optimize(self, evidence: torch.Tensor, num_iterations: int, iteration_callback) -> None:
+    def optimize(
+        self,
+        evidence: List[torch.Tensor],
+        num_iterations: int,
+        iteration_callback,
+    ) -> None:
         pass
-
