@@ -4,20 +4,15 @@ import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.interfaces import IOptimizer, IInferenceMachine
-import random
 
 
 class EmOptimizerSettings:
     def __init__(
         self,
         num_iterations=10,
-        mini_batch_size=None,
-        learning_rate=1,
         iteration_callback=None,
     ):
         self.num_iterations = num_iterations
-        self.mini_batch_size = mini_batch_size
-        self.learning_rate = learning_rate
         self.iteration_callback = iteration_callback
 
 
@@ -35,27 +30,6 @@ class EmOptimizer(IOptimizer):
         self.settings = settings or EmOptimizerSettings()
 
     def optimize(self, evidence):
-        if self.settings.mini_batch_size:
-            self._iterate_mini_batches(evidence)
-        else:
-            self._iterate(evidence)
-
-    def _iterate_mini_batches(self, evidence):
-        assert self.settings.mini_batch_size
-
-        data = evidence[:]
-        random.shuffle(evidence)
-
-        # Split the data into minibatches
-        mini_batches = [
-            data[i : (i + self.settings.mini_batch_size)]
-            for i in range(0, len(data), self.settings.mini_batch_size)
-        ]
-
-        for mini_batch in mini_batches:
-            self._iterate(mini_batch)
-
-    def _iterate(self, evidence):
         for iteration in range(self.settings.num_iterations):
             # Construct inference machine and enter evidence
             inference_machine = self.inference_machine_factory(
@@ -97,5 +71,4 @@ class EmOptimizer(IOptimizer):
             cpt = p_conditional / p_conditional.sum(dim=-1, keepdim=True)
 
             # Update node
-            alpha = self.settings.learning_rate
-            node.cpt = (1 - alpha) * node.cpt + alpha * cpt
+            node.cpt = cpt
