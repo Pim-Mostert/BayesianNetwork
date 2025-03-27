@@ -80,6 +80,7 @@ jobs:
           
       - name: Publish package
         env:
+          TWINE_USERNAME: ""
           TWINE_PASSWORD: ${{ secrets.AZURE_ARTIFACTS_READWRITE_TOKEN }}
           TWINE_REPOSITORY_URL: ${{ env.AZURE_ARTIFACTS_UPLOAD_URL }}
         run: |
