@@ -26,7 +26,9 @@ class TorchNodeSamplerTestBase:
 
             # Assign
             p_true = torch.tensor(
-                [2 / 14, 4 / 14, 5 / 14, 2 / 14, 1 / 14], device=device, dtype=dtype
+                [2 / 14, 4 / 14, 5 / 14, 2 / 14, 1 / 14],
+                device=device,
+                dtype=dtype,
             )
             node = Node(p_true)
 
