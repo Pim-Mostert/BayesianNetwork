@@ -1,17 +1,15 @@
-# pyproject.toml
-
 [build-system]
-requires      = ["setuptools>=61.0.0", "wheel"]
+requires = ["setuptools>=61.0.0", "wheel", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "bayesian_network"
-version = "0.1.0"
-dynamic = ["dependencies"]
+dynamic = ["version", "dependencies"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["bayesian_network*"]
+include = ["bayesian_network"]
+
+[tool.setuptools_scm]
