@@ -1,5 +1,4 @@
-import itertools
-from typing import List, Callable, Tuple
+from typing import Callable, List
 
 import torch
 
@@ -10,18 +9,21 @@ from bayesian_network.interfaces import IInferenceMachine
 
 
 class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
-    def __init__(self,
-                 bayesian_network: BayesianNetwork,
-                 observed_nodes: List[Node],
-                 torch_settings: TorchSettings,
-                 num_iterations: int,
-                 num_observations: int,
-                 callback: Callable[[FactorGraph, int], None]):
+    def __init__(
+        self,
+        bayesian_network: BayesianNetwork,
+        observed_nodes: List[Node],
+        torch_settings: TorchSettings,
+        num_iterations: int,
+        num_observations: int,
+        callback: Callable[[FactorGraph, int], None],
+    ):
         self.factor_graph = FactorGraph(
             bayesian_network=bayesian_network,
             observed_nodes=observed_nodes,
             torch_settings=torch_settings,
-            num_observations=num_observations)
+            num_observations=num_observations,
+        )
         self.num_iterations = num_iterations
         self.callback = callback
         self.observed_nodes = observed_nodes
@@ -57,12 +59,12 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         einsum_equation = []
         for index, input in enumerate(factor_node_group.get_node_inputs(node)):
             einsum_equation.append(input)
-            einsum_equation.append([0, index+1])
+            einsum_equation.append([0, index + 1])
 
         einsum_equation.append(factor_node_group.node_cpts[node])
-        einsum_equation.append(range(1, factor_node_group._num_inputs+1))
+        einsum_equation.append(range(1, factor_node_group._num_inputs + 1))
 
-        einsum_equation.append(range(0, factor_node_group._num_inputs+1))
+        einsum_equation.append(range(0, factor_node_group._num_inputs + 1))
 
         p = torch.einsum(*einsum_equation)
 
@@ -77,7 +79,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         self.must_iterate = False
 
     def enter_evidence(self, evidence: List[torch.Tensor]):
-        # evidence.shape: num_observed_nodes x [num_observations x num_states], one-hot encoded        
+        # evidence.shape: num_observed_nodes x [num_observations x num_states], one-hot encoded
         self.factor_graph.enter_evidence(evidence)
 
         self.must_iterate = True
@@ -91,11 +93,8 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
         local_log_likelihoods = [
             variable_node_group.local_log_likelihoods
-            for variable_node_group
-            in self.factor_graph.variable_node_groups
+            for variable_node_group in self.factor_graph.variable_node_groups
         ]
         log_likelihood = torch.cat(local_log_likelihoods).sum()
 
         return log_likelihood
-
-
