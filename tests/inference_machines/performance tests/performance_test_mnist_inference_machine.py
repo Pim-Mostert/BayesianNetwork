@@ -1,3 +1,4 @@
+# flake8: noqa
 import torch
 import torchvision as torchvision
 from torch.nn.functional import one_hot
@@ -44,7 +45,8 @@ evidence = [
 
 # Create network
 Q = Node(
-    torch.ones((num_classes), device=device, dtype=torch.double) / num_classes, name="Q"
+    torch.ones((num_classes), device=device, dtype=torch.double) / num_classes,
+    name="Q",
 )
 mu = torch.rand((height, width, num_classes), dtype=torch.double) * 0.2 + 0.4
 mu = torch.stack([1 - mu, mu], dim=3)
@@ -61,7 +63,9 @@ network = BayesianNetwork(nodes, parents)
 num_iterations = 10
 
 
-def inference_machine_factory(bayesian_network: BayesianNetwork) -> IInferenceMachine:
+def inference_machine_factory(
+    bayesian_network: BayesianNetwork,
+) -> IInferenceMachine:
     return TorchSumProductAlgorithmInferenceMachine(
         bayesian_network=bayesian_network,
         observed_nodes=Ys,

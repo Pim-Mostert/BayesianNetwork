@@ -35,7 +35,9 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
     def _calculate_p_complete(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
         dims = [node.num_states for node in nodes]
         p = torch.ones(
-            dims, dtype=self.torch_settings.dtype, device=self.torch_settings.device
+            dims,
+            dtype=self.torch_settings.dtype,
+            device=self.torch_settings.device,
         )
 
         for node in nodes:
@@ -55,14 +57,17 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
     def enter_evidence(self, evidence: List[torch.tensor]):
         if len(evidence) != self.num_observed_nodes:
             raise Exception(
-                f"Length of evidence must match number of observed nodes: {len(self.observed_nodes_indices)}"
+                "Length of evidence must match number of observed"
+                " nodes: {len(self.observed_nodes_indices)}"
             )
 
         num_trials = evidence[0].shape[0]
         dims = [num_trials] + self.dims
 
         p_evidence = torch.ones(
-            dims, dtype=self.torch_settings.dtype, device=self.torch_settings.device
+            dims,
+            dtype=self.torch_settings.dtype,
+            device=self.torch_settings.device,
         )
 
         for i, observed_node_index in enumerate(self.observed_nodes_indices):

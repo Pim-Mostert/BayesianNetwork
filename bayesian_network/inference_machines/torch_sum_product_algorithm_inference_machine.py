@@ -79,7 +79,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
         self.must_iterate = False
 
     def enter_evidence(self, evidence: List[torch.Tensor]):
-        # evidence.shape: num_observed_nodes x [num_observations x num_states], one-hot encoded
+        # evidence.shape: num_observed_nodes x [num_observations x num_states], one-hot encoded # noqa
         self.factor_graph.enter_evidence(evidence)
 
         self.must_iterate = True

@@ -99,7 +99,7 @@ class VariableNodeGroup:
                 ]
             )
             + " = self._calculation_result"
-            + ".reshape(self._num_outputs*self._num_nodes, self._num_observations, self.num_states)"
+            + ".reshape(self._num_outputs*self._num_nodes, self._num_observations, self.num_states)"  # noqa
         )
 
         self._calculation_indices_per_i_output = {
@@ -121,10 +121,10 @@ class VariableNodeGroup:
         self._calculation_result = x / self._inputs
 
         # Normalization to remote factor nodes
-        self._calculation_result[self._i_outputs_to_remote_factor_nodes] /= (
-            self._calculation_result[self._i_outputs_to_remote_factor_nodes].sum(
-                axis=3, keepdim=True
-            )
+        self._calculation_result[
+            self._i_outputs_to_remote_factor_nodes
+        ] /= self._calculation_result[self._i_outputs_to_remote_factor_nodes].sum(
+            axis=3, keepdim=True
         )
 
         # Normalization to local factor node
@@ -228,7 +228,7 @@ class FactorNodeGroup:
             for i_output in range(self._num_outputs)
         ]
 
-        # self._output_tensor[0][:], self._output_tensor[1][:], ..., self._output_tensor[self.num_nodes-1][:]
+        # self._output_tensor[0][:], self._output_tensor[1][:], ..., self._output_tensor[self.num_nodes-1][:] # noqa
         self._calculation_output_tensor = torch.empty(())  # Placeholder
         self._calculation_result = torch.empty(())  # Placeholder
         self._calculation_assignment_statement = (
@@ -256,7 +256,7 @@ class FactorNodeGroup:
             exec(self._calculation_assignment_statement)
 
     def _construct_einsum_equation_for_output(self, i_output: int) -> List:
-        # Get all inputs with indices, except for the input corresponding to current output
+        # Get all inputs with indices, except for the input corresponding to current output # noqa
         inputs_with_indices = [
             (input, index)
             for input, index in zip(self._inputs, range(self._num_inputs))
@@ -265,7 +265,7 @@ class FactorNodeGroup:
 
         # Example einsum equation:
         #   'kna, knc, knd, kabcd->knb', input0, input2, input3, cpt
-        #   [input0, [..., 0], input2, [..., 2], input3, [..., 3], cpt, [..., 0, 1, 2, 3], [..., 1]]
+        #   [input0, [..., 0], input2, [..., 2], input3, [..., 3], cpt, [..., 0, 1, 2, 3], [..., 1]] # noqa
         #
         # k: num_nodes
         # n: num_observations
@@ -445,7 +445,7 @@ class FactorGraph:
             factor_node_group.calculate_outputs()
 
     def enter_evidence(self, all_evidence: List[torch.Tensor]):
-        # evidence: List[(num_observed_nodes)], torch.Tensor: [num_observations, num_states]
+        # evidence: List[(num_observed_nodes)], torch.Tensor: [num_observations, num_states] # noqa
 
         evidence_groups = (
             (variable_node_group, torch.stack(evidence))
