@@ -5,18 +5,13 @@ from unittest import TestCase
 import torch
 from torch.nn.functional import one_hot
 
-from bayesian_network.common.statistics import (
-    generate_random_probability_matrix,
-)
+from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.torch_naive_inference_machine import (
     TorchNaiveInferenceMachine,
 )
-from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.optimizers.em_optimizer import (
-    EmOptimizer,
-    EmOptimizerSettings,
-)
+from bayesian_network.optimizers.em_optimizer import EmOptimizer, EmOptimizerSettings
 from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
 
 
@@ -32,9 +27,7 @@ class EmOptimizerTestBase:
             device = self.get_torch_settings().device
             dtype = self.get_torch_settings().dtype
 
-            cpt1 = generate_random_probability_matrix(
-                (2), device=device, dtype=dtype
-            )
+            cpt1 = generate_random_probability_matrix((2), device=device, dtype=dtype)
             cpt2 = generate_random_probability_matrix(
                 (2, 3), device=device, dtype=dtype
             )
@@ -71,9 +64,7 @@ class EmOptimizerTestBase:
             self.num_iterations = 10
 
             # Create true network
-            self.true_network, self.observed_nodes = (
-                self._generate_random_network()
-            )
+            self.true_network, self.observed_nodes = self._generate_random_network()
 
             # Create training data
             sampler = TorchBayesianNetworkSampler(
@@ -90,9 +81,7 @@ class EmOptimizerTestBase:
             untrained_network, observed_nodes = self._generate_random_network()
 
             # Act
-            log_likelihood = torch.zeros(
-                self.num_iterations, dtype=torch.double
-            )
+            log_likelihood = torch.zeros(self.num_iterations, dtype=torch.double)
 
             def inference_machine_factory(bayesian_network):
                 return TorchNaiveInferenceMachine(
@@ -117,9 +106,7 @@ class EmOptimizerTestBase:
 
             # Assert either greater or almost equal
             for iteration in range(1, self.num_iterations):
-                diff = (
-                    log_likelihood[iteration] - log_likelihood[iteration - 1]
-                )
+                diff = log_likelihood[iteration] - log_likelihood[iteration - 1]
 
                 if diff > 0:
                     self.assertGreaterEqual(diff, 0)

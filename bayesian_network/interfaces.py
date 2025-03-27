@@ -22,9 +22,7 @@ class IInferenceMachine(ABC):
         pass
 
     @abstractmethod
-    def infer_nodes_with_parents(
-        self, child_nodes: List[Node]
-    ) -> List[torch.Tensor]:
+    def infer_nodes_with_parents(self, child_nodes: List[Node]) -> List[torch.Tensor]:
         pass
 
     @abstractmethod

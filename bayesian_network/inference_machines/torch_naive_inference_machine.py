@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import Dict, List
 
 import torch
 
@@ -8,22 +8,37 @@ from bayesian_network.interfaces import IInferenceMachine
 
 
 class TorchNaiveInferenceMachine(IInferenceMachine):
-    def __init__(self, bayesian_network: BayesianNetwork, observed_nodes: List[Node], torch_settings: TorchSettings):
+    def __init__(
+        self,
+        bayesian_network: BayesianNetwork,
+        observed_nodes: List[Node],
+        torch_settings: TorchSettings,
+    ):
         self.torch_settings = torch_settings
 
         self.dims = [node.num_states for node in bayesian_network.nodes]
         self.num_nodes = len(bayesian_network.nodes)
         self.num_observed_nodes = len(observed_nodes)
-        self.node_to_index = {node: bayesian_network.nodes.index(node) for node in bayesian_network.nodes}
-        self.observed_nodes_indices: List[Node] = [self.node_to_index[node] for node in observed_nodes]
+        self.node_to_index = {
+            node: bayesian_network.nodes.index(node) for node in bayesian_network.nodes
+        }
+        self.observed_nodes_indices: List[Node] = [
+            self.node_to_index[node] for node in observed_nodes
+        ]
         self.bayesian_network = bayesian_network
         self._log_likelihood = None
 
-        self.p = self._calculate_p_complete(bayesian_network.nodes, bayesian_network.parents)[None, ...]
+        self.p = self._calculate_p_complete(
+            bayesian_network.nodes, bayesian_network.parents
+        )[None, ...]
 
     def _calculate_p_complete(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
         dims = [node.num_states for node in nodes]
-        p = torch.ones(dims, dtype=self.torch_settings.dtype, device=self.torch_settings.device)
+        p = torch.ones(
+            dims,
+            dtype=self.torch_settings.dtype,
+            device=self.torch_settings.device,
+        )
 
         for node in nodes:
             new_shape = [1] * self.num_nodes
@@ -41,14 +56,21 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
 
     def enter_evidence(self, evidence: List[torch.tensor]):
         if len(evidence) != self.num_observed_nodes:
-            raise Exception(f'Length of evidence must match number of observed nodes: {len(self.observed_nodes_indices)}')
+            raise Exception(
+                "Length of evidence must match number of observed"
+                " nodes: {len(self.observed_nodes_indices)}"
+            )
 
         num_trials = evidence[0].shape[0]
         dims = [num_trials] + self.dims
 
-        p_evidence = torch.ones(dims, dtype=self.torch_settings.dtype, device=self.torch_settings.device)
+        p_evidence = torch.ones(
+            dims,
+            dtype=self.torch_settings.dtype,
+            device=self.torch_settings.device,
+        )
 
-        for (i, observed_node_index) in enumerate(self.observed_nodes_indices):
+        for i, observed_node_index in enumerate(self.observed_nodes_indices):
             node_dims = [1] * self.num_nodes
             node_dims[observed_node_index] = self.dims[observed_node_index]
             node_dims = [num_trials] + node_dims
@@ -57,7 +79,7 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
 
         self.p = self.p * p_evidence
 
-        sum_over_dims = range(1, self.num_nodes+1)
+        sum_over_dims = range(1, self.num_nodes + 1)
         c = self.p.sum(axis=tuple(sum_over_dims), keepdims=True)
         self.p /= c
 
@@ -65,7 +87,7 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
 
     def _infer(self, nodes):
         node_indices = [self.node_to_index[node] for node in nodes]
-        dims = [d+1 for d in range(self.num_nodes) if d not in node_indices]
+        dims = [d + 1 for d in range(self.num_nodes) if d not in node_indices]
 
         if not dims:
             return self.p
@@ -75,18 +97,13 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
     def infer_nodes_with_parents(self, child_nodes: List[Node]):
         p = [
             self._infer(self.bayesian_network.parents[node] + [node])
-            for node
-            in child_nodes
+            for node in child_nodes
         ]
 
         return p
 
     def infer_single_nodes(self, nodes: List[Node]):
-        p = [
-            self._infer([node])
-            for node
-            in nodes
-        ]
+        p = [self._infer([node]) for node in nodes]
 
         return p
 

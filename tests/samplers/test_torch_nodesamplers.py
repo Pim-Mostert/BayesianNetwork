@@ -25,7 +25,9 @@ class TorchNodeSamplerTestBase:
             dtype = self.get_torch_settings().dtype
 
             # Assign
-            p_true = torch.tensor([2/14, 4/14, 5/14, 2/14, 1/14], device=device, dtype=dtype)
+            p_true = torch.tensor(
+                [2 / 14, 4 / 14, 5 / 14, 2 / 14, 1 / 14], device=device, dtype=dtype
+            )
             node = Node(p_true)
 
             # Act
@@ -50,26 +52,26 @@ class TorchNodeSamplerTestBase:
 
 class TestTorchNodeSamplersCpu(TorchNodeSamplerTestBase.TestTorchNodeSampler):
     def get_torch_settings(self) -> TorchSettings:
-        return TorchSettings(torch.device('cpu'), torch.double)
+        return TorchSettings(torch.device("cpu"), torch.double)
 
 
 class TestTorchNodeSamplersCuda(TorchNodeSamplerTestBase.TestTorchNodeSampler):
     def get_torch_settings(self) -> TorchSettings:
-        return TorchSettings(torch.device('cuda'), torch.double)
+        return TorchSettings(torch.device("cuda"), torch.double)
 
     def setUp(self):
         if not torch.cuda.is_available():
-            self.skipTest('Cuda not available')
+            self.skipTest("Cuda not available")
 
         super(TestTorchNodeSamplersCuda, self).setUp()
 
 
 class TestTorchNodeSamplersMps(TorchNodeSamplerTestBase.TestTorchNodeSampler):
     def get_torch_settings(self) -> TorchSettings:
-        return TorchSettings(torch.device('mps'), torch.float32)
+        return TorchSettings(torch.device("mps"), torch.float32)
 
     def setUp(self):
         if not torch.has_mps:
-            self.skipTest('Mps not available')
+            self.skipTest("Mps not available")
 
         super(TestTorchNodeSamplersMps, self).setUp()

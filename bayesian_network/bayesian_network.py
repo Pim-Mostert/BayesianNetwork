@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import Dict, List
 
 import torch
 
@@ -29,9 +29,7 @@ class BayesianNetwork:
         self.num_nodes = len(self.nodes)
 
         self.children: Dict[Node, List[Node]] = {
-            node: [
-                child for child in self.nodes if node in self.parents[child]
-            ]
+            node: [child for child in self.nodes if node in self.parents[child]]
             for node in self.nodes
         }
 
