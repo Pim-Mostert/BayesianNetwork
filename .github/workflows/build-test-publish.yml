@@ -43,7 +43,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-tags: true
+          fetch-depth: 0 # required for setuptools-scm
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -64,8 +64,8 @@ jobs:
         run: |
           python -m unittest
           
-  package-and-publish:
-    name: Build and publish
+  publish:
+    name: Publish
     needs: unit-tests
     runs-on: "ubuntu-latest"
     steps:
