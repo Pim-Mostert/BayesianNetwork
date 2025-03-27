@@ -1,16 +1,18 @@
+import time
 from typing import Callable, List
 
 import torch
-import time
 
 from bayesian_network.bayesian_network import BayesianNetwork
-from bayesian_network.interfaces import IOptimizer, IInferenceMachine
+from bayesian_network.interfaces import IInferenceMachine, IOptimizer
 
 
 class EmOptimizer(IOptimizer):
-    def __init__(self, 
-                 bayesian_network: BayesianNetwork, 
-                 inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine]):
+    def __init__(
+        self,
+        bayesian_network: BayesianNetwork,
+        inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
+    ):
         self.bayesian_network = bayesian_network
         self.inference_machine_factory = inference_machine_factory
 
@@ -38,11 +40,7 @@ class EmOptimizer(IOptimizer):
         p_all = inference_machine.infer_nodes_with_parents(self.bayesian_network.nodes)
 
         # Average over observations
-        p_conditionals = [
-            p.mean(dim=0)
-            for p
-            in p_all
-        ]
+        p_conditionals = [p.mean(dim=0) for p in p_all]
 
         return p_conditionals
 

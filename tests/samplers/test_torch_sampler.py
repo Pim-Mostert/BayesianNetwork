@@ -26,8 +26,8 @@ class TorchSamplerTestsBase:
             device = self.get_torch_settings().device
             dtype = self.get_torch_settings().dtype
 
-            p_true = torch.tensor([1/5, 4/5], device=device, dtype=dtype)
-            Q = Node(p_true, name='Q')
+            p_true = torch.tensor([1 / 5, 4 / 5], device=device, dtype=dtype)
+            Q = Node(p_true, name="Q")
 
             nodes = [Q]
             parents = {
@@ -36,7 +36,9 @@ class TorchSamplerTestsBase:
             network = BayesianNetwork(nodes, parents)
 
             # Act
-            sut = TorchBayesianNetworkSampler(network, torch_settings=self.get_torch_settings())
+            sut = TorchBayesianNetworkSampler(
+                network, torch_settings=self.get_torch_settings()
+            )
 
             samples = sut.sample(self.num_samples, nodes)
 
@@ -56,9 +58,15 @@ class TorchSamplerTestsBase:
             device = self.get_torch_settings().device
             dtype = self.get_torch_settings().dtype
 
-            p0_true = torch.tensor([1/5, 4/5], device=device, dtype=dtype)
-            p1_true = torch.tensor([[2/3, 1/3], [1/9, 8/9]], device=device, dtype=dtype)
-            p2_true = torch.tensor([[[3/4, 1/4], [1/2, 1/2]], [[4/7, 3/7], [3/11, 8/11]]], device=device, dtype=dtype)
+            p0_true = torch.tensor([1 / 5, 4 / 5], device=device, dtype=dtype)
+            p1_true = torch.tensor(
+                [[2 / 3, 1 / 3], [1 / 9, 8 / 9]], device=device, dtype=dtype
+            )
+            p2_true = torch.tensor(
+                [[[3 / 4, 1 / 4], [1 / 2, 1 / 2]], [[4 / 7, 3 / 7], [3 / 11, 8 / 11]]],
+                device=device,
+                dtype=dtype,
+            )
             Q1 = Node(p0_true, name="Q1")
             Q2 = Node(p1_true, name="Q2")
             Q3 = Node(p2_true, name="Q3")
@@ -72,7 +80,9 @@ class TorchSamplerTestsBase:
             network = BayesianNetwork(nodes, parents)
 
             # Act
-            sut = TorchBayesianNetworkSampler(network, torch_settings=self.get_torch_settings())
+            sut = TorchBayesianNetworkSampler(
+                network, torch_settings=self.get_torch_settings()
+            )
 
             samples = sut.sample(self.num_samples, nodes)
 
@@ -83,7 +93,9 @@ class TorchSamplerTestsBase:
             expected = (p_full_true * self.num_samples).flatten().cpu()
 
             num_nodes = 3
-            kernel = 2**torch.tensor(list(reversed(range(num_nodes))), dtype=torch.int).reshape([num_nodes, 1])
+            kernel = 2 ** torch.tensor(
+                list(reversed(range(num_nodes))), dtype=torch.int
+            ).reshape([num_nodes, 1])
             states = samples @ kernel
             states = flatten(states)
             states, _ = states.sort()
@@ -97,26 +109,26 @@ class TorchSamplerTestsBase:
 
 class TestTorchSamplerCpu(TorchSamplerTestsBase.TestTorchSampler):
     def get_torch_settings(self) -> TorchSettings:
-        return TorchSettings(torch.device('cpu'), torch.double)
+        return TorchSettings(torch.device("cpu"), torch.double)
 
 
 class TestTorchSamplerCuda(TorchSamplerTestsBase.TestTorchSampler):
     def get_torch_settings(self) -> TorchSettings:
-        return TorchSettings(torch.device('cuda'), torch.double)
+        return TorchSettings(torch.device("cuda"), torch.double)
 
     def setUp(self):
         if not torch.cuda.is_available():
-            self.skipTest('Cuda not available')
+            self.skipTest("Cuda not available")
 
         super(TestTorchSamplerCuda, self).setUp()
 
 
 class TestTorchSamplerMps(TorchSamplerTestsBase.TestTorchSampler):
     def get_torch_settings(self) -> TorchSettings:
-        return TorchSettings(torch.device('mps'), torch.float32)
+        return TorchSettings(torch.device("mps"), torch.float32)
 
     def setUp(self):
         if not torch.has_mps:
-            self.skipTest('Mps not available')
+            self.skipTest("Mps not available")
 
         super(TestTorchSamplerMps, self).setUp()
