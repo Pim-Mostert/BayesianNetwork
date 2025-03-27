@@ -216,7 +216,10 @@ class FactorNodeGroup:
             [
                 # Placeholder
                 torch.zeros(
-                    (self._num_observations, self._outputs_num_states[i_output]),
+                    (
+                        self._num_observations,
+                        self._outputs_num_states[i_output],
+                    ),
                     device=self._torch_settings.device,
                     dtype=self._torch_settings.dtype,
                 )
@@ -332,14 +335,15 @@ class FactorGraph:
         NodeGroupKey = namedtuple("NodeGroupKey", "num_inputs num_states")
 
         # Instantiate variable node groups
-        variable_node_groups_key_func = lambda node: NodeGroupKey(
-            (
-                len(bayesian_network.children[node]) + 2
-                if node in self._observed_nodes
-                else len(bayesian_network.children[node]) + 1
-            ),
-            node.num_states,
-        )
+        def variable_node_groups_key_func(node):
+            return NodeGroupKey(
+                (
+                    len(bayesian_network.children[node]) + 2
+                    if node in self._observed_nodes
+                    else len(bayesian_network.children[node]) + 1
+                ),
+                node.num_states,
+            )
 
         self.variable_node_groups = [
             VariableNodeGroup(
@@ -359,14 +363,19 @@ class FactorGraph:
             for key, nodes in [
                 (key, list(nodes))
                 for key, nodes in itertools.groupby(
-                    sorted(bayesian_network.nodes, key=variable_node_groups_key_func),
+                    sorted(
+                        bayesian_network.nodes,
+                        key=variable_node_groups_key_func,
+                    ),
                     key=variable_node_groups_key_func,
                 )
             ]
         ]
 
         # Instantiate factor node groups
-        factor_node_groups_key_func = lambda node: node.cpt.shape
+        def factor_node_groups_key_func(node):
+            return node.cpt.shape
+
         self.factor_node_groups = [
             FactorNodeGroup(
                 list(nodes),
