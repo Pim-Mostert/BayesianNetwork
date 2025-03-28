@@ -14,11 +14,15 @@ from bayesian_network.interfaces import IInferenceMachine
 class TorchInferenceMachineGenericTests:
     class TorchInferenceMachineGenericTestsBase(TestCaseExtended, ABC):
         def setUp(self):
-            if self.get_torch_settings().device == torch.device("cuda") and not torch.cuda.is_available():
-                self.skipTest("Skipping cuda tests because cuda is not available")
+            device = self.get_torch_settings().device
 
-            if self.get_torch_settings().device == torch.device("mps") and not torch.has_mps:
-                self.skipTest("Skipping mps tests because mps is not available")
+            print(f"Running tests with configuration: {self.get_torch_settings()}")
+
+            if device == torch.device("cuda") and not torch.cuda.is_available():
+                self.fail("Running tests for cuda, but cuda not available.")
+
+            if device == torch.device("mps") and not torch.backends.mps.is_available():
+                self.fail("Running tests for mps, but mps not available.")
 
         @abstractmethod
         def get_torch_settings(self) -> TorchSettings:
