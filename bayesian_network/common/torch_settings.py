@@ -4,8 +4,8 @@ from pydantic_settings import BaseSettings
 
 
 class TorchSettings(BaseSettings):
-    device: torch.device = "cpu"  # type: ignore
-    dtype: torch.dtype = "float64"  # type: ignore
+    device: torch.device
+    dtype: torch.dtype
 
     @field_validator("device", mode="before")
     @classmethod
