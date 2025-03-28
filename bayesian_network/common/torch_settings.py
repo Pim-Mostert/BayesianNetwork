@@ -32,4 +32,4 @@ class TorchSettings(BaseSettings):
         super().__init__(**kwargs)
 
     class Config:
-        env_prefix = "BN_"
+        env_prefix = "BN__TORCH_SETTINGS__"
