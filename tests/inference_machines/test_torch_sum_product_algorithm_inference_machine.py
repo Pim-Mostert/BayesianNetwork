@@ -8,9 +8,7 @@ from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_machine import (  # noqa
     TorchSumProductAlgorithmInferenceMachine,
 )
-from tests.inference_machines.torch_inference_machine_generic_tests import (
-    TorchInferenceMachineGenericTests,
-)
+from tests.inference_machines.torch_inference_machine_generic_tests import TorchInferenceMachineGenericTests
 
 
 # Helper classes
@@ -35,23 +33,17 @@ class TestTorchSumProductAlgorithmInferenceMachineBase(ABC):
         )
 
 
-class TestTorchSumProductAlgorithmInferenceMachineBaseCpu(
-    TestTorchSumProductAlgorithmInferenceMachineBase, ABC
-):
+class TestTorchSumProductAlgorithmInferenceMachineBaseCpu(TestTorchSumProductAlgorithmInferenceMachineBase, ABC):
     def get_torch_settings(self) -> TorchSettings:
         return TorchSettings(torch.device("cpu"), torch.double)
 
 
-class TestTorchSumProductAlgorithmInferenceMachineBaseCuda(
-    TestTorchSumProductAlgorithmInferenceMachineBase, ABC
-):
+class TestTorchSumProductAlgorithmInferenceMachineBaseCuda(TestTorchSumProductAlgorithmInferenceMachineBase, ABC):
     def get_torch_settings(self) -> TorchSettings:
         return TorchSettings(torch.device("cuda"), torch.double)
 
 
-class TestTorchSumProductAlgorithmInferenceMachineBaseMps(
-    TestTorchSumProductAlgorithmInferenceMachineBase, ABC
-):
+class TestTorchSumProductAlgorithmInferenceMachineBaseMps(TestTorchSumProductAlgorithmInferenceMachineBase, ABC):
     def get_torch_settings(self) -> TorchSettings:
         return TorchSettings(torch.device("mps"), torch.float32)
 

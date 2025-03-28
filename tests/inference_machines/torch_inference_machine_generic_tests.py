@@ -14,16 +14,10 @@ from bayesian_network.interfaces import IInferenceMachine
 class TorchInferenceMachineGenericTests:
     class TorchInferenceMachineGenericTestsBase(TestCaseExtended, ABC):
         def setUp(self):
-            if (
-                self.get_torch_settings().device == torch.device("cuda")
-                and not torch.cuda.is_available()
-            ):
+            if self.get_torch_settings().device == torch.device("cuda") and not torch.cuda.is_available():
                 self.skipTest("Skipping cuda tests because cuda is not available")
 
-            if (
-                self.get_torch_settings().device == torch.device("mps")
-                and not torch.has_mps
-            ):
+            if self.get_torch_settings().device == torch.device("mps") and not torch.has_mps:
                 self.skipTest("Skipping mps tests because mps is not available")
 
         @abstractmethod
@@ -70,12 +64,8 @@ class TorchInferenceMachineGenericTests:
         def test_no_observations_single_nodes(self):
             # Assign
             p_Q1_expected = torch.einsum("i->i", self.Q1.cpt)[None, ...]
-            p_Q2_expected = torch.einsum("i, ij->j", self.Q1.cpt, self.Q2.cpt)[
-                None, ...
-            ]
-            p_Y_expected = torch.einsum(
-                "i, ij, jk->k", self.Q1.cpt, self.Q2.cpt, self.Y.cpt
-            )[None, ...]
+            p_Q2_expected = torch.einsum("i, ij->j", self.Q1.cpt, self.Q2.cpt)[None, ...]
+            p_Y_expected = torch.einsum("i, ij, jk->k", self.Q1.cpt, self.Q2.cpt, self.Y.cpt)[None, ...]
 
             # Act
             sut = self.create_inference_machine(
@@ -84,9 +74,7 @@ class TorchInferenceMachineGenericTests:
                 num_observations=0,
             )
 
-            [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes(
-                [self.Q1, self.Q2, self.Y]
-            )
+            [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes([self.Q1, self.Q2, self.Y])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1_actual, p_Q1_expected)
@@ -95,12 +83,8 @@ class TorchInferenceMachineGenericTests:
 
         def test_no_observations_nodes_with_parents(self):
             # Assign
-            p_Q1xQ2_expected = torch.einsum("i, ij->ij", self.Q1.cpt, self.Q2.cpt)[
-                None, ...
-            ]
-            p_Q2xY_expected = torch.einsum(
-                "i, ij, jk->jk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt
-            )[None, ...]
+            p_Q1xQ2_expected = torch.einsum("i, ij->ij", self.Q1.cpt, self.Q2.cpt)[None, ...]
+            p_Q2xY_expected = torch.einsum("i, ij, jk->jk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt)[None, ...]
 
             # Act
             sut = self.create_inference_machine(
@@ -109,9 +93,7 @@ class TorchInferenceMachineGenericTests:
                 num_observations=0,
             )
 
-            [p_Q1xQ2_actual, p_Q2xY_actual] = sut.infer_nodes_with_parents(
-                [self.Q2, self.Y]
-            )
+            [p_Q1xQ2_actual, p_Q2xY_actual] = sut.infer_nodes_with_parents([self.Q2, self.Y])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1xQ2_actual, p_Q1xQ2_expected)
@@ -165,9 +147,7 @@ class TorchInferenceMachineGenericTests:
 
             sut.enter_evidence(evidence)
 
-            [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes(
-                [self.Q1, self.Q2, self.Y]
-            )
+            [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes([self.Q1, self.Q2, self.Y])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1_actual, p_Q1_expected)
@@ -251,9 +231,7 @@ class TorchInferenceMachineGenericTests:
 
             sut.enter_evidence(evidence)
 
-            [p_Q1xQ2_actual, p_Q2xY_actual] = sut.infer_nodes_with_parents(
-                [self.Q2, self.Y]
-            )
+            [p_Q1xQ2_actual, p_Q2xY_actual] = sut.infer_nodes_with_parents([self.Q2, self.Y])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1xQ2_actual, p_Q1xQ2_expected)
@@ -271,17 +249,11 @@ class TorchInferenceMachineGenericTests:
             )
             num_observations = evidence[0].shape[0]
 
-            p_Q1_expected = torch.einsum(
-                "i, ij, jk, nk->ni", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
-            )
+            p_Q1_expected = torch.einsum("i, ij, jk, nk->ni", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q1_expected /= p_Q1_expected.sum(axis=(1), keepdims=True)
-            p_Q2_expected = torch.einsum(
-                "i, ij, jk, nk->nj", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
-            )
+            p_Q2_expected = torch.einsum("i, ij, jk, nk->nj", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q2_expected /= p_Q2_expected.sum(axis=(1), keepdims=True)
-            p_Y_expected = torch.einsum(
-                "i, ij, jk, nk->nk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
-            )
+            p_Y_expected = torch.einsum("i, ij, jk, nk->nk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Y_expected /= p_Y_expected.sum(axis=(1), keepdims=True)
 
             # Act
@@ -293,9 +265,7 @@ class TorchInferenceMachineGenericTests:
 
             sut.enter_evidence(evidence)
 
-            [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes(
-                [self.Q1, self.Q2, self.Y]
-            )
+            [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes([self.Q1, self.Q2, self.Y])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1_actual, p_Q1_expected)
@@ -314,9 +284,7 @@ class TorchInferenceMachineGenericTests:
             )
             num_observations = evidence[0].shape[0]
 
-            c = torch.einsum(
-                "i, ij, jk, nk->nijk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
-            ).sum(axis=(1, 2, 3))
+            c = torch.einsum("i, ij, jk, nk->nijk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence).sum(axis=(1, 2, 3))
             ll_expected = torch.log(c).sum()
 
             # Act
@@ -345,13 +313,9 @@ class TorchInferenceMachineGenericTests:
             )
             num_observations = evidence[0].shape[0]
 
-            p_Q1xQ2_expected = torch.einsum(
-                "i, ij, jk, nk->nij", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
-            )
+            p_Q1xQ2_expected = torch.einsum("i, ij, jk, nk->nij", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q1xQ2_expected /= p_Q1xQ2_expected.sum(axis=(1, 2), keepdims=True)
-            p_Q2xY_expected = torch.einsum(
-                "i, ij, jk, nk->njk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
-            )
+            p_Q2xY_expected = torch.einsum("i, ij, jk, nk->njk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q2xY_expected /= p_Q2xY_expected.sum(axis=(1, 2), keepdims=True)
 
             # Act
@@ -363,9 +327,7 @@ class TorchInferenceMachineGenericTests:
 
             sut.enter_evidence(evidence)
 
-            [p_Q1xQ2_actual, p_Q2xY_actual] = sut.infer_nodes_with_parents(
-                [self.Q2, self.Y]
-            )
+            [p_Q1xQ2_actual, p_Q2xY_actual] = sut.infer_nodes_with_parents([self.Q2, self.Y])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1xQ2_actual, p_Q1xQ2_expected)
@@ -442,9 +404,7 @@ class TorchInferenceMachineGenericTests:
                 [
                     torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
                     torch.tensor([[0, 0, 1], [1, 0, 0]], device=device, dtype=dtype),
-                    torch.tensor(
-                        [[0, 0, 0, 1], [1, 0, 0, 0]], device=device, dtype=dtype
-                    ),
+                    torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=device, dtype=dtype),
                     torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
                     torch.tensor([[0, 0, 1], [1, 0, 0]], device=device, dtype=dtype),
                 ]
@@ -500,9 +460,7 @@ class TorchInferenceMachineGenericTests:
 
             sut.enter_evidence(evidence)
 
-            [p_Q1_actual, p_Q2_actual, p_Q3_actual] = sut.infer_single_nodes(
-                [self.Q1, self.Q2, self.Q3]
-            )
+            [p_Q1_actual, p_Q2_actual, p_Q3_actual] = sut.infer_single_nodes([self.Q1, self.Q2, self.Q3])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1_actual, p_Q1_expected)
@@ -518,9 +476,7 @@ class TorchInferenceMachineGenericTests:
                 [
                     torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
                     torch.tensor([[0, 0, 1], [1, 0, 0]], device=device, dtype=dtype),
-                    torch.tensor(
-                        [[0, 0, 0, 1], [1, 0, 0, 0]], device=device, dtype=dtype
-                    ),
+                    torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=device, dtype=dtype),
                     torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
                     torch.tensor([[0, 0, 1], [1, 0, 0]], device=device, dtype=dtype),
                 ]
@@ -564,9 +520,7 @@ class TorchInferenceMachineGenericTests:
                 [
                     torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
                     torch.tensor([[0, 0, 1], [1, 0, 0]], device=device, dtype=dtype),
-                    torch.tensor(
-                        [[0, 0, 0, 1], [1, 0, 0, 0]], device=device, dtype=dtype
-                    ),
+                    torch.tensor([[0, 0, 0, 1], [1, 0, 0, 0]], device=device, dtype=dtype),
                     torch.tensor([[0, 1], [1, 0]], device=device, dtype=dtype),
                     torch.tensor([[0, 0, 1], [1, 0, 0]], device=device, dtype=dtype),
                 ]
@@ -682,9 +636,7 @@ class TorchInferenceMachineGenericTests:
                 p_Q2xY3_actual,
                 p_Q3xY4_actual,
                 p_Q3xY5_actual,
-            ] = sut.infer_nodes_with_parents(
-                [self.Q2, self.Q3, self.Y1, self.Y2, self.Y3, self.Y4, self.Y5]
-            )
+            ] = sut.infer_nodes_with_parents([self.Q2, self.Q3, self.Y1, self.Y2, self.Y3, self.Y4, self.Y5])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1xQ2_actual, p_Q1xQ2_expected)
@@ -711,9 +663,7 @@ class TorchInferenceMachineGenericTests:
                 name="Q2",
             )
             self.Y = Node(
-                generate_random_probability_matrix(
-                    (2, 2, 2), device=device, dtype=dtype
-                ),
+                generate_random_probability_matrix((2, 2, 2), device=device, dtype=dtype),
                 name="Y",
             )
 
@@ -728,12 +678,8 @@ class TorchInferenceMachineGenericTests:
         def test_no_observations_single_nodes(self):
             # Assign
             p_Q1_expected = torch.einsum("i->i", self.Q1.cpt)[None, ...]
-            p_Q2_expected = torch.einsum("i, ij->j", self.Q1.cpt, self.Q2.cpt)[
-                None, ...
-            ]
-            p_Y_expected = torch.einsum(
-                "i, ij, ijk->k", self.Q1.cpt, self.Q2.cpt, self.Y.cpt
-            )[None, ...]
+            p_Q2_expected = torch.einsum("i, ij->j", self.Q1.cpt, self.Q2.cpt)[None, ...]
+            p_Y_expected = torch.einsum("i, ij, ijk->k", self.Q1.cpt, self.Q2.cpt, self.Y.cpt)[None, ...]
 
             # Act
             sut = self.create_inference_machine(
@@ -742,9 +688,7 @@ class TorchInferenceMachineGenericTests:
                 num_observations=0,
             )
 
-            [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes(
-                [self.Q1, self.Q2, self.Y]
-            )
+            [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes([self.Q1, self.Q2, self.Y])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1_actual, p_Q1_expected)
@@ -753,12 +697,8 @@ class TorchInferenceMachineGenericTests:
 
         def test_no_observations_nodes_with_parents(self):
             # Assign
-            p_Q1xQ2_expected = torch.einsum("i, ij-> ij", self.Q1.cpt, self.Q2.cpt)[
-                None, ...
-            ]
-            p_Q1xQ2xY_expected = torch.einsum(
-                "i, ij, ijk-> ijk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt
-            )[None, ...]
+            p_Q1xQ2_expected = torch.einsum("i, ij-> ij", self.Q1.cpt, self.Q2.cpt)[None, ...]
+            p_Q1xQ2xY_expected = torch.einsum("i, ij, ijk-> ijk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt)[None, ...]
 
             # Act
             sut = self.create_inference_machine(
@@ -767,9 +707,7 @@ class TorchInferenceMachineGenericTests:
                 num_observations=0,
             )
 
-            [p_Q1xQ2_actual, p_Q1xQ2xY_actual] = sut.infer_nodes_with_parents(
-                [self.Q2, self.Y]
-            )
+            [p_Q1xQ2_actual, p_Q1xQ2xY_actual] = sut.infer_nodes_with_parents([self.Q2, self.Y])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1xQ2_actual, p_Q1xQ2_expected)
@@ -823,9 +761,7 @@ class TorchInferenceMachineGenericTests:
 
             sut.enter_evidence(evidence)
 
-            [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes(
-                [self.Q1, self.Q2, self.Y]
-            )
+            [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes([self.Q1, self.Q2, self.Y])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1_actual, p_Q1_expected)
@@ -908,9 +844,7 @@ class TorchInferenceMachineGenericTests:
 
             sut.enter_evidence(evidence)
 
-            [p_Q1xQ2_actual, p_Q1xQ2xY_actual] = sut.infer_nodes_with_parents(
-                [self.Q2, self.Y]
-            )
+            [p_Q1xQ2_actual, p_Q1xQ2xY_actual] = sut.infer_nodes_with_parents([self.Q2, self.Y])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1xQ2_actual, p_Q1xQ2_expected)
@@ -928,17 +862,11 @@ class TorchInferenceMachineGenericTests:
             )
             num_observations = evidence[0].shape[0]
 
-            p_Q1_expected = torch.einsum(
-                "i, ij, ijk, nk->ni", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
-            )
+            p_Q1_expected = torch.einsum("i, ij, ijk, nk->ni", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q1_expected /= p_Q1_expected.sum(axis=(1), keepdims=True)
-            p_Q2_expected = torch.einsum(
-                "i, ij, ijk, nk->nj", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
-            )
+            p_Q2_expected = torch.einsum("i, ij, ijk, nk->nj", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q2_expected /= p_Q2_expected.sum(axis=(1), keepdims=True)
-            p_Y_expected = torch.einsum(
-                "i, ij, ijk, nk->nk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
-            )
+            p_Y_expected = torch.einsum("i, ij, ijk, nk->nk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Y_expected /= p_Y_expected.sum(axis=(1), keepdims=True)
 
             # Act
@@ -950,9 +878,7 @@ class TorchInferenceMachineGenericTests:
 
             sut.enter_evidence(evidence)
 
-            [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes(
-                [self.Q1, self.Q2, self.Y]
-            )
+            [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes([self.Q1, self.Q2, self.Y])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1_actual, p_Q1_expected)
@@ -971,13 +897,9 @@ class TorchInferenceMachineGenericTests:
             )
             num_observations = evidence[0].shape[0]
 
-            p_Q1xQ2_expected = torch.einsum(
-                "i, ij, ijk, nk->nij", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
-            )
+            p_Q1xQ2_expected = torch.einsum("i, ij, ijk, nk->nij", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q1xQ2_expected /= p_Q1xQ2_expected.sum(axis=(1, 2), keepdims=True)
-            p_Q1xQ2xY_expected = torch.einsum(
-                "i, ij, ijk, nk->nijk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
-            )
+            p_Q1xQ2xY_expected = torch.einsum("i, ij, ijk, nk->nijk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence)
             p_Q1xQ2xY_expected /= p_Q1xQ2xY_expected.sum(axis=(1, 2, 3), keepdims=True)
 
             # Act
@@ -989,9 +911,7 @@ class TorchInferenceMachineGenericTests:
 
             sut.enter_evidence(evidence)
 
-            [p_Q1xQ2_actual, p_Q1xQ2xY_actual] = sut.infer_nodes_with_parents(
-                [self.Q2, self.Y]
-            )
+            [p_Q1xQ2_actual, p_Q1xQ2xY_actual] = sut.infer_nodes_with_parents([self.Q2, self.Y])
 
             # Assert
             self.assertArrayAlmostEqual(p_Q1xQ2_actual, p_Q1xQ2_expected)
@@ -1009,9 +929,9 @@ class TorchInferenceMachineGenericTests:
             )
             num_observations = evidence[0].shape[0]
 
-            c = torch.einsum(
-                "i, ij, ijk, nk->nijk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
-            ).sum(axis=(1, 2, 3))
+            c = torch.einsum("i, ij, ijk, nk->nijk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence).sum(
+                axis=(1, 2, 3)
+            )
             ll_expected = torch.log(c).sum()
 
             # Act
@@ -1038,9 +958,7 @@ class TorchInferenceMachineGenericTests:
             self.num_inputs = 10
             self.num_observations = 2
 
-            self.Q = Node(
-                torch.tensor([0.5, 0.5], device=device, dtype=dtype), name="Q"
-            )
+            self.Q = Node(torch.tensor([0.5, 0.5], device=device, dtype=dtype), name="Q")
             self.Ys = [
                 Node(
                     torch.tensor(
@@ -1060,9 +978,7 @@ class TorchInferenceMachineGenericTests:
             self.network = BayesianNetwork(nodes, parents)
 
             self.evidence = [
-                torch.tensor([[1 - 1e-100, 1e-100]], device=device, dtype=dtype).repeat(
-                    (self.num_observations, 1)
-                )
+                torch.tensor([[1 - 1e-100, 1e-100]], device=device, dtype=dtype).repeat((self.num_observations, 1))
                 for _ in range(self.num_inputs)
             ]
 

@@ -8,9 +8,7 @@ from torch.nn.functional import one_hot
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.inference_machines.torch_naive_inference_machine import (
-    TorchNaiveInferenceMachine,
-)
+from bayesian_network.inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
 from bayesian_network.optimizers.em_optimizer import EmOptimizer
 from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
 
@@ -26,18 +24,10 @@ class EmOptimizerTestBase:
             dtype = self.get_torch_settings().dtype
 
             cpt1 = generate_random_probability_matrix((2), device=device, dtype=dtype)
-            cpt2 = generate_random_probability_matrix(
-                (2, 3), device=device, dtype=dtype
-            )
-            cpt3_1 = generate_random_probability_matrix(
-                (2, 3, 4), device=device, dtype=dtype
-            )
-            cpt3_2 = generate_random_probability_matrix(
-                (2, 5), device=device, dtype=dtype
-            )
-            cpt3_3 = generate_random_probability_matrix(
-                (3, 6), device=device, dtype=dtype
-            )
+            cpt2 = generate_random_probability_matrix((2, 3), device=device, dtype=dtype)
+            cpt3_1 = generate_random_probability_matrix((2, 3, 4), device=device, dtype=dtype)
+            cpt3_2 = generate_random_probability_matrix((2, 5), device=device, dtype=dtype)
+            cpt3_3 = generate_random_probability_matrix((3, 6), device=device, dtype=dtype)
             Q1 = Node(cpt1, name="Q1")
             Q2 = Node(cpt2, name="Q2")
             Y1 = Node(cpt3_1, name="Y1")

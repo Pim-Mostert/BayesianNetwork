@@ -8,15 +8,11 @@ from bayesian_network.interfaces import IBayesianNetworkSampler
 
 
 class TorchBayesianNetworkSampler(IBayesianNetworkSampler):
-    def __init__(
-        self, bayesian_network: BayesianNetwork, torch_settings: TorchSettings
-    ):
+    def __init__(self, bayesian_network: BayesianNetwork, torch_settings: TorchSettings):
         self.torch_settings = torch_settings
         self.bayesian_network = bayesian_network
 
-        self.samplers: Dict[Node, NodeSampler] = {
-            node: NodeSampler(node) for node in bayesian_network.nodes
-        }
+        self.samplers: Dict[Node, NodeSampler] = {node: NodeSampler(node) for node in bayesian_network.nodes}
 
     def sample(self, num_samples: int, nodes: List[Node]) -> torch.Tensor:
         num_nodes = len(nodes)
@@ -38,13 +34,9 @@ class TorchBayesianNetworkSampler(IBayesianNetworkSampler):
         for i, node in enumerate(nodes):
             states[node] = self._sample_single_node(node, states)
 
-        return torch.tensor(
-            [states[node] for node in nodes], device=self.torch_settings.device
-        )
+        return torch.tensor([states[node] for node in nodes], device=self.torch_settings.device)
 
-    def _sample_single_node(
-        self, node: Node, states: Dict[Node, torch.tensor]
-    ) -> torch.tensor:
+    def _sample_single_node(self, node: Node, states: Dict[Node, torch.tensor]) -> torch.tensor:
         for parent in self.bayesian_network.parents[node]:
             if parent not in states:
                 states[parent] = self._sample_single_node(parent, states)

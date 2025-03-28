@@ -24,9 +24,7 @@ class TorchSettings(BaseSettings):
         }
         if isinstance(v, str) and v in valid_dtypes:
             return valid_dtypes[v]
-        raise ValueError(
-            f"Invalid dtype '{v}'. Must be one of {list(valid_dtypes.keys())}."
-        )
+        raise ValueError(f"Invalid dtype '{v}'. Must be one of {list(valid_dtypes.keys())}.")
 
     def __init__(self, *args, **kwargs):
         if args:

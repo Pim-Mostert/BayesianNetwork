@@ -36,9 +36,7 @@ class TorchSamplerTestsBase:
             network = BayesianNetwork(nodes, parents)
 
             # Act
-            sut = TorchBayesianNetworkSampler(
-                network, torch_settings=self.get_torch_settings()
-            )
+            sut = TorchBayesianNetworkSampler(network, torch_settings=self.get_torch_settings())
 
             samples = sut.sample(self.num_samples, nodes)
 
@@ -59,9 +57,7 @@ class TorchSamplerTestsBase:
             dtype = self.get_torch_settings().dtype
 
             p0_true = torch.tensor([1 / 5, 4 / 5], device=device, dtype=dtype)
-            p1_true = torch.tensor(
-                [[2 / 3, 1 / 3], [1 / 9, 8 / 9]], device=device, dtype=dtype
-            )
+            p1_true = torch.tensor([[2 / 3, 1 / 3], [1 / 9, 8 / 9]], device=device, dtype=dtype)
             p2_true = torch.tensor(
                 [[[3 / 4, 1 / 4], [1 / 2, 1 / 2]], [[4 / 7, 3 / 7], [3 / 11, 8 / 11]]],
                 device=device,
@@ -80,9 +76,7 @@ class TorchSamplerTestsBase:
             network = BayesianNetwork(nodes, parents)
 
             # Act
-            sut = TorchBayesianNetworkSampler(
-                network, torch_settings=self.get_torch_settings()
-            )
+            sut = TorchBayesianNetworkSampler(network, torch_settings=self.get_torch_settings())
 
             samples = sut.sample(self.num_samples, nodes)
 
@@ -93,9 +87,7 @@ class TorchSamplerTestsBase:
             expected = (p_full_true * self.num_samples).flatten().cpu()
 
             num_nodes = 3
-            kernel = 2 ** torch.tensor(
-                list(reversed(range(num_nodes))), dtype=torch.int
-            ).reshape([num_nodes, 1])
+            kernel = 2 ** torch.tensor(list(reversed(range(num_nodes))), dtype=torch.int).reshape([num_nodes, 1])
             states = samples @ kernel
             states = flatten(states)
             states, _ = states.sort()

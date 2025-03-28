@@ -3,9 +3,7 @@ from typing import Iterable, Union
 import torch
 
 
-def generate_random_probability_matrix(
-    size: Union[int, Iterable[int]], device: torch.device, dtype: torch.dtype
-):
+def generate_random_probability_matrix(size: Union[int, Iterable[int]], device: torch.device, dtype: torch.dtype):
     p: torch.tensor = torch.rand(size, dtype=dtype, device=device)
 
     return p / p.sum(dim=-1, keepdim=True)
