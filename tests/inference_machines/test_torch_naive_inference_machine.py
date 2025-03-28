@@ -8,7 +8,7 @@ from bayesian_network.interfaces import IInferenceMachine
 from tests.inference_machines.torch_inference_machine_generic_tests import TorchInferenceMachineGenericTests
 
 
-# Helper classes
+# Helper class
 class TestTorchNaiveInferenceMachineBase(ABC):
     def get_torch_settings(self) -> TorchSettings:
         return TorchSettings()

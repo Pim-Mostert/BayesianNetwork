@@ -1,7 +1,5 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import List
-
-import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
@@ -11,11 +9,10 @@ from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_m
 from tests.inference_machines.torch_inference_machine_generic_tests import TorchInferenceMachineGenericTests
 
 
-# Helper classes
+# Helper class
 class TestTorchSumProductAlgorithmInferenceMachineBase(ABC):
-    @abstractmethod
     def get_torch_settings(self) -> TorchSettings:
-        pass
+        return TorchSettings()
 
     def create_inference_machine(
         self,
@@ -33,76 +30,23 @@ class TestTorchSumProductAlgorithmInferenceMachineBase(ABC):
         )
 
 
-class TestTorchSumProductAlgorithmInferenceMachineBaseCpu(TestTorchSumProductAlgorithmInferenceMachineBase, ABC):
-    def get_torch_settings(self) -> TorchSettings:
-        return TorchSettings(torch.device("cpu"), torch.double)
-
-
-class TestTorchSumProductAlgorithmInferenceMachineBaseCuda(TestTorchSumProductAlgorithmInferenceMachineBase, ABC):
-    def get_torch_settings(self) -> TorchSettings:
-        return TorchSettings(torch.device("cuda"), torch.double)
-
-
-class TestTorchSumProductAlgorithmInferenceMachineBaseMps(TestTorchSumProductAlgorithmInferenceMachineBase, ABC):
-    def get_torch_settings(self) -> TorchSettings:
-        return TorchSettings(torch.device("mps"), torch.float32)
-
-
 # Actual tests
-# Cpu
-class TestNetworkWithSingleParentsCpu(
-    TestTorchSumProductAlgorithmInferenceMachineBaseCpu,
+class TestNetworkWithSingleParents(
+    TestTorchSumProductAlgorithmInferenceMachineBase,
     TorchInferenceMachineGenericTests.NetworkWithSingleParents,
 ):
     pass
 
 
-class TestComplexNetworkWithSingleParentsCpu(
-    TestTorchSumProductAlgorithmInferenceMachineBaseCpu,
+class TestComplexNetworkWithSingleParents(
+    TestTorchSumProductAlgorithmInferenceMachineBase,
     TorchInferenceMachineGenericTests.ComplexNetworkWithSingleParents,
 ):
     pass
 
 
-class HandleNumericalUnderflowCpu(
-    TestTorchSumProductAlgorithmInferenceMachineBaseCpu,
+class HandleNumericalUnderflow(
+    TestTorchSumProductAlgorithmInferenceMachineBase,
     TorchInferenceMachineGenericTests.HandleNumericalUnderflow,
-):
-    pass
-
-
-# Cuda
-class TestNetworkWithSingleParentsCuda(
-    TestTorchSumProductAlgorithmInferenceMachineBaseCuda,
-    TorchInferenceMachineGenericTests.NetworkWithSingleParents,
-):
-    pass
-
-
-class TestComplexNetworkWithSingleParentsCuda(
-    TestTorchSumProductAlgorithmInferenceMachineBaseCuda,
-    TorchInferenceMachineGenericTests.ComplexNetworkWithSingleParents,
-):
-    pass
-
-
-class HandleNumericalUnderflowCuda(
-    TestTorchSumProductAlgorithmInferenceMachineBaseCuda,
-    TorchInferenceMachineGenericTests.HandleNumericalUnderflow,
-):
-    pass
-
-
-# Mps
-class TestNetworkWithSingleParentsMps(
-    TestTorchSumProductAlgorithmInferenceMachineBaseMps,
-    TorchInferenceMachineGenericTests.NetworkWithSingleParents,
-):
-    pass
-
-
-class TestComplexNetworkWithSingleParentsMps(
-    TestTorchSumProductAlgorithmInferenceMachineBaseMps,
-    TorchInferenceMachineGenericTests.ComplexNetworkWithSingleParents,
 ):
     pass
