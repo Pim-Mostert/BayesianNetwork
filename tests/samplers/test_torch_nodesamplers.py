@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from itertools import groupby
 from unittest import TestCase
 
@@ -11,9 +10,20 @@ from bayesian_network.samplers.torch_sampler import NodeSampler
 
 
 class TestTorchNodeSampler(TestCase):
-    @abstractmethod
     def get_torch_settings(self) -> TorchSettings:
-        return TorchSettings()
+        torch_settings = TorchSettings()
+
+        device = torch_settings.device
+
+        print(f"Running tests with configuration: {torch_settings}")
+
+        if device == torch.device("cuda") and not torch.cuda.is_available():
+            self.fail("Running tests for cuda, but cuda not available.")
+
+        if device == torch.device("mps") and not torch.backends.mps.is_available():
+            self.fail("Running tests for mps, but mps not available.")
+
+        return torch_settings
 
     def setUp(self):
         self.num_samples = 10000

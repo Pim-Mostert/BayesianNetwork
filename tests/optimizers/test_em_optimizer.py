@@ -14,18 +14,19 @@ from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
 
 class TestEmOptimizer(TestCase):
     def get_torch_settings(self) -> TorchSettings:
-        return TorchSettings()
+        torch_settings = TorchSettings()
 
-    def _assert_torch_settings(self):
-        device = self.get_torch_settings().device
+        device = torch_settings.device
 
-        print(f"Running tests with configuration: {self.get_torch_settings()}")
+        print(f"Running tests with configuration: {torch_settings}")
 
         if device == torch.device("cuda") and not torch.cuda.is_available():
             self.fail("Running tests for cuda, but cuda not available.")
 
         if device == torch.device("mps") and not torch.backends.mps.is_available():
             self.fail("Running tests for mps, but mps not available.")
+
+        return torch_settings
 
     def _generate_random_network(self) -> Tuple[BayesianNetwork, List[Node]]:
         device = self.get_torch_settings().device
@@ -51,8 +52,6 @@ class TestEmOptimizer(TestCase):
         return bayesian_network, observed_nodes
 
     def setUp(self):
-        self._assert_torch_settings()
-
         self.num_iterations = 10
 
         # Create true network
