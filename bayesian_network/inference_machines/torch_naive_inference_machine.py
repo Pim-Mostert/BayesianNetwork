@@ -22,7 +22,7 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
         self.node_to_index = {
             node: bayesian_network.nodes.index(node) for node in bayesian_network.nodes
         }
-        self.observed_nodes_indices: List[Node] = [
+        self.observed_nodes_indices: List[int] = [
             self.node_to_index[node] for node in observed_nodes
         ]
         self.bayesian_network = bayesian_network
@@ -54,7 +54,7 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
 
         return p
 
-    def enter_evidence(self, evidence: List[torch.tensor]):
+    def enter_evidence(self, evidence: List[torch.Tensor]):
         if len(evidence) != self.num_observed_nodes:
             raise Exception(
                 "Length of evidence must match number of observed"
@@ -80,7 +80,7 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
         self.p = self.p * p_evidence
 
         sum_over_dims = range(1, self.num_nodes + 1)
-        c = self.p.sum(axis=tuple(sum_over_dims), keepdims=True)
+        c = self.p.sum(dim=tuple(sum_over_dims), keepdim=True)
         self.p /= c
 
         self._log_likelihood = torch.log(c).sum()

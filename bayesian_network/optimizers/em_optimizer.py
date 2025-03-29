@@ -10,7 +10,7 @@ class EmOptimizerSettings:
     def __init__(
         self,
         num_iterations=10,
-        iteration_callback=None,
+        iteration_callback: Optional[Callable[[int, float, BayesianNetwork], None]] = None,
     ):
         self.num_iterations = num_iterations
         self.iteration_callback = iteration_callback

@@ -112,7 +112,7 @@ class VariableNodeGroup:
     def calculate_outputs(self):
         # Calculation
         # [num_inputs, num_nodes, num_observations, num_states]
-        x = self._inputs.prod(axis=0)
+        x = self._inputs.prod(dim=0)
         x[x == 0] = get_min_pos_value(self._torch_settings.dtype)
 
         # [num_outputs, num_nodes, num_observations, num_states]
@@ -122,12 +122,12 @@ class VariableNodeGroup:
         self._calculation_result[
             self._i_outputs_to_remote_factor_nodes
         ] /= self._calculation_result[self._i_outputs_to_remote_factor_nodes].sum(
-            axis=3, keepdim=True
+            dim=3, keepdim=True
         )
 
         # Normalization to local factor node
         # [num_nodes, num_observations, 1]
-        c = x.sum(axis=2, keepdim=True)
+        c = x.sum(dim=2, keepdim=True)
 
         self._calculation_result[self._i_output_to_local_factor_node] /= c
 
