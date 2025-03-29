@@ -96,7 +96,9 @@ class TestTorchSampler(TestCase):
         expected = (p_full_true * self.num_samples).flatten().cpu()
 
         num_nodes = 3
-        kernel = 2 ** torch.tensor(list(reversed(range(num_nodes))), dtype=torch.int).reshape([num_nodes, 1])
+        kernel = 2 ** torch.tensor(list(reversed(range(num_nodes))), dtype=torch.int).reshape(
+            [num_nodes, 1]
+        )
         states = samples @ kernel
         states = flatten(states)
         states, _ = states.sort()

@@ -7,7 +7,9 @@ from torch.nn.functional import one_hot
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
+from bayesian_network.inference_machines.torch_naive_inference_machine import (
+    TorchNaiveInferenceMachine,
+)
 from bayesian_network.optimizers.em_optimizer import EmOptimizer, EmOptimizerSettings
 from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
 

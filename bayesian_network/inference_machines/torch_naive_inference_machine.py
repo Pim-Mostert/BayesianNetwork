@@ -19,12 +19,18 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
         self.dims = [node.num_states for node in bayesian_network.nodes]
         self.num_nodes = len(bayesian_network.nodes)
         self.num_observed_nodes = len(observed_nodes)
-        self.node_to_index = {node: bayesian_network.nodes.index(node) for node in bayesian_network.nodes}
-        self.observed_nodes_indices: List[Node] = [self.node_to_index[node] for node in observed_nodes]
+        self.node_to_index = {
+            node: bayesian_network.nodes.index(node) for node in bayesian_network.nodes
+        }
+        self.observed_nodes_indices: List[Node] = [
+            self.node_to_index[node] for node in observed_nodes
+        ]
         self.bayesian_network = bayesian_network
         self._log_likelihood = None
 
-        self.p = self._calculate_p_complete(bayesian_network.nodes, bayesian_network.parents)[None, ...]
+        self.p = self._calculate_p_complete(bayesian_network.nodes, bayesian_network.parents)[
+            None, ...
+        ]
 
     def _calculate_p_complete(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
         dims = [node.num_states for node in nodes]
@@ -51,7 +57,8 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
     def enter_evidence(self, evidence: List[torch.tensor]):
         if len(evidence) != self.num_observed_nodes:
             raise Exception(
-                "Length of evidence must match number of observed" " nodes: {len(self.observed_nodes_indices)}"
+                "Length of evidence must match number of observed"
+                " nodes: {len(self.observed_nodes_indices)}"
             )
 
         num_trials = evidence[0].shape[0]

@@ -25,12 +25,17 @@ class BayesianNetwork:
         self.num_nodes = len(self.nodes)
 
         self.children: Dict[Node, List[Node]] = {
-            node: [child for child in self.nodes if node in self.parents[child]] for node in self.nodes
+            node: [child for child in self.nodes if node in self.parents[child]]
+            for node in self.nodes
         }
 
-        self.root_nodes = [node for node in self.nodes if not self.parents[node] and self.children[node]]
+        self.root_nodes = [
+            node for node in self.nodes if not self.parents[node] and self.children[node]
+        ]
 
-        self.leaf_nodes = [node for node in self.nodes if self.parents[node] and not self.children[node]]
+        self.leaf_nodes = [
+            node for node in self.nodes if self.parents[node] and not self.children[node]
+        ]
 
     def is_leaf_node(self, node: Node) -> bool:
         return node in self.leaf_nodes
