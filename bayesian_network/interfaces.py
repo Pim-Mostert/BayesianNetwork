@@ -32,7 +32,5 @@ class IInferenceMachine(ABC):
 
 class IOptimizer(ABC):
     @abstractmethod
-    def optimize(
-        self, evidence: torch.Tensor, num_iterations: int, iteration_callback
-    ) -> None:
+    def optimize(self, evidence: torch.Tensor, num_iterations: int, iteration_callback) -> None:
         pass

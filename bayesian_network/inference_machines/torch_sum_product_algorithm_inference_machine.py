@@ -92,8 +92,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
             self._iterate()
 
         local_log_likelihoods = [
-            variable_node_group.local_log_likelihoods
-            for variable_node_group in self.factor_graph.variable_node_groups
+            variable_node_group.local_log_likelihoods for variable_node_group in self.factor_graph.variable_node_groups
         ]
         log_likelihood = torch.cat(local_log_likelihoods).sum()
 
