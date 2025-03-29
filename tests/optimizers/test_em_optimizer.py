@@ -8,7 +8,7 @@ from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
-from bayesian_network.optimizers.em_optimizer import EmOptimizer
+from bayesian_network.optimizers.em_optimizer import EmOptimizer, EmOptimizerSettings
 from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
 
 
@@ -28,7 +28,9 @@ class TestEmOptimizer(TestCase):
 
         return torch_settings
 
-    def _generate_random_network(self) -> Tuple[BayesianNetwork, List[Node]]:
+    def _generate_random_network(
+        self,
+    ) -> Tuple[BayesianNetwork, List[Node]]:
         device = self.get_torch_settings().device
         dtype = self.get_torch_settings().dtype
 
@@ -44,7 +46,13 @@ class TestEmOptimizer(TestCase):
         Y3 = Node(cpt3_3, name="Y3")
 
         nodes = [Q1, Q2, Y1, Y2, Y3]
-        parents = {Q1: [], Q2: [Q1], Y1: [Q1, Q2], Y2: [Q1], Y3: [Q2]}
+        parents = {
+            Q1: [],
+            Q2: [Q1],
+            Y1: [Q1, Q2],
+            Y2: [Q1],
+            Y3: [Q2],
+        }
 
         observed_nodes = [Y1, Y2, Y3]
         bayesian_network = BayesianNetwork(nodes, parents)
@@ -81,12 +89,19 @@ class TestEmOptimizer(TestCase):
                 torch_settings=self.get_torch_settings(),
             )
 
-        sut = EmOptimizer(untrained_network, inference_machine_factory)
-
-        def callback(ll, i, duration):
+        def iteration_callback(ll, i, duration):
             log_likelihood[i] = ll
 
-        sut.optimize(self.data, self.num_iterations, callback)
+        sut = EmOptimizer(
+            untrained_network,
+            inference_machine_factory,
+            settings=EmOptimizerSettings(
+                num_iterations=self.num_iterations,
+                iteration_callback=None,
+            ),
+        )
+
+        sut.optimize(self.data)
 
         # Assert either greater or almost equal
         for iteration in range(1, self.num_iterations):
