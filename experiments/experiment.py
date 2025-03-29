@@ -1,7 +1,7 @@
 # %% Imports
 import torch
-from torchvision.transforms import transforms
 import torchvision
+from torchvision.transforms import transforms
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
@@ -9,10 +9,7 @@ from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_m
     TorchSumProductAlgorithmInferenceMachine,
 )
 from bayesian_network.interfaces import IInferenceMachine
-from bayesian_network.optimizers.em_optimizer import (
-    EmOptimizer,
-    EmOptimizerSettings,
-)
+from bayesian_network.optimizers.em_optimizer import EmOptimizer, EmOptimizerSettings
 
 # %% Configuration
 torch_settings = TorchSettings(
@@ -61,11 +58,7 @@ mu = (
     + 0.4
 )
 mu = torch.stack([1 - mu, mu], dim=3)
-Ys = [
-    Node(mu[iy, ix], name=f"Y_{iy}x{ix}")
-    for iy in range(height)
-    for ix in range(width)
-]
+Ys = [Node(mu[iy, ix], name=f"Y_{iy}x{ix}") for iy in range(height) for ix in range(width)]
 
 nodes = [Q] + Ys
 parents = {Y: [Q] for Y in Ys}
@@ -91,10 +84,7 @@ def inference_machine_factory(
 
 
 def callback(ll, iteration, duration):
-    print(
-        f"Finished iteration {iteration}/{num_iterations} - ll: {ll}"
-        " - it took: {duration} s"
-    )
+    print(f"Finished iteration {iteration}/{num_iterations} - ll: {ll}" " - it took: {duration} s")
 
 
 em_optimizer = EmOptimizer(

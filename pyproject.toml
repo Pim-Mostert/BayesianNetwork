@@ -13,3 +13,10 @@ dependencies = {file = ["requirements.txt"]}
 include = ["bayesian_network*"]
 
 [tool.setuptools_scm]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.black]
+line-length = 120

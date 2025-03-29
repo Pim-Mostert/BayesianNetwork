@@ -1,15 +1,9 @@
 import random
 from typing import Callable, Optional
 
-import torch
-
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.interfaces import IInferenceMachine
-
-from bayesian_network.optimizers.em_optimizer import (
-    EmOptimizer,
-    EmOptimizerSettings,
-)
+from bayesian_network.optimizers.em_optimizer import EmOptimizer, EmOptimizerSettings
 
 
 class EmBatchOptimizerSettings(EmOptimizerSettings):
@@ -31,9 +25,7 @@ class EmBatchOptimizer(EmOptimizer):
     def __init__(
         self,
         bayesian_network: BayesianNetwork,
-        inference_machine_factory: Callable[
-            [BayesianNetwork], IInferenceMachine
-        ],
+        inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
         settings: Optional[EmBatchOptimizerSettings] = None,
     ):
         self.bayesian_network = bayesian_network

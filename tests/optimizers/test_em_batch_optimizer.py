@@ -5,18 +5,11 @@ from unittest import TestCase
 import torch
 from torch.nn.functional import one_hot
 
-from bayesian_network.common.statistics import (
-    generate_random_probability_matrix,
-)
-from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.inference_machines.torch_naive_inference_machine import (
-    TorchNaiveInferenceMachine,
-)
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.optimizers.em_batch_optimizer import (
-    EmBatchOptimizer,
-    EmBatchOptimizerSettings,
-)
+from bayesian_network.common.statistics import generate_random_probability_matrix
+from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.torch_naive_inference_machine import TorchNaiveInferenceMachine
+from bayesian_network.optimizers.em_batch_optimizer import EmBatchOptimizer, EmBatchOptimizerSettings
 from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
 
 
@@ -32,21 +25,11 @@ class EmBatchOptimizerTestBase:
             device = self.get_torch_settings().device
             dtype = self.get_torch_settings().dtype
 
-            cpt1 = generate_random_probability_matrix(
-                (2), device=device, dtype=dtype
-            )
-            cpt2 = generate_random_probability_matrix(
-                (2, 3), device=device, dtype=dtype
-            )
-            cpt3_1 = generate_random_probability_matrix(
-                (2, 3, 4), device=device, dtype=dtype
-            )
-            cpt3_2 = generate_random_probability_matrix(
-                (2, 5), device=device, dtype=dtype
-            )
-            cpt3_3 = generate_random_probability_matrix(
-                (3, 6), device=device, dtype=dtype
-            )
+            cpt1 = generate_random_probability_matrix((2), device=device, dtype=dtype)
+            cpt2 = generate_random_probability_matrix((2, 3), device=device, dtype=dtype)
+            cpt3_1 = generate_random_probability_matrix((2, 3, 4), device=device, dtype=dtype)
+            cpt3_2 = generate_random_probability_matrix((2, 5), device=device, dtype=dtype)
+            cpt3_3 = generate_random_probability_matrix((3, 6), device=device, dtype=dtype)
             Q1 = Node(cpt1, name="Q1")
             Q2 = Node(cpt2, name="Q2")
             Y1 = Node(cpt3_1, name="Y1")
@@ -72,9 +55,7 @@ class EmBatchOptimizerTestBase:
             torch.random.manual_seed(1337)
 
             # Create true network
-            self.true_network, self.observed_nodes = (
-                self._generate_random_network()
-            )
+            self.true_network, self.observed_nodes = self._generate_random_network()
 
             # Create training data
             sampler = TorchBayesianNetworkSampler(
@@ -91,9 +72,7 @@ class EmBatchOptimizerTestBase:
             untrained_network, observed_nodes = self._generate_random_network()
 
             # Act
-            log_likelihood = torch.zeros(
-                self.num_iterations, dtype=torch.double
-            )
+            log_likelihood = torch.zeros(self.num_iterations, dtype=torch.double)  # noqa
 
             def inference_machine_factory(bayesian_network):
                 return TorchNaiveInferenceMachine(
@@ -118,9 +97,7 @@ class EmBatchOptimizerTestBase:
                 print(f"Finished mini-batch {i}/{num_mini_batches}")
 
             def iteration_callback(ll, i, _):
-                print(
-                    f"Finished iteration {i}/{sut.settings.num_iterations}, ll: {ll}"
-                )
+                print(f"Finished iteration {i}/{sut.settings.num_iterations}, ll: {ll}")
 
             sut.optimize(self.data)
 
