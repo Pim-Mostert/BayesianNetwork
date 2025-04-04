@@ -1,10 +1,11 @@
 # %% Imports
+import matplotlib.pyplot as plt
 import torch
 import torchvision
-from torchvision.transforms import transforms
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
 from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_machine import (
     TorchSumProductAlgorithmInferenceMachine,
 )
@@ -13,29 +14,46 @@ from bayesian_network.optimizers.em_optimizer import EmOptimizer, EmOptimizerSet
 
 # %% Configuration
 torch_settings = TorchSettings(
-    device=torch.device("cpu"),
-    dtype=torch.float64,
+    device="cpu",
+    dtype="float64",
 )
-
-gamma = 0.001
 
 # %% Load data
 mnist = torchvision.datasets.MNIST(
     "./experiments/mnist",
-    download=True,
     train=True,
-    transform=transforms.Compose(
-        [
-            transforms.ToTensor(),
-            transforms.Lambda(lambda x: x.flatten()),
-            transforms.Lambda(lambda x: x * (1 - gamma) + gamma / 2),
-        ]
-    ),
+    # transform=transforms.ToTensor(),
+    download=True,
+)
+data = mnist.data / 255
+
+height, width = data.shape[1:3]
+num_features = height * width
+num_observations = data.shape[0]
+
+# Morph into evidence structure
+data = data.reshape([num_observations, num_features])
+
+gamma = 0.001
+evidence = Evidence(
+    [torch.stack([1 - x, x]).T for x in data.T * (1 - gamma) + gamma / 2],
+    torch_settings,
 )
 
+
+# %%
+
+batches = EvidenceBatches(evidence, 100)
+
+# DIT LIJTK TE WERKEN. TODO:
+# - IMPLEMENT BATCH OPTIMIZER
+# - IMPLEMENT MNISTEVIDENCE FOR LAZY LOADING
+
+# %%
+
+plt.imshow(evidence[1][:, 1].reshape(28, 28))
+
 # %% Define network
-height = 28
-width = 28
 num_classes = 10
 
 # Create network
@@ -78,7 +96,7 @@ def inference_machine_factory(
         observed_nodes=Ys,
         torch_settings=torch_settings,
         num_iterations=3,
-        num_observations=len(mnist),
+        num_observations=evidence.num_observations,
         callback=lambda *args: None,
     )
 
@@ -95,4 +113,4 @@ em_optimizer = EmOptimizer(
         iteration_callback=callback,
     ),
 )
-em_optimizer.optimize(mnist)
+em_optimizer.optimize(evidence)

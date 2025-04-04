@@ -6,14 +6,20 @@ from bayesian_network.common.torch_settings import TorchSettings
 
 
 class Evidence:
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"""
         num_observed_nodes: {self.num_observed_nodes},
         num_observations: {self.num_observations}
         """
 
-    def __getitem__(self, index: int):
-        return torch.stack([x[index] for x in self._data])
+    def __getitem__(self, index) -> "Evidence":
+        return Evidence(
+            [x[index] for x in self._data],
+            self.torch_settings,
+        )
+
+    def get_observation(self, index: int) -> torch.Tensor:
+        return torch.stack(self[index].data)
 
     def __init__(
         self,
@@ -34,3 +40,24 @@ class Evidence:
     @property
     def data(self) -> List[torch.Tensor]:
         return self._data
+
+
+class EvidenceBatches:
+    def __init__(
+        self,
+        evidence: Evidence,
+        batch_size: int,
+    ):
+        if batch_size > evidence.num_observations:
+            raise ValueError("batch_size may not be larger than number of observations in evidence")
+
+        self.evidence = evidence
+        self.batch_size = batch_size
+
+    def next(self) -> Evidence:
+        num_observations = self.evidence.num_observations
+        batch_size = self.batch_size
+
+        indices = torch.randperm(num_observations)[0:batch_size]
+
+        return self.evidence[indices]
