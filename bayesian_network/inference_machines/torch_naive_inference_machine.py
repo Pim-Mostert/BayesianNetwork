@@ -4,6 +4,7 @@ import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.evidence import Evidence
 from bayesian_network.interfaces import IInferenceMachine
 
 
@@ -54,14 +55,14 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
 
         return p
 
-    def enter_evidence(self, evidence: List[torch.Tensor]):
-        if len(evidence) != self.num_observed_nodes:
+    def enter_evidence(self, evidence: Evidence):
+        if evidence.num_observed_nodes != self.num_observed_nodes:
             raise Exception(
                 "Length of evidence must match number of observed"
                 " nodes: {len(self.observed_nodes_indices)}"
             )
 
-        num_trials = evidence[0].shape[0]
+        num_trials = evidence.num_observations
         dims = [num_trials] + self.dims
 
         p_evidence = torch.ones(
@@ -75,7 +76,7 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
             node_dims[observed_node_index] = self.dims[observed_node_index]
             node_dims = [num_trials] + node_dims
 
-            p_evidence *= evidence[i].reshape(node_dims)
+            p_evidence *= evidence.data[i].reshape(node_dims)
 
         self.p = self.p * p_evidence
 

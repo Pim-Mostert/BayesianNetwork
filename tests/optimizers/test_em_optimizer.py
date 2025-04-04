@@ -7,6 +7,7 @@ from torch.nn.functional import one_hot
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.evidence import Evidence
 from bayesian_network.inference_machines.torch_naive_inference_machine import (
     TorchNaiveInferenceMachine,
 )
@@ -75,7 +76,10 @@ class TestEmOptimizer(TestCase):
 
         num_samples = 10000
         data = sampler.sample(num_samples, self.observed_nodes)
-        self.data = [one_hot(node_data.long()) for node_data in data.T]
+        self.evidence = Evidence(
+            [one_hot(node_data.long()) for node_data in data.T],
+            self.get_torch_settings(),
+        )
 
     def test_optimize_increase_log_likelihood(self):
         # Assign
@@ -103,7 +107,7 @@ class TestEmOptimizer(TestCase):
             ),
         )
 
-        sut.optimize(self.data)
+        sut.optimize(self.evidence)
 
         # Assert either greater or almost equal
         for iteration in range(1, self.num_iterations):

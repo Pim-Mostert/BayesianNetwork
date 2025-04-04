@@ -3,6 +3,7 @@ from typing import Callable, List, Optional
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork
+from bayesian_network.inference_machines.evidence import Evidence
 from bayesian_network.interfaces import IInferenceMachine, IOptimizer
 
 
@@ -27,7 +28,7 @@ class EmOptimizer(IOptimizer):
         self.inference_machine_factory = inference_machine_factory
         self.settings = settings or EmOptimizerSettings()
 
-    def optimize(self, evidence):
+    def optimize(self, evidence: Evidence):
         for iteration in range(self.settings.num_iterations):
             # Construct inference machine and enter evidence
             inference_machine = self.inference_machine_factory(self.bayesian_network)

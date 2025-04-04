@@ -8,6 +8,7 @@ from bayesian_network.common.statistics import generate_random_probability_matri
 from bayesian_network.common.tensor_helpers import rescale_tensors
 from bayesian_network.common.testcase_extensions import TestCaseExtended
 from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.evidence import Evidence
 from bayesian_network.interfaces import IInferenceMachine
 
 
@@ -155,7 +156,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes(
                 [self.Q1, self.Q2, self.Y]
@@ -196,7 +202,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             ll_actual = sut.log_likelihood()
 
@@ -241,7 +252,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             [p_Q1xQ2_actual, p_Q2xY_actual] = sut.infer_nodes_with_parents([self.Q2, self.Y])
 
@@ -281,7 +297,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes(
                 [self.Q1, self.Q2, self.Y]
@@ -316,7 +337,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             ll_actual = sut.log_likelihood()
 
@@ -351,7 +377,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             [p_Q1xQ2_actual, p_Q2xY_actual] = sut.infer_nodes_with_parents([self.Q2, self.Y])
 
@@ -484,7 +515,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             [p_Q1_actual, p_Q2_actual, p_Q3_actual] = sut.infer_single_nodes(
                 [self.Q1, self.Q2, self.Q3]
@@ -532,7 +568,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             ll_actual = sut.log_likelihood()
 
@@ -654,7 +695,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             [
                 p_Q1xQ2_actual,
@@ -795,7 +841,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes(
                 [self.Q1, self.Q2, self.Y]
@@ -835,7 +886,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             ll_actual = sut.log_likelihood()
 
@@ -880,7 +936,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             [p_Q1xQ2_actual, p_Q1xQ2xY_actual] = sut.infer_nodes_with_parents([self.Q2, self.Y])
 
@@ -920,7 +981,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             [p_Q1_actual, p_Q2_actual, p_Y_actual] = sut.infer_single_nodes(
                 [self.Q1, self.Q2, self.Y]
@@ -959,7 +1025,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             [p_Q1xQ2_actual, p_Q1xQ2xY_actual] = sut.infer_nodes_with_parents([self.Q2, self.Y])
 
@@ -991,7 +1062,12 @@ class TorchInferenceMachineGenericTests:
                 num_observations=num_observations,
             )
 
-            sut.enter_evidence(evidence)
+            sut.enter_evidence(
+                Evidence(
+                    evidence,
+                    self.get_torch_settings(),
+                )
+            )
 
             ll_actual = sut.log_likelihood()
 
@@ -1027,12 +1103,15 @@ class TorchInferenceMachineGenericTests:
 
             self.network = BayesianNetwork(nodes, parents)
 
-            self.evidence = [
-                torch.tensor([[1 - 1e-100, 1e-100]], device=device, dtype=dtype).repeat(
-                    (self.num_observations, 1)
-                )
-                for _ in range(self.num_inputs)
-            ]
+            self.evidence = Evidence(
+                [
+                    torch.tensor([[1 - 1e-100, 1e-100]], device=device, dtype=dtype).repeat(
+                        (self.num_observations, 1)
+                    )
+                    for _ in range(self.num_inputs)
+                ],
+                self.get_torch_settings(),
+            )
 
         def test_inference_single_nodes(self):
             # Assign

@@ -7,6 +7,7 @@ import torch
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.tensor_helpers import get_min_pos_value
 from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.evidence import Evidence
 
 
 class VariableNodeGroup:
@@ -442,8 +443,8 @@ class FactorGraph:
         for factor_node_group in self.factor_node_groups:
             factor_node_group.calculate_outputs()
 
-    def enter_evidence(self, all_evidence: List[torch.Tensor]):
-        # evidence: List[(num_observed_nodes)], torch.Tensor: [num_observations, num_states] # noqa
+    def enter_evidence(self, all_evidence: Evidence):
+        # evidence.data: List[(num_observed_nodes)], torch.Tensor: [num_observations, num_states] # noqa
 
         evidence_groups = (
             (variable_node_group, torch.stack(evidence))
@@ -452,7 +453,7 @@ class FactorGraph:
                     variable_node_group,
                     [
                         evidence
-                        for evidence, observed_node in zip(all_evidence, self._observed_nodes)
+                        for evidence, observed_node in zip(all_evidence.data, self._observed_nodes)
                         if observed_node in variable_node_group.nodes
                     ],
                 )
