@@ -12,7 +12,9 @@ class TorchBayesianNetworkSampler(IBayesianNetworkSampler):
         self.torch_settings = torch_settings
         self.bayesian_network = bayesian_network
 
-        self.samplers: Dict[Node, NodeSampler] = {node: NodeSampler(node) for node in bayesian_network.nodes}
+        self.samplers: Dict[Node, NodeSampler] = {
+            node: NodeSampler(node) for node in bayesian_network.nodes
+        }
 
     def sample(self, num_samples: int, nodes: List[Node]) -> torch.Tensor:
         num_nodes = len(nodes)

@@ -1,37 +1,40 @@
+from dataclasses import dataclass
 from typing import Callable, List, Optional
 
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork
-from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.interfaces import IInferenceMachine, IOptimizer
+from bayesian_network.inference_machines.evidence import EvidenceBatches
+from bayesian_network.interfaces import IBatchOptimizer, IInferenceMachine
 
 
-class EmOptimizerSettings:
-    def __init__(
-        self,
-        num_iterations=10,
-        iteration_callback: Optional[Callable[[int, float, BayesianNetwork], None]] = None,
-    ):
-        self.num_iterations = num_iterations
-        self.iteration_callback = iteration_callback
+@dataclass(frozen=True)
+class EmBatchOptimizerSettings:
+    num_iterations: int
+    learning_rate: float
+    iteration_callback: Optional[Callable[[int, float, BayesianNetwork], None]] = None
 
 
-class EmOptimizer(IOptimizer):
+class EmBatchOptimizer(IBatchOptimizer):
     def __init__(
         self,
         bayesian_network: BayesianNetwork,
         inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
-        settings: Optional[EmOptimizerSettings] = None,
+        settings: EmBatchOptimizerSettings,
     ):
         self.bayesian_network = bayesian_network
         self.inference_machine_factory = inference_machine_factory
-        self.settings = settings or EmOptimizerSettings()
+        self.settings = settings
 
-    def optimize(self, evidence: Evidence):
+    def optimize(self, batches: EvidenceBatches):
         for iteration in range(self.settings.num_iterations):
-            # Construct inference machine and enter evidence
+            # Get batch
+            evidence = batches.next()
+
+            # Construct inference machine
             inference_machine = self.inference_machine_factory(self.bayesian_network)
+
+            # Enter evidence
             inference_machine.enter_evidence(evidence)
             ll = inference_machine.log_likelihood()
 
@@ -59,5 +62,6 @@ class EmOptimizer(IOptimizer):
             # Normalize to conditional probability distribution
             cpt = p_conditional / p_conditional.sum(dim=-1, keepdim=True)
 
-            # Update node
-            node.cpt = cpt
+            # Update node according to learning rate
+            lr = self.settings.learning_rate
+            node.cpt = (1 - lr) * node.cpt + lr * cpt

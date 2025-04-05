@@ -4,7 +4,7 @@ import torch
 
 
 class TestCaseExtended(TestCase):
-    def assertArrayAlmostEqual(self, actual: torch.tensor, expected: torch.tensor, places=None):
+    def assertArrayAlmostEqual(self, actual: torch.Tensor, expected: torch.Tensor, places=None):
         self.assertEqual(actual.shape, expected.shape, msg="Shapes of tensors don't match")
 
         if places is None and actual.dtype == torch.float32:

@@ -4,6 +4,7 @@ import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.evidence import Evidence
 from bayesian_network.interfaces import IInferenceMachine
 
 
@@ -19,12 +20,18 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
         self.dims = [node.num_states for node in bayesian_network.nodes]
         self.num_nodes = len(bayesian_network.nodes)
         self.num_observed_nodes = len(observed_nodes)
-        self.node_to_index = {node: bayesian_network.nodes.index(node) for node in bayesian_network.nodes}
-        self.observed_nodes_indices: List[Node] = [self.node_to_index[node] for node in observed_nodes]
+        self.node_to_index = {
+            node: bayesian_network.nodes.index(node) for node in bayesian_network.nodes
+        }
+        self.observed_nodes_indices: List[int] = [
+            self.node_to_index[node] for node in observed_nodes
+        ]
         self.bayesian_network = bayesian_network
         self._log_likelihood = None
 
-        self.p = self._calculate_p_complete(bayesian_network.nodes, bayesian_network.parents)[None, ...]
+        self.p = self._calculate_p_complete(bayesian_network.nodes, bayesian_network.parents)[
+            None, ...
+        ]
 
     def _calculate_p_complete(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
         dims = [node.num_states for node in nodes]
@@ -48,13 +55,14 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
 
         return p
 
-    def enter_evidence(self, evidence: List[torch.tensor]):
-        if len(evidence) != self.num_observed_nodes:
+    def enter_evidence(self, evidence: Evidence):
+        if evidence.num_observed_nodes != self.num_observed_nodes:
             raise Exception(
-                "Length of evidence must match number of observed" " nodes: {len(self.observed_nodes_indices)}"
+                "Length of evidence must match number of observed"
+                " nodes: {len(self.observed_nodes_indices)}"
             )
 
-        num_trials = evidence[0].shape[0]
+        num_trials = evidence.num_observations
         dims = [num_trials] + self.dims
 
         p_evidence = torch.ones(
@@ -68,12 +76,12 @@ class TorchNaiveInferenceMachine(IInferenceMachine):
             node_dims[observed_node_index] = self.dims[observed_node_index]
             node_dims = [num_trials] + node_dims
 
-            p_evidence *= evidence[i].reshape(node_dims)
+            p_evidence *= evidence.data[i].reshape(node_dims)
 
         self.p = self.p * p_evidence
 
         sum_over_dims = range(1, self.num_nodes + 1)
-        c = self.p.sum(axis=tuple(sum_over_dims), keepdims=True)
+        c = self.p.sum(dim=tuple(sum_over_dims), keepdim=True)
         self.p /= c
 
         self._log_likelihood = torch.log(c).sum()

@@ -5,8 +5,8 @@ from typing import Dict, List
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.common.tensor_helpers import get_min_pos_value
 from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.evidence import Evidence
 
 
 class VariableNodeGroup:
@@ -41,7 +41,9 @@ class VariableNodeGroup:
             dtype=self._torch_settings.dtype,
         )
 
-        self._i_observed_nodes = [self.nodes.index(observed_node) for observed_node in observed_nodes]
+        self._i_observed_nodes = [
+            self.nodes.index(observed_node) for observed_node in observed_nodes
+        ]
 
         self._inputs = (
             torch.ones(
@@ -99,27 +101,33 @@ class VariableNodeGroup:
         )
 
         self._calculation_indices_per_i_output = {
-            i_output: [i_output_inner for i_output_inner in range(self._num_outputs) if i_output_inner != i_output]
+            i_output: [
+                i_output_inner
+                for i_output_inner in range(self._num_outputs)
+                if i_output_inner != i_output
+            ]
             for i_output in range(self._num_outputs)
         }
 
     def calculate_outputs(self):
         # Calculation
         # [num_inputs, num_nodes, num_observations, num_states]
-        x = self._inputs.prod(axis=0)
-        x[x == 0] = get_min_pos_value(self._torch_settings.dtype)
+        x = self._inputs.prod(dim=0)
+        x[x == 0] = torch.finfo(self._torch_settings.dtype).tiny
 
         # [num_outputs, num_nodes, num_observations, num_states]
         self._calculation_result = x / self._inputs
 
         # Normalization to remote factor nodes
-        self._calculation_result[self._i_outputs_to_remote_factor_nodes] /= self._calculation_result[
+        self._calculation_result[
             self._i_outputs_to_remote_factor_nodes
-        ].sum(axis=3, keepdim=True)
+        ] /= self._calculation_result[self._i_outputs_to_remote_factor_nodes].sum(
+            dim=3, keepdim=True
+        )
 
         # Normalization to local factor node
         # [num_nodes, num_observations, 1]
-        c = x.sum(axis=2, keepdim=True)
+        c = x.sum(dim=2, keepdim=True)
 
         self._calculation_result[self._i_output_to_local_factor_node] /= c
 
@@ -222,12 +230,18 @@ class FactorNodeGroup:
         self._calculation_output_tensor = torch.empty(())  # Placeholder
         self._calculation_result = torch.empty(())  # Placeholder
         self._calculation_assignment_statement = (
-            ", ".join([f"self._calculation_output_tensor[{i_node}][:]" for i_node in range(self._num_nodes)])
+            ", ".join(
+                [
+                    f"self._calculation_output_tensor[{i_node}][:]"
+                    for i_node in range(self._num_nodes)
+                ]
+            )
             + " = self._calculation_result"
         )
 
         self._calculation_einsum_equation_per_output = [
-            self._construct_einsum_equation_for_output(i_output) for i_output in range(self._num_outputs)
+            self._construct_einsum_equation_for_output(i_output)
+            for i_output in range(self._num_outputs)
         ]
 
     def calculate_outputs(self):
@@ -242,7 +256,9 @@ class FactorNodeGroup:
     def _construct_einsum_equation_for_output(self, i_output: int) -> List:
         # Get all inputs with indices, except for the input corresponding to current output # noqa
         inputs_with_indices = [
-            (input, index) for input, index in zip(self._inputs, range(self._num_inputs)) if index != i_output
+            (input, index)
+            for input, index in zip(self._inputs, range(self._num_inputs))
+            if index != i_output
         ]
 
         # Example einsum equation:
@@ -335,7 +351,11 @@ class FactorGraph:
                 key.num_inputs,
                 key.num_states,
                 num_observations,
-                observed_nodes=[observed_node for observed_node in self._observed_nodes if observed_node in set(nodes)],
+                observed_nodes=[
+                    observed_node
+                    for observed_node in self._observed_nodes
+                    if observed_node in set(nodes)
+                ],
                 torch_settings=self._torch_settings,
             )
             for key, nodes in [
@@ -409,7 +429,9 @@ class FactorGraph:
 
     def get_factor_node_group(self, node: Node) -> FactorNodeGroup:
         [factor_node_group] = [
-            factor_node_group for factor_node_group in self.factor_node_groups if node in factor_node_group.nodes
+            factor_node_group
+            for factor_node_group in self.factor_node_groups
+            if node in factor_node_group.nodes
         ]
         return factor_node_group
 
@@ -420,8 +442,8 @@ class FactorGraph:
         for factor_node_group in self.factor_node_groups:
             factor_node_group.calculate_outputs()
 
-    def enter_evidence(self, all_evidence: List[torch.Tensor]):
-        # evidence: List[(num_observed_nodes)], torch.Tensor: [num_observations, num_states] # noqa
+    def enter_evidence(self, all_evidence: Evidence):
+        # evidence.data: List[(num_observed_nodes)], torch.Tensor: [num_observations, num_states] # noqa
 
         evidence_groups = (
             (variable_node_group, torch.stack(evidence))
@@ -430,7 +452,7 @@ class FactorGraph:
                     variable_node_group,
                     [
                         evidence
-                        for evidence, observed_node in zip(all_evidence, self._observed_nodes)
+                        for evidence, observed_node in zip(all_evidence.data, self._observed_nodes)
                         if observed_node in variable_node_group.nodes
                     ],
                 )

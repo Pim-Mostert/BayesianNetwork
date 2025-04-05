@@ -4,6 +4,7 @@ import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.evidence import Evidence
 from bayesian_network.inference_machines.factor_graph.factor_graph import FactorGraph
 from bayesian_network.interfaces import IInferenceMachine
 
@@ -78,7 +79,7 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
 
         self.must_iterate = False
 
-    def enter_evidence(self, evidence: List[torch.Tensor]):
+    def enter_evidence(self, evidence: Evidence):
         # evidence.shape: num_observed_nodes x [num_observations x num_states], one-hot encoded # noqa
         self.factor_graph.enter_evidence(evidence)
 
@@ -92,7 +93,8 @@ class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
             self._iterate()
 
         local_log_likelihoods = [
-            variable_node_group.local_log_likelihoods for variable_node_group in self.factor_graph.variable_node_groups
+            variable_node_group.local_log_likelihoods
+            for variable_node_group in self.factor_graph.variable_node_groups
         ]
         log_likelihood = torch.cat(local_log_likelihoods).sum()
 
