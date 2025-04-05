@@ -4,7 +4,7 @@ from typing import List
 import torch
 
 from bayesian_network.bayesian_network import Node
-from bayesian_network.inference_machines.evidence import Evidence
+from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
 
 
 class IBayesianNetworkSampler(ABC):
@@ -34,4 +34,10 @@ class IInferenceMachine(ABC):
 class IOptimizer(ABC):
     @abstractmethod
     def optimize(self, evidence: Evidence) -> None:
+        pass
+
+
+class IBatchOptimizer(ABC):
+    @abstractmethod
+    def optimize(self, batches: EvidenceBatches) -> None:
         pass

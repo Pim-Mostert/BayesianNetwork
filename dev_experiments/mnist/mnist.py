@@ -1,4 +1,7 @@
 # %% Imports
+
+import time
+
 import matplotlib.pyplot as plt
 import torch
 import torchvision
@@ -10,7 +13,10 @@ from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_m
     TorchSumProductAlgorithmInferenceMachine,
 )
 from bayesian_network.interfaces import IInferenceMachine
-from bayesian_network.optimizers.em_optimizer import EmOptimizer, EmOptimizerSettings
+from bayesian_network.optimizers.em_batch_optimizer import (
+    EmBatchOptimizer,
+    EmBatchOptimizerSettings,
+)
 
 # %% Configuration
 torch_settings = TorchSettings(
@@ -25,7 +31,7 @@ mnist = torchvision.datasets.MNIST(
     # transform=transforms.ToTensor(),
     download=True,
 )
-data = mnist.data / 255
+data = mnist.data[0:10000] / 255
 
 height, width = data.shape[1:3]
 num_features = height * width
@@ -43,15 +49,7 @@ evidence = Evidence(
 
 # %%
 
-batches = EvidenceBatches(evidence, 100)
-
-# DIT LIJTK TE WERKEN. TODO:
-# - IMPLEMENT BATCH OPTIMIZER
-# - IMPLEMENT MNISTEVIDENCE FOR LAZY LOADING
-
-# %%
-
-plt.imshow(evidence[1][:, 1].reshape(28, 28))
+batches = EvidenceBatches(evidence, 50)
 
 # %% Define network
 num_classes = 10
@@ -84,8 +82,6 @@ parents[Q] = []
 
 network = BayesianNetwork(nodes, parents)
 
-num_iterations = 10
-
 
 # %% Fit network
 def inference_machine_factory(
@@ -96,21 +92,47 @@ def inference_machine_factory(
         observed_nodes=Ys,
         torch_settings=torch_settings,
         num_iterations=3,
-        num_observations=evidence.num_observations,
+        num_observations=batches.batch_size,
         callback=lambda *args: None,
     )
 
 
-def callback(ll, iteration, duration):
-    print(f"Finished iteration {iteration}/{num_iterations} - ll: {ll}" " - it took: {duration} s")
+num_iterations = 200
+
+logs = {}
 
 
-em_optimizer = EmOptimizer(
+def callback(iteration, ll, bayesian_network):
+    logs[iteration] = {}
+    logs[iteration]["timestamp"] = time.time()
+    logs[iteration]["ll"] = ll
+
+    duration = logs[iteration - 1].timestamp - logs[iteration].timestamp if iteration > 0 else None
+
+    print(f"Finished iteration {iteration}/{num_iterations} - ll: {ll} - duration: {duration}")
+
+
+em_batch_optimizer_settings = EmBatchOptimizerSettings(
+    num_iterations=num_iterations,
+    iteration_callback=callback,
+    learning_rate=0.01,
+)
+
+em_optimizer = EmBatchOptimizer(
     network,
     inference_machine_factory,
-    settings=EmOptimizerSettings(
-        num_iterations=num_iterations,
-        iteration_callback=callback,
-    ),
+    settings=em_batch_optimizer_settings,
 )
-em_optimizer.optimize(evidence)
+em_optimizer.optimize(batches)
+
+# %% Plot
+
+Ys = network.nodes[1:]
+w = torch.stack([y.cpt.cpu() for y in Ys])
+
+plt.figure()
+for i in range(0, 10):
+    plt.subplot(4, 3, i + 1)
+    plt.imshow(w[:, i, 1].reshape(28, 28))
+    plt.colorbar()
+    plt.clim(0, 1)

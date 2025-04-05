@@ -5,7 +5,6 @@ from typing import Dict, List
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.common.tensor_helpers import get_min_pos_value
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence
 
@@ -114,7 +113,7 @@ class VariableNodeGroup:
         # Calculation
         # [num_inputs, num_nodes, num_observations, num_states]
         x = self._inputs.prod(dim=0)
-        x[x == 0] = get_min_pos_value(self._torch_settings.dtype)
+        x[x == 0] = torch.finfo(self._torch_settings.dtype).tiny
 
         # [num_outputs, num_nodes, num_observations, num_states]
         self._calculation_result = x / self._inputs

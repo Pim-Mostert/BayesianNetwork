@@ -4,19 +4,18 @@ from typing import Callable, List, Optional
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork
-from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.interfaces import IInferenceMachine, IOptimizer
+from bayesian_network.inference_machines.evidence import EvidenceBatches
+from bayesian_network.interfaces import IBatchOptimizer, IInferenceMachine
 
 
 @dataclass(frozen=True)
 class EmBatchOptimizerSettings:
     num_iterations: int
-    batch_size: int
     learning_rate: float
     iteration_callback: Optional[Callable[[int, float, BayesianNetwork], None]] = None
 
 
-class EmBatchOptimizer(IOptimizer):
+class EmBatchOptimizer(IBatchOptimizer):
     def __init__(
         self,
         bayesian_network: BayesianNetwork,
@@ -27,15 +26,15 @@ class EmBatchOptimizer(IOptimizer):
         self.inference_machine_factory = inference_machine_factory
         self.settings = settings
 
-    def optimize(self, evidence: Evidence):
+    def optimize(self, batches: EvidenceBatches):
         for iteration in range(self.settings.num_iterations):
+            # Get batch
+            evidence = batches.next()
+
             # Construct inference machine
             inference_machine = self.inference_machine_factory(self.bayesian_network)
 
-            # Select batch
-            # evidence: List[(num_observed_nodes)], torch.Tensor: [num_observations, num_states]
-
-            #
+            # Enter evidence
             inference_machine.enter_evidence(evidence)
             ll = inference_machine.log_likelihood()
 
@@ -63,5 +62,6 @@ class EmBatchOptimizer(IOptimizer):
             # Normalize to conditional probability distribution
             cpt = p_conditional / p_conditional.sum(dim=-1, keepdim=True)
 
-            # Update node
-            node.cpt = cpt
+            # Update node according to learning rate
+            lr = self.settings.learning_rate
+            node.cpt = (1 - lr) * node.cpt + lr * cpt
