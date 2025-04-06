@@ -4,10 +4,16 @@ from typing import Dict, List, Optional
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.common.torch_settings import TorchSettings
 
 
 class FactorGraphNodeBase(ABC):
-    def __init__(self, name: Optional[str] = None):
+    def __init__(
+        self,
+        torch_settings: TorchSettings,
+        name: Optional[str] = None,
+    ):
+        self.torch_settings = torch_settings
         self.name = name
 
     def __repr__(self):
@@ -26,7 +32,7 @@ class VariableNode(FactorGraphNodeBase):
 
     def __init__(
         self,
-        device: torch.device,
+        torch_settings: TorchSettings,
         num_observations: int,
         num_inputs: int,
         num_states: int,
@@ -34,7 +40,7 @@ class VariableNode(FactorGraphNodeBase):
         is_observed: bool,
         name: Optional[str] = None,
     ):
-        super().__init__(name)
+        super().__init__(torch_settings, name)
 
         # To handle calculation without any evidence
         if num_observations == 0:
@@ -47,8 +53,8 @@ class VariableNode(FactorGraphNodeBase):
             self._all_inputs: torch.Tensor = (
                 torch.ones(
                     (num_inputs + 1, num_observations, num_states),
-                    dtype=torch.double,
-                    device=device,
+                    dtype=self.torch_settings.dtype,
+                    device=self.torch_settings.device,
                 )
                 / num_states
             )
@@ -58,7 +64,9 @@ class VariableNode(FactorGraphNodeBase):
         else:
             self._all_inputs: torch.Tensor = (
                 torch.ones(
-                    (num_inputs, num_observations, num_states), dtype=torch.double, device=device
+                    (num_inputs, num_observations, num_states),
+                    dtype=self.torch_settings.dtype,
+                    device=self.torch_settings.device,
                 )
                 / num_states
             )
@@ -109,21 +117,25 @@ class VariableNode(FactorGraphNodeBase):
 class FactorNode(FactorGraphNodeBase):
     def __init__(
         self,
-        device: torch.device,
+        torch_settings: TorchSettings,
         num_observations: int,
         num_inputs: int,
         inputs_num_states: List[int],
         cpt: torch.Tensor,
         name: Optional[str] = None,
     ):
-        super().__init__(name)
+        super().__init__(torch_settings, name)
 
         # To handle calculation without any evidence
         if num_observations == 0:
             num_observations = 1
 
         self.all_inputs: List[torch.Tensor] = [
-            torch.ones((num_observations, input_num_states), dtype=torch.double, device=device)
+            torch.ones(
+                (num_observations, input_num_states),
+                dtype=self.torch_settings.dtype,
+                device=self.torch_settings.device,
+            )
             / input_num_states
             for input_num_states in inputs_num_states
         ]
@@ -187,12 +199,14 @@ class FactorGraph:
         bayesian_network: BayesianNetwork,
         num_observations: int,
         observed_nodes: List[Node],
-        device: torch.device,
+        torch_settings: TorchSettings,
     ):
-        self.device = device
+        self.torch_settings = torch_settings
         self.observed_nodes = observed_nodes
         self.local_likelihoods: torch.Tensor = torch.zeros(
-            (num_observations, len(bayesian_network.nodes)), dtype=torch.double, device=self.device
+            (num_observations, len(bayesian_network.nodes)),
+            dtype=self.torch_settings.dtype,
+            device=self.torch_settings.device,
         )
 
         # Instantiate nodes
@@ -203,7 +217,7 @@ class FactorGraph:
                 num_states=node.num_states,
                 local_likelihood=self.local_likelihoods[:, i],
                 is_observed=node in observed_nodes,
-                device=device,
+                torch_settings=self.torch_settings,
                 name=node.name,
             )
             for i, node in enumerate(bayesian_network.nodes)
@@ -216,7 +230,7 @@ class FactorGraph:
                 inputs_num_states=[parent.num_states for parent in bayesian_network.parents[node]]
                 + [node.num_states],
                 cpt=node.cpt,
-                device=device,
+                torch_settings=self.torch_settings,
                 name=node.name,
             )
             for node in bayesian_network.nodes
