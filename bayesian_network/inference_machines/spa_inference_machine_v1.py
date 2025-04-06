@@ -3,6 +3,8 @@ from typing import Callable, List
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.evidence import Evidence
 from bayesian_network.inference_machines.factor_graph.factor_graph_v1 import FactorGraph
 from bayesian_network.interfaces import IInferenceMachine
 
@@ -12,14 +14,17 @@ class SpaInferenceMachine(IInferenceMachine):
         self,
         bayesian_network: BayesianNetwork,
         observed_nodes: List[Node],
-        device: torch.device,
+        torch_settings: TorchSettings,
         num_iterations: int,
         num_observations: int,
         callback: Callable[[FactorGraph, int], None],
     ):
-        self.device = device
+        self.torch_settings = torch_settings
         self.factor_graph = FactorGraph(
-            bayesian_network, observed_nodes, device=device, num_observations=num_observations
+            bayesian_network,
+            observed_nodes,
+            torch_settings=torch_settings,
+            num_observations=num_observations,
         )
         self.num_iterations = num_iterations
         self.callback = callback
@@ -87,9 +92,9 @@ class SpaInferenceMachine(IInferenceMachine):
 
         self.must_iterate = False
 
-    def enter_evidence(self, evidence: List[torch.Tensor]):
+    def enter_evidence(self, evidence: Evidence):
         # evidence.shape: List[num_nodes * [num_observations x num_states]
-        self.factor_graph.enter_evidence(evidence)
+        self.factor_graph.enter_evidence(evidence.data)
 
         self.must_iterate = True
 

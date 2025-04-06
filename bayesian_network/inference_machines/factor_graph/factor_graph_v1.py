@@ -4,6 +4,7 @@ from typing import Dict, List, Union
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.common.torch_settings import TorchSettings
 
 
 class FactorGraph:
@@ -11,16 +12,21 @@ class FactorGraph:
         self,
         bayesian_network: BayesianNetwork,
         observed_nodes: List[Node],
-        device: torch.device,
+        torch_settings: TorchSettings,
         num_observations: int,
     ):
-        self.device = device
+        self.torch_settings = torch_settings
         self.num_observations = num_observations if num_observations > 0 else 1
         self.observed_nodes = observed_nodes
 
         # Instantiate nodes
         self.factor_nodes: Dict[Node, FactorNode] = {
-            node: FactorNode(node.cpt, self.num_observations, self.device, name=node.name)
+            node: FactorNode(
+                node.cpt,
+                self.num_observations,
+                self.torch_settings,
+                name=node.name,
+            )
             for node in bayesian_network.nodes
         }
         self.variable_nodes: Dict[Node, VariableNode] = {
@@ -30,7 +36,7 @@ class FactorGraph:
                 corresponding_factor_node=self.factor_nodes[node],
                 is_leaf_node=bayesian_network.is_leaf_node(node),
                 is_observed=node in observed_nodes,
-                device=self.device,
+                torch_settings=self.torch_settings,
                 name=node.name,
             )
             for node in bayesian_network.nodes
@@ -87,11 +93,17 @@ class FactorGraphNodeBase:
     def __repr__(self):
         return super().__repr__() if self.name is None else f"{type(self).__name__} - {self.name}"
 
-    def __init__(self, num_observations: int, num_states: int, device: torch.device, name=None):
+    def __init__(
+        self,
+        num_observations: int,
+        num_states: int,
+        torch_settings: TorchSettings,
+        name=None,
+    ):
         self.name = name
         self.num_observations = num_observations
         self.num_states = num_states
-        self.device = device
+        self.torch_settings = torch_settings
 
         self.output_messages: List[Message] = []
         self.input_messages: List[Message] = []
@@ -101,7 +113,9 @@ class FactorGraphNodeBase:
     def _add_output_message(self, destination: "FactorGraphNodeBase"):
         initial_value = (
             torch.ones(
-                (self.num_observations, self.num_states), dtype=torch.float64, device=self.device
+                (self.num_observations, self.num_states),
+                dtype=self.torch_settings.dtype,
+                device=self.torch_settings.device,
             )
             / self.num_states
         )
@@ -142,13 +156,18 @@ class VariableNode(FactorGraphNodeBase):
         corresponding_factor_node: "FactorNode",
         is_leaf_node: bool,
         is_observed: bool,
-        device: torch.device,
+        torch_settings: TorchSettings,
         name=None,
     ):
-        super().__init__(num_observations, num_states, device, name=name)
+        super().__init__(
+            num_observations,
+            num_states,
+            torch_settings=torch_settings,
+            name=name,
+        )
 
         self.factor_node = corresponding_factor_node
-        self.local_likelihood: torch.tensor = torch.nan
+        self.local_likelihood: torch.Tensor = torch.nan
         self.is_leaf_node = is_leaf_node
         self.is_observed = is_observed
         self.observation_message: Union[Message, None] = (
@@ -156,7 +175,9 @@ class VariableNode(FactorGraphNodeBase):
                 source=None,
                 destination=self,
                 initial_value=torch.ones(
-                    (self.num_observations, self.num_states), dtype=torch.double, device=self.device
+                    (self.num_observations, self.num_states),
+                    dtype=self.torch_settings.dtype,
+                    device=self.torch_settings.device,
                 ),
             )
             if self.is_observed
@@ -185,7 +206,9 @@ class VariableNode(FactorGraphNodeBase):
             [output_message] = self.output_messages
             output_message.value = (
                 torch.ones(
-                    (self.num_observations, self.num_states), dtype=torch.double, device=self.device
+                    (self.num_observations, self.num_states),
+                    dtype=self.torch_settings.dtype,
+                    device=self.torch_settings.device,
                 )
                 / self.local_likelihood[:, None]
             )
@@ -212,8 +235,19 @@ class VariableNode(FactorGraphNodeBase):
 
 
 class FactorNode(FactorGraphNodeBase):
-    def __init__(self, cpt: torch.Tensor, num_observations: int, device: torch.device, name=None):
-        super().__init__(num_observations, num_states=cpt.shape[-1], device=device, name=name)
+    def __init__(
+        self,
+        cpt: torch.Tensor,
+        num_observations: int,
+        torch_settings: TorchSettings,
+        name=None,
+    ):
+        super().__init__(
+            num_observations,
+            num_states=cpt.shape[-1],
+            torch_settings=torch_settings,
+            name=name,
+        )
 
         self.cpt = cpt
         self.is_root_node = len(cpt.shape) == 1
