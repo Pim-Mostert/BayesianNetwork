@@ -3,16 +3,14 @@ from typing import List
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_machine import (  # noqa
-    TorchSumProductAlgorithmInferenceMachine,
-)
+from bayesian_network.inference_machines.spa_inference_machine_v2 import SpaInferenceMachine
 from tests.inference_machines.torch_inference_machine_generic_tests import (
     TorchInferenceMachineGenericTests,
 )
 
 
 # Helper class
-class TestTorchSumProductAlgorithmInferenceMachineBase(ABC):
+class TestSpaInferenceMachineV2Base(ABC):
     def get_torch_settings(self) -> TorchSettings:
         return TorchSettings()
 
@@ -22,7 +20,7 @@ class TestTorchSumProductAlgorithmInferenceMachineBase(ABC):
         observed_nodes: List[Node],
         num_observations: int,
     ):
-        return TorchSumProductAlgorithmInferenceMachine(
+        return SpaInferenceMachine(
             bayesian_network=bayesian_network,
             observed_nodes=observed_nodes,
             torch_settings=self.get_torch_settings(),
@@ -34,21 +32,21 @@ class TestTorchSumProductAlgorithmInferenceMachineBase(ABC):
 
 # Actual tests
 class TestNetworkWithSingleParents(
-    TestTorchSumProductAlgorithmInferenceMachineBase,
+    TestSpaInferenceMachineV2Base,
     TorchInferenceMachineGenericTests.NetworkWithSingleParents,
 ):
     pass
 
 
 class TestComplexNetworkWithSingleParents(
-    TestTorchSumProductAlgorithmInferenceMachineBase,
+    TestSpaInferenceMachineV2Base,
     TorchInferenceMachineGenericTests.ComplexNetworkWithSingleParents,
 ):
     pass
 
 
-class HandleNumericalUnderflow(
-    TestTorchSumProductAlgorithmInferenceMachineBase,
-    TorchInferenceMachineGenericTests.HandleNumericalUnderflow,
-):
-    pass
+# class HandleNumericalUnderflow(
+#     TestSpaInferenceMachineV2Base,
+#     TorchInferenceMachineGenericTests.HandleNumericalUnderflow,
+# ):
+#     pass

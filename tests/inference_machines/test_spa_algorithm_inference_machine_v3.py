@@ -3,17 +3,14 @@ from typing import List
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.inference_machines.torch_naive_inference_machine import (
-    TorchNaiveInferenceMachine,
-)
-from bayesian_network.interfaces import IInferenceMachine
+from bayesian_network.inference_machines.spa_inference_machine_v3 import SpaInferenceMachine  # noqa
 from tests.inference_machines.torch_inference_machine_generic_tests import (
     TorchInferenceMachineGenericTests,
 )
 
 
 # Helper class
-class TestTorchNaiveInferenceMachineBase(ABC):
+class TestSpaInferenceMachineV3Base(ABC):
     def get_torch_settings(self) -> TorchSettings:
         return TorchSettings()
 
@@ -22,31 +19,34 @@ class TestTorchNaiveInferenceMachineBase(ABC):
         bayesian_network: BayesianNetwork,
         observed_nodes: List[Node],
         num_observations: int,
-    ) -> IInferenceMachine:
-        return TorchNaiveInferenceMachine(
+    ):
+        return SpaInferenceMachine(
             bayesian_network=bayesian_network,
             observed_nodes=observed_nodes,
             torch_settings=self.get_torch_settings(),
+            num_iterations=20,
+            num_observations=num_observations,
+            callback=lambda factor_graph, iteration: None,
         )
 
 
 # Actual tests
 class TestNetworkWithSingleParents(
-    TestTorchNaiveInferenceMachineBase,
+    TestSpaInferenceMachineV3Base,
     TorchInferenceMachineGenericTests.NetworkWithSingleParents,
 ):
     pass
 
 
 class TestComplexNetworkWithSingleParents(
-    TestTorchNaiveInferenceMachineBase,
+    TestSpaInferenceMachineV3Base,
     TorchInferenceMachineGenericTests.ComplexNetworkWithSingleParents,
 ):
     pass
 
 
-class TestNetworkWithMultipleParents(
-    TestTorchNaiveInferenceMachineBase,
-    TorchInferenceMachineGenericTests.NetworkWithMultipleParents,
+class HandleNumericalUnderflow(
+    TestSpaInferenceMachineV3Base,
+    TorchInferenceMachineGenericTests.HandleNumericalUnderflow,
 ):
     pass

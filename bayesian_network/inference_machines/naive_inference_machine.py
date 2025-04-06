@@ -8,7 +8,7 @@ from bayesian_network.inference_machines.evidence import Evidence
 from bayesian_network.interfaces import IInferenceMachine
 
 
-class TorchNaiveInferenceMachine(IInferenceMachine):
+class NaiveInferenceMachine(IInferenceMachine):
     def __init__(
         self,
         bayesian_network: BayesianNetwork,
