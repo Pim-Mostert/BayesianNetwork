@@ -3,11 +3,11 @@ from typing import Callable, List
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.inference_machines.factor_graph.factor_graph import FactorGraph
+from bayesian_network.inference_machines.factor_graph.factor_graph_v1 import FactorGraph
 from bayesian_network.interfaces import IInferenceMachine
 
 
-class TorchSumProductAlgorithmInferenceMachine(IInferenceMachine):
+class SpaInferenceMachine(IInferenceMachine):
     def __init__(
         self,
         bayesian_network: BayesianNetwork,

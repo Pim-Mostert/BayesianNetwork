@@ -3,9 +3,7 @@ from typing import List
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.inference_machines.torch_naive_inference_machine import (
-    TorchNaiveInferenceMachine,
-)
+from bayesian_network.inference_machines.naive_inference_machine import NaiveInferenceMachine
 from bayesian_network.interfaces import IInferenceMachine
 from tests.inference_machines.torch_inference_machine_generic_tests import (
     TorchInferenceMachineGenericTests,
@@ -23,7 +21,7 @@ class TestTorchNaiveInferenceMachineBase(ABC):
         observed_nodes: List[Node],
         num_observations: int,
     ) -> IInferenceMachine:
-        return TorchNaiveInferenceMachine(
+        return NaiveInferenceMachine(
             bayesian_network=bayesian_network,
             observed_nodes=observed_nodes,
             torch_settings=self.get_torch_settings(),

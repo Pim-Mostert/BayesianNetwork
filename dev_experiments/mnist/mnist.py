@@ -9,9 +9,7 @@ import torchvision
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
-from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_machine_v4 import (
-    TorchSumProductAlgorithmInferenceMachine,
-)
+from bayesian_network.inference_machines.spa_inference_machine_v3 import SpaInferenceMachine
 from bayesian_network.interfaces import IInferenceMachine
 from bayesian_network.optimizers.em_batch_optimizer import (
     EmBatchOptimizer,
@@ -87,7 +85,7 @@ network = BayesianNetwork(nodes, parents)
 def inference_machine_factory(
     bayesian_network: BayesianNetwork,
 ) -> IInferenceMachine:
-    return TorchSumProductAlgorithmInferenceMachine(
+    return SpaInferenceMachine(
         bayesian_network=bayesian_network,
         observed_nodes=Ys,
         torch_settings=torch_settings,
