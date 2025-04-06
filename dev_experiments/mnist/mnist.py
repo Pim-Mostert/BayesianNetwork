@@ -9,7 +9,7 @@ import torchvision
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
-from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_machine import (
+from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_machine_v4 import (
     TorchSumProductAlgorithmInferenceMachine,
 )
 from bayesian_network.interfaces import IInferenceMachine

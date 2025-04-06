@@ -3,7 +3,7 @@ from typing import List
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_machine import (  # noqa
+from bayesian_network.inference_machines.torch_sum_product_algorithm_inference_machine_v4 import (  # noqa
     TorchSumProductAlgorithmInferenceMachine,
 )
 from tests.inference_machines.torch_inference_machine_generic_tests import (
