@@ -5,7 +5,8 @@ import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.inference_machines.evidence import EvidenceBatches
-from bayesian_network.interfaces import IBatchOptimizer, IInferenceMachine
+from bayesian_network.inference_machines.interfaces import IInferenceMachine
+from bayesian_network.optimizers.interfaces import IBatchOptimizer
 
 
 @dataclass(frozen=True)

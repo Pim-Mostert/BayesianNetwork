@@ -4,7 +4,8 @@ import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.interfaces import IInferenceMachine, IOptimizer
+from bayesian_network.inference_machines.interfaces import IInferenceMachine
+from bayesian_network.optimizers.interfaces import IOptimizer
 
 
 class EmOptimizerSettings:
