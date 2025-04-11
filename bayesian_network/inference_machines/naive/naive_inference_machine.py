@@ -27,7 +27,7 @@ class NaiveInferenceMachine(IInferenceMachine):
             self.node_to_index[node] for node in observed_nodes
         ]
         self.bayesian_network = bayesian_network
-        self._log_likelihood = None
+        self._log_likelihoods = None
 
         self.p = self._calculate_p_complete(bayesian_network.nodes, bayesian_network.parents)[
             None, ...
@@ -84,7 +84,7 @@ class NaiveInferenceMachine(IInferenceMachine):
         c = self.p.sum(dim=tuple(sum_over_dims), keepdim=True)
         self.p /= c
 
-        self._log_likelihood = torch.log(c).sum()
+        self._log_likelihoods = torch.log(c)
 
     def _infer(self, nodes):
         node_indices = [self.node_to_index[node] for node in nodes]
@@ -105,8 +105,11 @@ class NaiveInferenceMachine(IInferenceMachine):
 
         return p
 
-    def log_likelihood(self) -> float:
+    def log_likelihood(self, average: bool = False) -> float:
         if self.num_observed_nodes == 0:
             raise Exception("Log likelihood can't be calculated with 0 observed nodes")
 
-        return self._log_likelihood
+        if average:
+            return self._log_likelihoods.mean()
+        else:
+            return self._log_likelihoods.sum()
