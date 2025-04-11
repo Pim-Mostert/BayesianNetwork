@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Callable, List, Optional
 
 import torch
@@ -8,14 +9,10 @@ from bayesian_network.inference_machines.interfaces import IInferenceMachine
 from bayesian_network.optimizers.interfaces import IOptimizer
 
 
+@dataclass(frozen=True)
 class EmOptimizerSettings:
-    def __init__(
-        self,
-        num_iterations=10,
-        iteration_callback: Optional[Callable[[int, float, BayesianNetwork], None]] = None,
-    ):
-        self.num_iterations = num_iterations
-        self.iteration_callback = iteration_callback
+    num_iterations: int
+    iteration_callback: Optional[Callable[[int, float, BayesianNetwork], None]]
 
 
 class EmOptimizer(IOptimizer):
@@ -23,11 +20,11 @@ class EmOptimizer(IOptimizer):
         self,
         bayesian_network: BayesianNetwork,
         inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
-        settings: Optional[EmOptimizerSettings] = None,
+        settings: EmOptimizerSettings,
     ):
         self.bayesian_network = bayesian_network
         self.inference_machine_factory = inference_machine_factory
-        self.settings = settings or EmOptimizerSettings()
+        self.settings = settings
 
     def optimize(self, evidence: Evidence):
         for iteration in range(self.settings.num_iterations):
