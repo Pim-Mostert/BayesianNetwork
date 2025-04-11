@@ -9,6 +9,7 @@ from bayesian_network.common.statistics import generate_random_probability_matri
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence
 from bayesian_network.inference_machines.naive_inference_machine import NaiveInferenceMachine
+from bayesian_network.optimizers.common import OptimizerLogger
 from bayesian_network.optimizers.em_optimizer import EmOptimizer, EmOptimizerSettings
 from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
 
@@ -84,8 +85,6 @@ class TestEmOptimizer(TestCase):
         untrained_network, observed_nodes = self._generate_random_network()
 
         # Act
-        log_likelihood = torch.zeros(self.num_iterations, dtype=torch.double)
-
         def inference_machine_factory(bayesian_network):
             return NaiveInferenceMachine(
                 bayesian_network=bayesian_network,
@@ -93,23 +92,23 @@ class TestEmOptimizer(TestCase):
                 torch_settings=self.get_torch_settings(),
             )
 
-        def iteration_callback(ll, i, duration):
-            log_likelihood[i] = ll
-
+        logger = OptimizerLogger()
         sut = EmOptimizer(
             untrained_network,
             inference_machine_factory,
             settings=EmOptimizerSettings(
                 num_iterations=self.num_iterations,
-                iteration_callback=None,
             ),
+            logger=logger,
         )
 
         sut.optimize(self.evidence)
 
         # Assert either greater or almost equal
+        ll = logger.get_loglikelihood()
+
         for iteration in range(1, self.num_iterations):
-            diff = log_likelihood[iteration] - log_likelihood[iteration - 1]
+            diff = ll[iteration] - ll[iteration - 1]
 
             if diff > 0:
                 self.assertGreaterEqual(diff, 0)

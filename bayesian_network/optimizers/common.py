@@ -30,6 +30,5 @@ class OptimizerLogger(IOptimizerLogger):
 
         self._logs[iteration] = log
 
-    @property
-    def ll(self):
+    def get_loglikelihood(self):
         return np.array([self._logs[iteration].ll for iteration in sorted(self._logs)])

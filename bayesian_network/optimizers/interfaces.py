@@ -26,7 +26,6 @@ class IOptimizerLogger(ABC):
     ):
         pass
 
-    @property
     @abstractmethod
-    def ll(self) -> np.ndarray:
+    def get_loglikelihood(self) -> np.ndarray:
         pass
