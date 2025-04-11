@@ -119,10 +119,10 @@ class VariableNodeGroup:
         self._calculation_result = x / self._inputs
 
         # Normalization to remote factor nodes
-        self._calculation_result[
-            self._i_outputs_to_remote_factor_nodes
-        ] /= self._calculation_result[self._i_outputs_to_remote_factor_nodes].sum(
-            dim=3, keepdim=True
+        self._calculation_result[self._i_outputs_to_remote_factor_nodes] /= (
+            self._calculation_result[self._i_outputs_to_remote_factor_nodes].sum(
+                dim=3, keepdim=True
+            )
         )
 
         # Normalization to local factor node

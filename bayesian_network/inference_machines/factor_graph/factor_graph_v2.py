@@ -75,14 +75,16 @@ class VariableNode(FactorGraphNodeBase):
 
         self.output_with_indices_to_local_factor_node: VariableNode.OutputWithInputIndices = (
             VariableNode.OutputWithInputIndices(
-                torch.empty(()), [d for d in range(len(self._all_inputs) - 1)]  # Placeholder
+                torch.empty(()),
+                [d for d in range(len(self._all_inputs) - 1)],  # Placeholder
             )
         )
         self.outputs_with_indices_to_remote_factor_nodes: List[
             VariableNode.OutputWithInputIndices
         ] = [
             VariableNode.OutputWithInputIndices(
-                torch.empty(()), [d for d in range(len(self._all_inputs)) if d != i]  # Placeholder
+                torch.empty(()),
+                [d for d in range(len(self._all_inputs)) if d != i],  # Placeholder
             )
             for i in range(num_inputs - 1)
         ]
@@ -142,7 +144,8 @@ class FactorNode(FactorGraphNodeBase):
         self.inputs_from_remote_variable_nodes = self.all_inputs[:-1]
         self.input_from_local_variable_node = self.all_inputs[-1]
         self._all_outputs: List[torch.Tensor] = [
-            torch.empty(()) for _ in range(num_inputs)  # Placeholder
+            torch.empty(())
+            for _ in range(num_inputs)  # Placeholder
         ]
         self.output_to_local_variable_node = self._all_outputs[-1]
         self.outputs_to_remote_variable_nodes = self._all_outputs[:-1]

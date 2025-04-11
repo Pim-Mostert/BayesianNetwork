@@ -33,9 +33,9 @@ class Evidence:
         # Assert and set number of observations
         self.num_observations = data[0].shape[0]
         for d in data[1:]:
-            assert (
-                d.shape[0] == self.num_observations
-            ), "Number of observations not equal for each observed node"
+            assert d.shape[0] == self.num_observations, (
+                "Number of observations not equal for each observed node"
+            )
 
     @property
     def data(self) -> List[torch.Tensor]:
