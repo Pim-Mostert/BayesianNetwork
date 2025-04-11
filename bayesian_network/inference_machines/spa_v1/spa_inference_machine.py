@@ -5,7 +5,7 @@ import torch
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.inference_machines.factor_graph.factor_graph_v1 import FactorGraph
+from bayesian_network.inference_machines.spa_v1.factor_graph import FactorGraph
 from bayesian_network.inference_machines.interfaces import IInferenceMachine
 
 

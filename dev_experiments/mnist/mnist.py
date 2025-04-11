@@ -10,7 +10,7 @@ from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
 from bayesian_network.inference_machines.interfaces import IInferenceMachine
-from bayesian_network.inference_machines.spa_inference_machine_v3 import SpaInferenceMachine
+from bayesian_network.inference_machines.spa_v3.spa_inference_machine import SpaInferenceMachine
 from bayesian_network.optimizers.em_batch_optimizer import (
     EmBatchOptimizer,
     EmBatchOptimizerSettings,

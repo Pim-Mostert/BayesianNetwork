@@ -3,14 +3,14 @@ from typing import List
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.inference_machines.spa_inference_machine_v1 import SpaInferenceMachine
+from bayesian_network.inference_machines.spa_v2.spa_inference_machine import SpaInferenceMachine
 from tests.inference_machines.torch_inference_machine_generic_tests import (
     TorchInferenceMachineGenericTests,
 )
 
 
 # Helper class
-class TestSpaInferenceMachineV1Base(ABC):
+class TestSpaInferenceMachineV2Base(ABC):
     def get_torch_settings(self) -> TorchSettings:
         return TorchSettings()
 
@@ -32,21 +32,21 @@ class TestSpaInferenceMachineV1Base(ABC):
 
 # Actual tests
 class TestNetworkWithSingleParents(
-    TestSpaInferenceMachineV1Base,
+    TestSpaInferenceMachineV2Base,
     TorchInferenceMachineGenericTests.NetworkWithSingleParents,
 ):
     pass
 
 
 class TestComplexNetworkWithSingleParents(
-    TestSpaInferenceMachineV1Base,
+    TestSpaInferenceMachineV2Base,
     TorchInferenceMachineGenericTests.ComplexNetworkWithSingleParents,
 ):
     pass
 
 
-class HandleNumericalUnderflow(
-    TestSpaInferenceMachineV1Base,
-    TorchInferenceMachineGenericTests.HandleNumericalUnderflow,
-):
-    pass
+# class HandleNumericalUnderflow(
+#     TestSpaInferenceMachineV2Base,
+#     TorchInferenceMachineGenericTests.HandleNumericalUnderflow,
+# ):
+#     pass
