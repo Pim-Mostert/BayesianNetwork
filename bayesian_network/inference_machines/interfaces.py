@@ -4,13 +4,7 @@ from typing import List
 import torch
 
 from bayesian_network.bayesian_network import Node
-from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
-
-
-class IBayesianNetworkSampler(ABC):
-    @abstractmethod
-    def sample(self, num_samples: int, nodes: List[Node]):
-        pass
+from bayesian_network.inference_machines.evidence import Evidence
 
 
 class IInferenceMachine(ABC):
@@ -28,16 +22,4 @@ class IInferenceMachine(ABC):
 
     @abstractmethod
     def log_likelihood(self) -> float:
-        pass
-
-
-class IOptimizer(ABC):
-    @abstractmethod
-    def optimize(self, evidence: Evidence) -> None:
-        pass
-
-
-class IBatchOptimizer(ABC):
-    @abstractmethod
-    def optimize(self, batches: EvidenceBatches) -> None:
         pass
