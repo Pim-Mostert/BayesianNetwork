@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+import numpy as np
+
 from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
 
 
@@ -12,4 +14,19 @@ class IBatchOptimizer(ABC):
 class IOptimizer(ABC):
     @abstractmethod
     def optimize(self, evidence: Evidence) -> None:
+        pass
+
+
+class IOptimizerLogger(ABC):
+    @abstractmethod
+    def log_iteration(
+        self,
+        iteration: int,
+        ll: float,
+    ):
+        pass
+
+    @property
+    @abstractmethod
+    def ll(self) -> np.ndarray:
         pass
