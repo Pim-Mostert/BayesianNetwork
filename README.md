@@ -5,6 +5,6 @@ Todo:
 - [x] "Average" log-likelihood
   - [x] Check whether it's actually useful in experiment
   - [x] Probably make it a constructor configuration, 
-    - [ ] Also adjust v1, v2 and tests
+    - [x] Also adjust v1, v2 and tests
 - [ ] Unit test for BatchOptimizer (on evaluation set it should always increase)
 - [ ] Override `Evidence` for Lazy MNIST loader
