@@ -28,6 +28,7 @@ class OptimizerLogger(IOptimizerLogger):
             ll,
         )
 
+        print(log)
         self._logs[iteration] = log
 
     def get_loglikelihood(self):

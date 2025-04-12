@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import replace
 from typing import List
 
 from parameterized import parameterized
@@ -10,12 +11,18 @@ from bayesian_network.common.tensor_helpers import rescale_tensors
 from bayesian_network.common.testcase_extensions import TestCaseExtended
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.inference_machines.interfaces import IInferenceMachine
+from bayesian_network.inference_machines.common import IInferenceMachine, InferenceMachineSettings
 
 
 class TorchInferenceMachineGenericTests:
     class TorchInferenceMachineGenericTestsBase(TestCaseExtended, ABC):
         def setUp(self):
+            # Set default SpaInferenceMachineSettings
+            self.settings = InferenceMachineSettings(
+                torch_settings=self.get_torch_settings(),
+                average_log_likelihood=False,
+            )
+            # Verify torch device
             device = self.get_torch_settings().device
 
             print(f"Running tests with configuration: {self.get_torch_settings()}")
@@ -33,6 +40,7 @@ class TorchInferenceMachineGenericTests:
         @abstractmethod
         def create_inference_machine(
             self,
+            settings: InferenceMachineSettings,
             bayesian_network: BayesianNetwork,
             observed_nodes: List[Node],
             num_observations: int,
@@ -77,6 +85,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q2],
                 num_observations=0,
@@ -100,6 +109,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q2],
                 num_observations=0,
@@ -152,6 +162,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q1, self.Q2, self.Y],
                 num_observations=num_observations,
@@ -204,6 +215,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=replace(self.settings, average_log_likelihood=average_ll),
                 bayesian_network=self.network,
                 observed_nodes=[self.Q1, self.Q2, self.Y],
                 num_observations=num_observations,
@@ -216,7 +228,7 @@ class TorchInferenceMachineGenericTests:
                 )
             )
 
-            ll_actual = sut.log_likelihood(average=average_ll)
+            ll_actual = sut.log_likelihood()
 
             # Assert
             if average_ll:
@@ -257,6 +269,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q1, self.Q2, self.Y],
                 num_observations=num_observations,
@@ -302,6 +315,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Y],
                 num_observations=num_observations,
@@ -348,6 +362,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=replace(self.settings, average_log_likelihood=average_ll),
                 bayesian_network=self.network,
                 observed_nodes=[self.Y],
                 num_observations=num_observations,
@@ -360,7 +375,7 @@ class TorchInferenceMachineGenericTests:
                 )
             )
 
-            ll_actual = sut.log_likelihood(average=average_ll)
+            ll_actual = sut.log_likelihood()
 
             # Assert
             if average_ll:
@@ -391,6 +406,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Y],
                 num_observations=num_observations,
@@ -529,6 +545,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Y1, self.Y2, self.Y3, self.Y4, self.Y5],
                 num_observations=num_observations,
@@ -588,6 +605,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=replace(self.settings, average_log_likelihood=average_ll),
                 bayesian_network=self.network,
                 observed_nodes=[self.Y1, self.Y2, self.Y3, self.Y4, self.Y5],
                 num_observations=num_observations,
@@ -600,7 +618,7 @@ class TorchInferenceMachineGenericTests:
                 )
             )
 
-            ll_actual = sut.log_likelihood(average=average_ll)
+            ll_actual = sut.log_likelihood()
 
             # Assert
             if average_ll:
@@ -718,6 +736,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Y1, self.Y2, self.Y3, self.Y4, self.Y5],
                 num_observations=num_observations,
@@ -789,6 +808,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q2],
                 num_observations=0,
@@ -812,6 +832,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q2],
                 num_observations=0,
@@ -864,6 +885,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q1, self.Q2, self.Y],
                 num_observations=num_observations,
@@ -915,6 +937,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=replace(self.settings, average_log_likelihood=average_ll),
                 bayesian_network=self.network,
                 observed_nodes=[self.Q1, self.Q2, self.Y],
                 num_observations=num_observations,
@@ -927,7 +950,7 @@ class TorchInferenceMachineGenericTests:
                 )
             )
 
-            ll_actual = sut.log_likelihood(average=average_ll)
+            ll_actual = sut.log_likelihood()
 
             # Assert
             if average_ll:
@@ -968,6 +991,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q1, self.Q2, self.Y],
                 num_observations=num_observations,
@@ -1013,6 +1037,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Y],
                 num_observations=num_observations,
@@ -1057,6 +1082,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Y],
                 num_observations=num_observations,
@@ -1100,6 +1126,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=replace(self.settings, average_log_likelihood=average_ll),
                 bayesian_network=self.network,
                 observed_nodes=[self.Y],
                 num_observations=num_observations,
@@ -1112,7 +1139,7 @@ class TorchInferenceMachineGenericTests:
                 )
             )
 
-            ll_actual = sut.log_likelihood(average=average_ll)
+            ll_actual = sut.log_likelihood()
 
             # Assert
             if average_ll:
@@ -1164,6 +1191,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=self.Ys,
                 num_observations=self.num_observations,
@@ -1191,6 +1219,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=replace(self.settings, average_log_likelihood=average_ll),
                 bayesian_network=self.network,
                 observed_nodes=self.Ys,
                 num_observations=self.num_observations,
@@ -1198,7 +1227,7 @@ class TorchInferenceMachineGenericTests:
 
             sut.enter_evidence(self.evidence)
 
-            ll_actual = sut.log_likelihood(average=average_ll)
+            ll_actual = sut.log_likelihood()
 
             # Assert
             self.assertFalse(ll_actual.isnan())
@@ -1208,6 +1237,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=self.Ys,
                 num_observations=self.num_observations,

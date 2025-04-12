@@ -3,7 +3,8 @@
 Todo:
 - [x] Better logger for optimizer 
 - [x] "Average" log-likelihood
-  - [ ] Check whether it's actually useful in experiment
-  - [ ] Probably make it a constructor configuration, rather than property on `log_likelihood` method
+  - [x] Check whether it's actually useful in experiment
+  - [x] Probably make it a constructor configuration, 
+    - [ ] Also adjust v1, v2 and tests
 - [ ] Unit test for BatchOptimizer (on evaluation set it should always increase)
 - [ ] Override `Evidence` for Lazy MNIST loader

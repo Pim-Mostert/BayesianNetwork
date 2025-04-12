@@ -1,33 +1,38 @@
-from typing import Callable, List
+from dataclasses import dataclass
+from typing import Callable, List, Optional
 
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence
 from bayesian_network.inference_machines.spa_v1.factor_graph import FactorGraph
-from bayesian_network.inference_machines.interfaces import IInferenceMachine
+from bayesian_network.inference_machines.common import (
+    IInferenceMachine,
+    InferenceMachineSettings,
+)
+
+
+@dataclass
+class SpaInferenceMachineSettings(InferenceMachineSettings):
+    num_iterations: int
+    callback: Optional[Callable[[int], None]] = None
 
 
 class SpaInferenceMachine(IInferenceMachine):
     def __init__(
         self,
+        settings: SpaInferenceMachineSettings,
         bayesian_network: BayesianNetwork,
         observed_nodes: List[Node],
-        torch_settings: TorchSettings,
-        num_iterations: int,
         num_observations: int,
-        callback: Callable[[FactorGraph, int], None],
     ):
-        self.torch_settings = torch_settings
+        self.settings = settings
         self.factor_graph = FactorGraph(
             bayesian_network,
             observed_nodes,
-            torch_settings=torch_settings,
+            torch_settings=self.settings.torch_settings,
             num_observations=num_observations,
         )
-        self.num_iterations = num_iterations
-        self.callback = callback
         self.observed_nodes = observed_nodes
         self.num_observations = num_observations
         self.must_iterate: bool = True
@@ -85,10 +90,11 @@ class SpaInferenceMachine(IInferenceMachine):
         return p
 
     def _iterate(self):
-        for iteration in range(self.num_iterations):
+        for iteration in range(self.settings.num_iterations):
             self.factor_graph.iterate()
 
-            self.callback(self.factor_graph, iteration)
+            if self.settings.callback:
+                self.settings.callback(iteration)
 
         self.must_iterate = False
 
@@ -98,7 +104,7 @@ class SpaInferenceMachine(IInferenceMachine):
 
         self.must_iterate = True
 
-    def log_likelihood(self, average: bool = False) -> torch.Tensor:
+    def log_likelihood(self) -> torch.Tensor:
         if not self.observed_nodes:
             raise Exception("Log likelihood can't be calculated with 0 observed nodes")
 
@@ -112,7 +118,7 @@ class SpaInferenceMachine(IInferenceMachine):
 
         log_likelihoods = torch.log(local_likelihoods)
 
-        if average:
+        if self.settings.average_log_likelihood:
             return log_likelihoods.sum(dim=1).mean()
         else:
             return log_likelihoods.sum()

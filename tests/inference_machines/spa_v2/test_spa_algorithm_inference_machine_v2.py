@@ -1,9 +1,14 @@
 from abc import ABC
+from dataclasses import asdict
 from typing import List
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.inference_machines.spa_v2.spa_inference_machine import SpaInferenceMachine
+from bayesian_network.inference_machines.common import InferenceMachineSettings
+from bayesian_network.inference_machines.spa_v2.spa_inference_machine import (
+    SpaInferenceMachine,
+    SpaInferenceMachineSettings,
+)
 from tests.inference_machines.torch_inference_machine_generic_tests import (
     TorchInferenceMachineGenericTests,
 )
@@ -16,17 +21,19 @@ class TestSpaInferenceMachineV2Base(ABC):
 
     def create_inference_machine(
         self,
+        settings: InferenceMachineSettings,
         bayesian_network: BayesianNetwork,
         observed_nodes: List[Node],
         num_observations: int,
     ):
         return SpaInferenceMachine(
+            settings=SpaInferenceMachineSettings(
+                **asdict(settings),
+                num_iterations=20,
+            ),
             bayesian_network=bayesian_network,
             observed_nodes=observed_nodes,
-            torch_settings=self.get_torch_settings(),
-            num_iterations=20,
             num_observations=num_observations,
-            callback=lambda factor_graph, iteration: None,
         )
 
 
