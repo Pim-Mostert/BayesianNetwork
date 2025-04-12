@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
+from dataclasses import replace
 from typing import List
 
+from parameterized import parameterized
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
@@ -9,12 +11,18 @@ from bayesian_network.common.tensor_helpers import rescale_tensors
 from bayesian_network.common.testcase_extensions import TestCaseExtended
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.inference_machines.interfaces import IInferenceMachine
+from bayesian_network.inference_machines.common import IInferenceMachine, InferenceMachineSettings
 
 
 class TorchInferenceMachineGenericTests:
     class TorchInferenceMachineGenericTestsBase(TestCaseExtended, ABC):
         def setUp(self):
+            # Set default SpaInferenceMachineSettings
+            self.settings = InferenceMachineSettings(
+                torch_settings=self.get_torch_settings(),
+                average_log_likelihood=False,
+            )
+            # Verify torch device
             device = self.get_torch_settings().device
 
             print(f"Running tests with configuration: {self.get_torch_settings()}")
@@ -32,6 +40,7 @@ class TorchInferenceMachineGenericTests:
         @abstractmethod
         def create_inference_machine(
             self,
+            settings: InferenceMachineSettings,
             bayesian_network: BayesianNetwork,
             observed_nodes: List[Node],
             num_observations: int,
@@ -76,6 +85,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q2],
                 num_observations=0,
@@ -99,6 +109,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q2],
                 num_observations=0,
@@ -151,6 +162,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q1, self.Q2, self.Y],
                 num_observations=num_observations,
@@ -172,7 +184,13 @@ class TorchInferenceMachineGenericTests:
             self.assertArrayAlmostEqual(p_Q2_actual, p_Q2_expected)
             self.assertArrayAlmostEqual(p_Y_actual, p_Y_expected)
 
-        def test_all_observed_log_likelihood(self):
+        @parameterized.expand(
+            [
+                ("average_ll_false", False),
+                ("average_ll_true", True),
+            ]
+        )
+        def test_all_observed_log_likelihood(self, name, average_ll: bool):
             # Assign
             device = self.get_torch_settings().device
             dtype = self.get_torch_settings().dtype
@@ -193,10 +211,11 @@ class TorchInferenceMachineGenericTests:
                 self.Y.cpt,
                 *evidence,
             ).sum(axis=(1, 2, 3))
-            ll_expected = torch.log(c).sum()
+            ll_expected = torch.log(c)
 
             # Act
             sut = self.create_inference_machine(
+                settings=replace(self.settings, average_log_likelihood=average_ll),
                 bayesian_network=self.network,
                 observed_nodes=[self.Q1, self.Q2, self.Y],
                 num_observations=num_observations,
@@ -212,7 +231,10 @@ class TorchInferenceMachineGenericTests:
             ll_actual = sut.log_likelihood()
 
             # Assert
-            self.assertArrayAlmostEqual(ll_actual, ll_expected)
+            if average_ll:
+                self.assertArrayAlmostEqual(ll_actual, ll_expected.mean())
+            else:
+                self.assertArrayAlmostEqual(ll_actual, ll_expected.sum())
 
         def test_all_observed_nodes_with_parents(self):
             # Assign
@@ -247,6 +269,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q1, self.Q2, self.Y],
                 num_observations=num_observations,
@@ -292,6 +315,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Y],
                 num_observations=num_observations,
@@ -313,7 +337,13 @@ class TorchInferenceMachineGenericTests:
             self.assertArrayAlmostEqual(p_Q2_actual, p_Q2_expected)
             self.assertArrayAlmostEqual(p_Y_actual, p_Y_expected)
 
-        def test_single_node_observed_log_likelihood(self):
+        @parameterized.expand(
+            [
+                ("average_ll_false", False),
+                ("average_ll_true", True),
+            ]
+        )
+        def test_single_node_observed_log_likelihood(self, name, average_ll: bool):
             # Assign
             device = self.get_torch_settings().device
             dtype = self.get_torch_settings().dtype
@@ -328,10 +358,11 @@ class TorchInferenceMachineGenericTests:
             c = torch.einsum(
                 "i, ij, jk, nk->nijk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
             ).sum(axis=(1, 2, 3))
-            ll_expected = torch.log(c).sum()
+            ll_expected = torch.log(c)
 
             # Act
             sut = self.create_inference_machine(
+                settings=replace(self.settings, average_log_likelihood=average_ll),
                 bayesian_network=self.network,
                 observed_nodes=[self.Y],
                 num_observations=num_observations,
@@ -347,7 +378,10 @@ class TorchInferenceMachineGenericTests:
             ll_actual = sut.log_likelihood()
 
             # Assert
-            self.assertArrayAlmostEqual(ll_actual, ll_expected)
+            if average_ll:
+                self.assertArrayAlmostEqual(ll_actual, ll_expected.mean())
+            else:
+                self.assertArrayAlmostEqual(ll_actual, ll_expected.sum())
 
         def test_single_node_observed_with_parents(self):
             # Assign
@@ -372,6 +406,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Y],
                 num_observations=num_observations,
@@ -510,6 +545,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Y1, self.Y2, self.Y3, self.Y4, self.Y5],
                 num_observations=num_observations,
@@ -531,7 +567,13 @@ class TorchInferenceMachineGenericTests:
             self.assertArrayAlmostEqual(p_Q2_actual, p_Q2_expected)
             self.assertArrayAlmostEqual(p_Q3_actual, p_Q3_expected)
 
-        def test_log_likelihood(self):
+        @parameterized.expand(
+            [
+                ("average_ll_false", False),
+                ("average_ll_true", True),
+            ]
+        )
+        def test_log_likelihood(self, name, average_ll: bool):
             # Assign
             device = self.get_torch_settings().device
             dtype = self.get_torch_settings().dtype
@@ -559,10 +601,11 @@ class TorchInferenceMachineGenericTests:
                 self.Y5.cpt,
                 *evidence,
             )
-            ll_expected = torch.log(c).sum()
+            ll_expected = torch.log(c)
 
             # Act
             sut = self.create_inference_machine(
+                settings=replace(self.settings, average_log_likelihood=average_ll),
                 bayesian_network=self.network,
                 observed_nodes=[self.Y1, self.Y2, self.Y3, self.Y4, self.Y5],
                 num_observations=num_observations,
@@ -578,7 +621,10 @@ class TorchInferenceMachineGenericTests:
             ll_actual = sut.log_likelihood()
 
             # Assert
-            self.assertArrayAlmostEqual(ll_actual, ll_expected)
+            if average_ll:
+                self.assertArrayAlmostEqual(ll_actual, ll_expected.mean())
+            else:
+                self.assertArrayAlmostEqual(ll_actual, ll_expected.sum())
 
         def test_inference_nodes_with_parents(self):
             # Assign
@@ -690,6 +736,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Y1, self.Y2, self.Y3, self.Y4, self.Y5],
                 num_observations=num_observations,
@@ -761,6 +808,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q2],
                 num_observations=0,
@@ -784,6 +832,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q2],
                 num_observations=0,
@@ -836,6 +885,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q1, self.Q2, self.Y],
                 num_observations=num_observations,
@@ -857,7 +907,13 @@ class TorchInferenceMachineGenericTests:
             self.assertArrayAlmostEqual(p_Q2_actual, p_Q2_expected)
             self.assertArrayAlmostEqual(p_Y_actual, p_Y_expected)
 
-        def test_all_observed_log_likelihood(self):
+        @parameterized.expand(
+            [
+                ("average_ll_false", False),
+                ("average_ll_true", True),
+            ]
+        )
+        def test_all_observed_log_likelihood(self, name, average_ll: bool):
             # Assign
             device = self.get_torch_settings().device
             dtype = self.get_torch_settings().dtype
@@ -877,10 +933,11 @@ class TorchInferenceMachineGenericTests:
                 self.Y.cpt,
                 *evidence,
             ).sum(axis=(1, 2, 3))
-            ll_expected = torch.log(c).sum()
+            ll_expected = torch.log(c)
 
             # Act
             sut = self.create_inference_machine(
+                settings=replace(self.settings, average_log_likelihood=average_ll),
                 bayesian_network=self.network,
                 observed_nodes=[self.Q1, self.Q2, self.Y],
                 num_observations=num_observations,
@@ -896,7 +953,10 @@ class TorchInferenceMachineGenericTests:
             ll_actual = sut.log_likelihood()
 
             # Assert
-            self.assertArrayAlmostEqual(ll_actual, ll_expected)
+            if average_ll:
+                self.assertArrayAlmostEqual(ll_actual, ll_expected.mean())
+            else:
+                self.assertArrayAlmostEqual(ll_actual, ll_expected.sum())
 
         def test_all_observed_nodes_with_parents(self):
             # Assign
@@ -931,6 +991,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Q1, self.Q2, self.Y],
                 num_observations=num_observations,
@@ -976,6 +1037,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Y],
                 num_observations=num_observations,
@@ -1020,6 +1082,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=[self.Y],
                 num_observations=num_observations,
@@ -1038,7 +1101,13 @@ class TorchInferenceMachineGenericTests:
             self.assertArrayAlmostEqual(p_Q1xQ2_actual, p_Q1xQ2_expected)
             self.assertArrayAlmostEqual(p_Q1xQ2xY_actual, p_Q1xQ2xY_expected)
 
-        def test_single_node_observed_log_likelihood(self):
+        @parameterized.expand(
+            [
+                ("average_ll_false", False),
+                ("average_ll_true", True),
+            ]
+        )
+        def test_single_node_observed_log_likelihood(self, name, average_ll: bool):
             # Assign
             device = self.get_torch_settings().device
             dtype = self.get_torch_settings().dtype
@@ -1053,10 +1122,11 @@ class TorchInferenceMachineGenericTests:
             c = torch.einsum(
                 "i, ij, ijk, nk->nijk", self.Q1.cpt, self.Q2.cpt, self.Y.cpt, *evidence
             ).sum(axis=(1, 2, 3))
-            ll_expected = torch.log(c).sum()
+            ll_expected = torch.log(c)
 
             # Act
             sut = self.create_inference_machine(
+                settings=replace(self.settings, average_log_likelihood=average_ll),
                 bayesian_network=self.network,
                 observed_nodes=[self.Y],
                 num_observations=num_observations,
@@ -1072,7 +1142,10 @@ class TorchInferenceMachineGenericTests:
             ll_actual = sut.log_likelihood()
 
             # Assert
-            self.assertArrayAlmostEqual(ll_actual, ll_expected)
+            if average_ll:
+                self.assertArrayAlmostEqual(ll_actual, ll_expected.mean())
+            else:
+                self.assertArrayAlmostEqual(ll_actual, ll_expected.sum())
 
     class HandleNumericalUnderflow(TorchInferenceMachineGenericTestsBase, ABC):
         def setUp(self):
@@ -1118,6 +1191,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=self.Ys,
                 num_observations=self.num_observations,
@@ -1134,11 +1208,18 @@ class TorchInferenceMachineGenericTests:
             for p_Y_actual in p_Ys_actual:
                 self.assertFalse(p_Y_actual.isnan().any())
 
-        def test_log_likelihood(self):
+        @parameterized.expand(
+            [
+                ("average_ll_false", False),
+                ("average_ll_true", True),
+            ]
+        )
+        def test_log_likelihood(self, name, average_ll: bool):
             # Assign
 
             # Act
             sut = self.create_inference_machine(
+                settings=replace(self.settings, average_log_likelihood=average_ll),
                 bayesian_network=self.network,
                 observed_nodes=self.Ys,
                 num_observations=self.num_observations,
@@ -1156,6 +1237,7 @@ class TorchInferenceMachineGenericTests:
 
             # Act
             sut = self.create_inference_machine(
+                settings=self.settings,
                 bayesian_network=self.network,
                 observed_nodes=self.Ys,
                 num_observations=self.num_observations,

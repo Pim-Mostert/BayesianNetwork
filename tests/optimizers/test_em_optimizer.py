@@ -7,8 +7,9 @@ from torch.nn.functional import one_hot
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.common import InferenceMachineSettings
 from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.inference_machines.naive_inference_machine import NaiveInferenceMachine
+from bayesian_network.inference_machines.naive.naive_inference_machine import NaiveInferenceMachine
 from bayesian_network.optimizers.common import OptimizerLogger
 from bayesian_network.optimizers.em_optimizer import EmOptimizer, EmOptimizerSettings
 from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
@@ -87,9 +88,12 @@ class TestEmOptimizer(TestCase):
         # Act
         def inference_machine_factory(bayesian_network):
             return NaiveInferenceMachine(
+                settings=InferenceMachineSettings(
+                    torch_settings=self.get_torch_settings(),
+                    average_log_likelihood=False,
+                ),
                 bayesian_network=bayesian_network,
                 observed_nodes=observed_nodes,
-                torch_settings=self.get_torch_settings(),
             )
 
         logger = OptimizerLogger()

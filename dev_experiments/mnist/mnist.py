@@ -1,6 +1,5 @@
 # %% Imports
 
-import time
 
 import matplotlib.pyplot as plt
 import torch
@@ -9,8 +8,13 @@ import torchvision
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
-from bayesian_network.inference_machines.interfaces import IInferenceMachine
-from bayesian_network.inference_machines.spa_inference_machine_v3 import SpaInferenceMachine
+from bayesian_network.inference_machines.spa_v1.spa_inference_machine import (
+    SpaInferenceMachineSettings,
+)
+from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
+    SpaInferenceMachine,
+)
+from bayesian_network.optimizers.common import OptimizerLogger
 from bayesian_network.optimizers.em_batch_optimizer import (
     EmBatchOptimizer,
     EmBatchOptimizerSettings,
@@ -45,10 +49,6 @@ evidence = Evidence(
 )
 
 
-# %%
-
-batches = EvidenceBatches(evidence, 50)
-
 # %% Define network
 num_classes = 10
 
@@ -82,44 +82,29 @@ network = BayesianNetwork(nodes, parents)
 
 
 # %% Fit network
-def inference_machine_factory(
-    bayesian_network: BayesianNetwork,
-) -> IInferenceMachine:
-    return SpaInferenceMachine(
-        bayesian_network=bayesian_network,
-        observed_nodes=Ys,
-        torch_settings=torch_settings,
-        num_iterations=3,
-        num_observations=batches.batch_size,
-        callback=lambda *args: None,
-    )
-
-
-num_iterations = 200
-
-logs = {}
-
-
-def callback(iteration, ll, bayesian_network):
-    logs[iteration] = {}
-    logs[iteration]["timestamp"] = time.time()
-    logs[iteration]["ll"] = ll
-
-    duration = logs[iteration - 1].timestamp - logs[iteration].timestamp if iteration > 0 else None
-
-    print(f"Finished iteration {iteration}/{num_iterations} - ll: {ll} - duration: {duration}")
-
+batches = EvidenceBatches(evidence, 1000)
 
 em_batch_optimizer_settings = EmBatchOptimizerSettings(
-    num_iterations=num_iterations,
-    iteration_callback=callback,
+    num_iterations=200,
     learning_rate=0.01,
 )
 
+logger = OptimizerLogger()
+
 em_optimizer = EmBatchOptimizer(
-    network,
-    inference_machine_factory,
+    bayesian_network=network,
+    inference_machine_factory=lambda network: SpaInferenceMachine(
+        settings=SpaInferenceMachineSettings(
+            torch_settings=torch_settings,
+            num_iterations=3,
+            average_log_likelihood=True,
+        ),
+        bayesian_network=network,
+        observed_nodes=Ys,
+        num_observations=batches.batch_size,
+    ),
     settings=em_batch_optimizer_settings,
+    logger=logger,
 )
 em_optimizer.optimize(batches)
 

@@ -3,19 +3,18 @@ from typing import Dict, List
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.inference_machines.interfaces import IInferenceMachine
+from bayesian_network.inference_machines.common import IInferenceMachine, InferenceMachineSettings
 
 
 class NaiveInferenceMachine(IInferenceMachine):
     def __init__(
         self,
+        settings: InferenceMachineSettings,
         bayesian_network: BayesianNetwork,
         observed_nodes: List[Node],
-        torch_settings: TorchSettings,
     ):
-        self.torch_settings = torch_settings
+        self.settings = settings
 
         self.dims = [node.num_states for node in bayesian_network.nodes]
         self.num_nodes = len(bayesian_network.nodes)
@@ -27,7 +26,7 @@ class NaiveInferenceMachine(IInferenceMachine):
             self.node_to_index[node] for node in observed_nodes
         ]
         self.bayesian_network = bayesian_network
-        self._log_likelihood = None
+        self._log_likelihoods = None
 
         self.p = self._calculate_p_complete(bayesian_network.nodes, bayesian_network.parents)[
             None, ...
@@ -37,8 +36,8 @@ class NaiveInferenceMachine(IInferenceMachine):
         dims = [node.num_states for node in nodes]
         p = torch.ones(
             dims,
-            dtype=self.torch_settings.dtype,
-            device=self.torch_settings.device,
+            dtype=self.settings.torch_settings.dtype,
+            device=self.settings.torch_settings.device,
         )
 
         for node in nodes:
@@ -67,8 +66,8 @@ class NaiveInferenceMachine(IInferenceMachine):
 
         p_evidence = torch.ones(
             dims,
-            dtype=self.torch_settings.dtype,
-            device=self.torch_settings.device,
+            dtype=self.settings.torch_settings.dtype,
+            device=self.settings.torch_settings.device,
         )
 
         for i, observed_node_index in enumerate(self.observed_nodes_indices):
@@ -84,7 +83,7 @@ class NaiveInferenceMachine(IInferenceMachine):
         c = self.p.sum(dim=tuple(sum_over_dims), keepdim=True)
         self.p /= c
 
-        self._log_likelihood = torch.log(c).sum()
+        self._log_likelihoods = torch.log(c)
 
     def _infer(self, nodes):
         node_indices = [self.node_to_index[node] for node in nodes]
@@ -105,8 +104,11 @@ class NaiveInferenceMachine(IInferenceMachine):
 
         return p
 
-    def log_likelihood(self) -> float:
+    def log_likelihood(self) -> torch.Tensor:
         if self.num_observed_nodes == 0:
             raise Exception("Log likelihood can't be calculated with 0 observed nodes")
 
-        return self._log_likelihood
+        if self.settings.average_log_likelihood:
+            return self._log_likelihoods.mean()
+        else:
+            return self._log_likelihoods.sum()
