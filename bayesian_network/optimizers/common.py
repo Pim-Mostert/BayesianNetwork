@@ -1,10 +1,23 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict
 
 import numpy as np
 
-from bayesian_network.optimizers.interfaces import IOptimizerLogger
+from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
+
+
+class IBatchOptimizer(ABC):
+    @abstractmethod
+    def optimize(self, batches: EvidenceBatches) -> None:
+        pass
+
+
+class IOptimizer(ABC):
+    @abstractmethod
+    def optimize(self, evidence: Evidence) -> None:
+        pass
 
 
 @dataclass(frozen=True)
@@ -14,7 +27,7 @@ class Log:
     ll: float
 
 
-class OptimizerLogger(IOptimizerLogger):
+class OptimizerLogger:
     def __init__(self):
         self._logs: Dict[int, Log] = {}
 

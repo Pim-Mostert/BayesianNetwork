@@ -6,7 +6,7 @@ import torch
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.inference_machines.evidence import EvidenceBatches
 from bayesian_network.inference_machines.common import IInferenceMachine
-from bayesian_network.optimizers.interfaces import IBatchOptimizer, IOptimizerLogger
+from bayesian_network.optimizers.common import IBatchOptimizer, OptimizerLogger
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,7 @@ class EmBatchOptimizer(IBatchOptimizer):
         bayesian_network: BayesianNetwork,
         inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
         settings: EmBatchOptimizerSettings,
-        logger: IOptimizerLogger,
+        logger: OptimizerLogger,
     ):
         self._bayesian_network = bayesian_network
         self._inference_machine_factory = inference_machine_factory
