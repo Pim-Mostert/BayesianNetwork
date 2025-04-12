@@ -64,6 +64,7 @@ jobs:
           pip install dist/*.whl
       - name: Test with unittest
         run: |
+          pip install parameterized
           python -m unittest
           
   publish:
