@@ -10,7 +10,7 @@ from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.common import InferenceMachineSettings
 from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
 from bayesian_network.inference_machines.naive.naive_inference_machine import NaiveInferenceMachine
-from bayesian_network.optimizers.common import OptimizerLogger
+from bayesian_network.optimizers.common import OptimizationEvaluator, OptimizationEvalulatorSettings
 from bayesian_network.optimizers.em_batch_optimizer import (
     EmBatchOptimizer,
     EmBatchOptimizerSettings,
@@ -67,7 +67,7 @@ class TestEmOptimizer(TestCase):
 
     def setUp(self):
         self.em_batch_optimizer_settings = EmBatchOptimizerSettings(
-            num_iterations=10, learning_rate=0.01
+            num_iterations=20, learning_rate=0.01
         )
 
         # Create true network
@@ -79,44 +79,48 @@ class TestEmOptimizer(TestCase):
             torch_settings=self.get_torch_settings(),
         )
 
-        num_samples = 10000
+        num_samples = 1000
         data = sampler.sample(num_samples, self.observed_nodes)
         evidence = Evidence(
             [one_hot(node_data.long()) for node_data in data.T],
             self.get_torch_settings(),
         )
 
-        self.evidence_batches = EvidenceBatches(evidence, 100)
+        self.evidence = evidence
 
-    def test_optimize_increase_log_likelihood_true_data(self):
+    def test_optimize_increase_log_likelihood_full_data(self):
         # Assign
         untrained_network, observed_nodes = self._generate_random_network()
 
-        # Act
-        def inference_machine_factory(bayesian_network):
+        def inference_machine_factory(network):
             return NaiveInferenceMachine(
                 settings=InferenceMachineSettings(
                     torch_settings=self.get_torch_settings(),
                     average_log_likelihood=False,
                 ),
-                bayesian_network=bayesian_network,
+                bayesian_network=network,
                 observed_nodes=observed_nodes,
             )
 
-        logger = OptimizerLogger()
-        sut = EmBatchOptimizer(
-            untrained_network,
-            inference_machine_factory,
-            settings=self.em_batch_optimizer_settings,
-            logger=logger,
+        evaluator = OptimizationEvaluator(
+            settings=OptimizationEvalulatorSettings(iteration_interval=1),
+            evidence=self.evidence,
+            inference_machine_factory=inference_machine_factory,
         )
 
-        sut.optimize(self.evidence_batches)
+        sut = EmBatchOptimizer(
+            settings=self.em_batch_optimizer_settings,
+            bayesian_network=untrained_network,
+            inference_machine_factory=inference_machine_factory,
+            evaluator=evaluator,
+        )
+
+        # Act
+        evidence_batches = EvidenceBatches(self.evidence, 100)
+        sut.optimize(evidence_batches)
 
         # Assert either greater or almost equal
-
-        ### This naturally fails. TODO: evaluate log_likelihood on true data set
-        ll = logger.get_log_likelihood()
+        ll = evaluator.get_log_likelihood()
 
         for iteration in range(1, self.em_batch_optimizer_settings.num_iterations):
             diff = ll[iteration] - ll[iteration - 1]
