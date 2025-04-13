@@ -109,7 +109,7 @@ class TestEmOptimizer(TestCase):
         sut.optimize(self.evidence)
 
         # Assert either greater or almost equal
-        ll = logger.get_loglikelihood()
+        ll = logger.get_log_likelihood()
 
         for iteration in range(1, self.em_optimizer_settings.num_iterations):
             diff = ll[iteration] - ll[iteration - 1]

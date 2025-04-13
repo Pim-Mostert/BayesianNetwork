@@ -116,7 +116,7 @@ class TestEmOptimizer(TestCase):
         # Assert either greater or almost equal
 
         ### This naturally fails. TODO: evaluate log_likelihood on true data set
-        ll = logger.get_loglikelihood()
+        ll = logger.get_log_likelihood()
 
         for iteration in range(1, self.em_batch_optimizer_settings.num_iterations):
             diff = ll[iteration] - ll[iteration - 1]

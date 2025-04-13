@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 import torch
 
@@ -20,7 +20,7 @@ class EmOptimizer(IOptimizer):
         bayesian_network: BayesianNetwork,
         inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
         settings: EmOptimizerSettings,
-        logger: OptimizerLogger,
+        logger: Optional[OptimizerLogger] = None,
     ):
         self._bayesian_network = bayesian_network
         self._inference_machine_factory = inference_machine_factory
@@ -41,9 +41,8 @@ class EmOptimizer(IOptimizer):
             self._m_step(p_conditionals)
 
             # Log iteration feedback
-            self._logger.log_iteration(iteration, ll)
-            # if self.settings.iteration_callback:
-            #     self.settings.iteration_callback(iteration, ll, self.bayesian_network)
+            if self._logger:
+                self._logger.log_iteration(iteration, ll)
 
     def _e_step(self, inference_machine: IInferenceMachine) -> List[torch.Tensor]:
         # List[torch.Tensor((observations x parent1 x parent2 x ... x child))]

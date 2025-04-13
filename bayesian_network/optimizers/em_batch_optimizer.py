@@ -1,12 +1,16 @@
 from dataclasses import dataclass
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.inference_machines.evidence import EvidenceBatches
 from bayesian_network.inference_machines.common import IInferenceMachine
-from bayesian_network.optimizers.common import IBatchOptimizer, OptimizerLogger
+from bayesian_network.optimizers.common import (
+    IBatchOptimizer,
+    OptimizationEvaluator,
+    OptimizerLogger,
+)
 
 
 @dataclass(frozen=True)
@@ -21,12 +25,14 @@ class EmBatchOptimizer(IBatchOptimizer):
         bayesian_network: BayesianNetwork,
         inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
         settings: EmBatchOptimizerSettings,
-        logger: OptimizerLogger,
+        logger: Optional[OptimizerLogger] = None,
+        evaluator: Optional[OptimizationEvaluator] = None,
     ):
         self._bayesian_network = bayesian_network
         self._inference_machine_factory = inference_machine_factory
         self._settings = settings
         self._logger = logger
+        self._evaluator = evaluator
 
     def optimize(self, batches: EvidenceBatches):
         for iteration in range(self._settings.num_iterations):
@@ -47,7 +53,12 @@ class EmBatchOptimizer(IBatchOptimizer):
             self._m_step(p_conditionals)
 
             # Log iteration
-            self._logger.log_iteration(iteration, ll)
+            if self._logger:
+                self._logger.log_iteration(iteration, ll)
+
+            # Evaluate
+            if self._evaluator:
+                self._evaluator.evaluate(iteration, self._bayesian_network)
 
     def _e_step(self, inference_machine: IInferenceMachine) -> List[torch.Tensor]:
         # List[torch.Tensor((observations x parent1 x parent2 x ... x child))]
