@@ -1,10 +1,26 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict
+import logging
+from typing import Callable, Dict
 
 import numpy as np
 
-from bayesian_network.optimizers.interfaces import IOptimizerLogger
+from bayesian_network.bayesian_network import BayesianNetwork
+from bayesian_network.inference_machines.common import IInferenceMachine
+from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
+
+
+class IBatchOptimizer(ABC):
+    @abstractmethod
+    def optimize(self, batches: EvidenceBatches) -> None:
+        pass
+
+
+class IOptimizer(ABC):
+    @abstractmethod
+    def optimize(self, evidence: Evidence) -> None:
+        pass
 
 
 @dataclass(frozen=True)
@@ -14,7 +30,7 @@ class Log:
     ll: float
 
 
-class OptimizerLogger(IOptimizerLogger):
+class OptimizerLogger:
     def __init__(self):
         self._logs: Dict[int, Log] = {}
 
@@ -28,8 +44,47 @@ class OptimizerLogger(IOptimizerLogger):
             ll,
         )
 
-        print(log)
         self._logs[iteration] = log
 
-    def get_loglikelihood(self):
+        logging.info("%s", log)
+
+    def get_log_likelihood(self):
         return np.array([self._logs[iteration].ll for iteration in sorted(self._logs)])
+
+
+@dataclass(frozen=True)
+class OptimizationEvalulatorSettings:
+    iteration_interval: int
+
+
+class OptimizationEvaluator:
+    def __init__(
+        self,
+        settings: OptimizationEvalulatorSettings,
+        inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
+        evidence: Evidence,
+    ):
+        self._settings = settings
+        self._inference_machine_factory = inference_machine_factory
+        self._evidence = evidence
+
+        self._log_likelihoods: Dict[int, float] = {}
+
+    def evaluate(self, iteration: int, network: BayesianNetwork):
+        if not (iteration % self._settings.iteration_interval) == 0:
+            return
+
+        inference_machine = self._inference_machine_factory(network)
+
+        inference_machine.enter_evidence(self._evidence)
+
+        ll = inference_machine.log_likelihood()
+
+        self._log_likelihoods[iteration] = ll
+
+        logging.info("Evaluated for iteration %s, ll: %s", iteration, ll)
+
+    def get_log_likelihood(self) -> np.ndarray:
+        return np.array(
+            [self._log_likelihoods[iteration] for iteration in sorted(self._log_likelihoods)]
+        )

@@ -104,11 +104,11 @@ class NaiveInferenceMachine(IInferenceMachine):
 
         return p
 
-    def log_likelihood(self) -> torch.Tensor:
+    def log_likelihood(self) -> float:
         if self.num_observed_nodes == 0:
             raise Exception("Log likelihood can't be calculated with 0 observed nodes")
 
         if self.settings.average_log_likelihood:
-            return self._log_likelihoods.mean()
+            return self._log_likelihoods.mean().item()
         else:
-            return self._log_likelihoods.sum()
+            return self._log_likelihoods.sum().item()

@@ -104,7 +104,7 @@ class SpaInferenceMachine(IInferenceMachine):
 
         self.must_iterate = True
 
-    def log_likelihood(self) -> torch.Tensor:
+    def log_likelihood(self) -> float:
         if not self.observed_nodes:
             raise Exception("Log likelihood can't be calculated with 0 observed nodes")
 
@@ -119,6 +119,6 @@ class SpaInferenceMachine(IInferenceMachine):
         log_likelihoods = torch.log(local_likelihoods)
 
         if self.settings.average_log_likelihood:
-            return log_likelihoods.sum(dim=1).mean()
+            return log_likelihoods.sum(dim=1).mean().item()
         else:
-            return log_likelihoods.sum()
+            return log_likelihoods.sum().item()

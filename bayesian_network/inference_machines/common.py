@@ -29,5 +29,5 @@ class IInferenceMachine(ABC):
         pass
 
     @abstractmethod
-    def log_likelihood(self) -> torch.Tensor:
+    def log_likelihood(self) -> float:
         pass

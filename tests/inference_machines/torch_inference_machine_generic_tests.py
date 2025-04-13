@@ -232,9 +232,9 @@ class TorchInferenceMachineGenericTests:
 
             # Assert
             if average_ll:
-                self.assertArrayAlmostEqual(ll_actual, ll_expected.mean())
+                self.assertAlmostEqual(ll_actual, ll_expected.mean().item())
             else:
-                self.assertArrayAlmostEqual(ll_actual, ll_expected.sum())
+                self.assertAlmostEqual(ll_actual, ll_expected.sum().item())
 
         def test_all_observed_nodes_with_parents(self):
             # Assign
@@ -379,9 +379,9 @@ class TorchInferenceMachineGenericTests:
 
             # Assert
             if average_ll:
-                self.assertArrayAlmostEqual(ll_actual, ll_expected.mean())
+                self.assertAlmostEqual(ll_actual, ll_expected.mean().item())
             else:
-                self.assertArrayAlmostEqual(ll_actual, ll_expected.sum())
+                self.assertAlmostEqual(ll_actual, ll_expected.sum().item())
 
         def test_single_node_observed_with_parents(self):
             # Assign
@@ -622,9 +622,9 @@ class TorchInferenceMachineGenericTests:
 
             # Assert
             if average_ll:
-                self.assertArrayAlmostEqual(ll_actual, ll_expected.mean())
+                self.assertAlmostEqual(ll_actual, ll_expected.mean().item())
             else:
-                self.assertArrayAlmostEqual(ll_actual, ll_expected.sum())
+                self.assertAlmostEqual(ll_actual, ll_expected.sum().item())
 
         def test_inference_nodes_with_parents(self):
             # Assign
@@ -954,9 +954,9 @@ class TorchInferenceMachineGenericTests:
 
             # Assert
             if average_ll:
-                self.assertArrayAlmostEqual(ll_actual, ll_expected.mean())
+                self.assertAlmostEqual(ll_actual, ll_expected.mean().item())
             else:
-                self.assertArrayAlmostEqual(ll_actual, ll_expected.sum())
+                self.assertAlmostEqual(ll_actual, ll_expected.sum().item())
 
         def test_all_observed_nodes_with_parents(self):
             # Assign
@@ -1143,9 +1143,9 @@ class TorchInferenceMachineGenericTests:
 
             # Assert
             if average_ll:
-                self.assertArrayAlmostEqual(ll_actual, ll_expected.mean())
+                self.assertAlmostEqual(ll_actual, ll_expected.mean().item())
             else:
-                self.assertArrayAlmostEqual(ll_actual, ll_expected.sum())
+                self.assertAlmostEqual(ll_actual, ll_expected.sum().item())
 
     class HandleNumericalUnderflow(TorchInferenceMachineGenericTestsBase, ABC):
         def setUp(self):
@@ -1230,7 +1230,9 @@ class TorchInferenceMachineGenericTests:
             ll_actual = sut.log_likelihood()
 
             # Assert
-            self.assertFalse(ll_actual.isnan())
+            import math
+
+            self.assertFalse(math.isnan(ll_actual))
 
         def test_inference_nodes_with_parents(self):
             # Assign

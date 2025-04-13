@@ -1,6 +1,4 @@
 # %% Imports
-
-
 import matplotlib.pyplot as plt
 import torch
 import torchvision
@@ -8,17 +6,23 @@ import torchvision
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
-from bayesian_network.inference_machines.spa_v1.spa_inference_machine import (
-    SpaInferenceMachineSettings,
-)
 from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
     SpaInferenceMachine,
+    SpaInferenceMachineSettings,
 )
-from bayesian_network.optimizers.common import OptimizerLogger
+from bayesian_network.optimizers.common import (
+    OptimizationEvaluator,
+    OptimizationEvalulatorSettings,
+    OptimizerLogger,
+)
 from bayesian_network.optimizers.em_batch_optimizer import (
     EmBatchOptimizer,
     EmBatchOptimizerSettings,
 )
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 # %% Configuration
 torch_settings = TorchSettings(
@@ -33,7 +37,7 @@ mnist = torchvision.datasets.MNIST(
     # transform=transforms.ToTensor(),
     download=True,
 )
-data = mnist.data[0:10000] / 255
+data = mnist.data / 255
 
 height, width = data.shape[1:3]
 num_features = height * width
@@ -48,6 +52,8 @@ evidence = Evidence(
     torch_settings,
 )
 
+# Make selection
+evidence = evidence[:1000]
 
 # %% Define network
 num_classes = 10
@@ -82,14 +88,29 @@ network = BayesianNetwork(nodes, parents)
 
 
 # %% Fit network
-batches = EvidenceBatches(evidence, 1000)
+logger = OptimizerLogger()
+
+evaluator = OptimizationEvaluator(
+    OptimizationEvalulatorSettings(iteration_interval=1),
+    inference_machine_factory=lambda network: SpaInferenceMachine(
+        settings=SpaInferenceMachineSettings(
+            torch_settings=torch_settings,
+            num_iterations=3,
+            average_log_likelihood=False,
+        ),
+        bayesian_network=network,
+        observed_nodes=Ys,
+        num_observations=evidence.num_observations,
+    ),
+    evidence=evidence,
+)
 
 em_batch_optimizer_settings = EmBatchOptimizerSettings(
-    num_iterations=200,
+    num_iterations=50,
     learning_rate=0.01,
 )
 
-logger = OptimizerLogger()
+batches = EvidenceBatches(evidence, 50)
 
 em_optimizer = EmBatchOptimizer(
     bayesian_network=network,
@@ -105,6 +126,7 @@ em_optimizer = EmBatchOptimizer(
     ),
     settings=em_batch_optimizer_settings,
     logger=logger,
+    evaluator=evaluator,
 )
 em_optimizer.optimize(batches)
 
