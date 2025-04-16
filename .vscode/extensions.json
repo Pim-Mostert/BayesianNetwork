@@ -5,7 +5,6 @@
 	"recommendations": [
 		"shd101wyy.markdown-preview-enhanced",
 		"hediet.vscode-drawio",
-		// "ms-python.isort",
-		// "ms-python.flake8"
+		"charliermarsh.ruff",
 	],
 }

@@ -4,8 +4,8 @@ from typing import Callable, List, Optional
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork
-from bayesian_network.inference_machines.evidence import EvidenceBatches
 from bayesian_network.inference_machines.common import IInferenceMachine
+from bayesian_network.inference_machines.evidence import IEvidenceBatches
 from bayesian_network.optimizers.common import (
     IBatchOptimizer,
     OptimizationEvaluator,
@@ -34,7 +34,7 @@ class EmBatchOptimizer(IBatchOptimizer):
         self._logger = logger
         self._evaluator = evaluator
 
-    def optimize(self, batches: EvidenceBatches):
+    def optimize(self, batches: IEvidenceBatches):
         for iteration in range(self._settings.num_iterations):
             # Get batch
             evidence = batches.next()

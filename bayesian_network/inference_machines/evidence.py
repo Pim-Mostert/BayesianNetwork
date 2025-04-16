@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import List
 
 import torch
@@ -42,7 +43,13 @@ class Evidence:
         return self._data
 
 
-class EvidenceBatches:
+class IEvidenceBatches(ABC):
+    @abstractmethod
+    def next(self) -> Evidence:
+        pass
+
+
+class EvidenceBatches(IEvidenceBatches):
     def __init__(
         self,
         evidence: Evidence,
