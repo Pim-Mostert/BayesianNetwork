@@ -9,7 +9,7 @@ from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.common import InferenceMachineSettings
 from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
 from bayesian_network.inference_machines.naive.naive_inference_machine import NaiveInferenceMachine
-from bayesian_network.optimizers.common import OptimizationEvaluator, OptimizationEvaluatorSettings
+from bayesian_network.optimizers.common import Evaluator, EvaluatorSettings
 from bayesian_network.optimizers.em_batch_optimizer import (
     EmBatchOptimizer,
     EmBatchOptimizerSettings,
@@ -92,8 +92,8 @@ class TestEmOptimizer(TestCase):
                 observed_nodes=observed_nodes,
             )
 
-        evaluator = OptimizationEvaluator(
-            settings=OptimizationEvaluatorSettings(iteration_interval=1),
+        evaluator = Evaluator(
+            settings=EvaluatorSettings(iteration_interval=1),
             evidence=self.evidence,
             inference_machine_factory=inference_machine_factory,
         )

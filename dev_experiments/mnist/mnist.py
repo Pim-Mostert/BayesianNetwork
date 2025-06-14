@@ -11,8 +11,8 @@ from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
     SpaInferenceMachineSettings,
 )
 from bayesian_network.optimizers.common import (
-    OptimizationEvaluator,
-    OptimizationEvaluatorSettings,
+    MnistBatchEvaluatorSettings,
+    MnistBatchEvaluator,
     OptimizerLogger,
 )
 from bayesian_network.optimizers.em_batch_optimizer import (
@@ -90,27 +90,33 @@ network = BayesianNetwork(nodes, parents)
 # %% Fit network
 logger = OptimizerLogger()
 
-evaluator = OptimizationEvaluator(
-    OptimizationEvaluatorSettings(iteration_interval=1),
+evaluator_settings = MnistBatchEvaluatorSettings(
+    iteration_interval=1,
+    batch_size=1000,
+    gamma=gamma,
+    torch_settings=torch_settings,
+)
+
+evaluator = MnistBatchEvaluator(
+    settings=evaluator_settings,
     inference_machine_factory=lambda network: SpaInferenceMachine(
         settings=SpaInferenceMachineSettings(
             torch_settings=torch_settings,
             num_iterations=3,
-            average_log_likelihood=False,
+            average_log_likelihood=True,
         ),
         bayesian_network=network,
         observed_nodes=Ys,
-        num_observations=evidence.num_observations,
+        num_observations=evaluator_settings.batch_size,
     ),
-    evidence=evidence,
 )
 
 em_batch_optimizer_settings = EmBatchOptimizerSettings(
     num_iterations=50,
-    learning_rate=0.01,
+    learning_rate=0.05,
 )
 
-batches = EvidenceBatches(evidence, 50)
+batches = EvidenceBatches(evidence, 100)
 
 em_optimizer = EmBatchOptimizer(
     bayesian_network=network,

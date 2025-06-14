@@ -1,4 +1,5 @@
 from bayesian_network.bayesian_network import Node
+from bayesian_network.inference_machines.common import InferenceMachineSettings
 from bayesian_network.inference_machines.evidence import Evidence
 
 
@@ -10,6 +11,11 @@ from typing import List
 
 
 class IInferenceMachine(ABC):
+    @property
+    @abstractmethod
+    def settings(self) -> InferenceMachineSettings:
+        pass
+
     @abstractmethod
     def enter_evidence(self, evidence: Evidence) -> None:
         pass

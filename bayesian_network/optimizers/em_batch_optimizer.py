@@ -6,9 +6,8 @@ import torch
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.inference_machines.abstractions import IInferenceMachine
 from bayesian_network.inference_machines.evidence import IEvidenceBatches
-from bayesian_network.optimizers.abstractions import IBatchOptimizer
+from bayesian_network.optimizers.abstractions import IBatchOptimizer, IEvaluator
 from bayesian_network.optimizers.common import (
-    OptimizationEvaluator,
     OptimizerLogger,
 )
 
@@ -26,7 +25,7 @@ class EmBatchOptimizer(IBatchOptimizer):
         inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
         settings: EmBatchOptimizerSettings,
         logger: Optional[OptimizerLogger] = None,
-        evaluator: Optional[OptimizationEvaluator] = None,
+        evaluator: Optional[IEvaluator] = None,
     ):
         self._bayesian_network = bayesian_network
         self._inference_machine_factory = inference_machine_factory

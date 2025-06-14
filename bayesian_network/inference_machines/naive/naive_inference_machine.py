@@ -15,7 +15,7 @@ class NaiveInferenceMachine(IInferenceMachine):
         bayesian_network: BayesianNetwork,
         observed_nodes: List[Node],
     ):
-        self.settings = settings
+        self._settings = settings
 
         self.dims = [node.num_states for node in bayesian_network.nodes]
         self.num_nodes = len(bayesian_network.nodes)
@@ -33,12 +33,16 @@ class NaiveInferenceMachine(IInferenceMachine):
             None, ...
         ]
 
+    @property
+    def settings(self) -> InferenceMachineSettings:
+        return self._settings
+
     def _calculate_p_complete(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
         dims = [node.num_states for node in nodes]
         p = torch.ones(
             dims,
-            dtype=self.settings.torch_settings.dtype,
-            device=self.settings.torch_settings.device,
+            dtype=self._settings.torch_settings.dtype,
+            device=self._settings.torch_settings.device,
         )
 
         for node in nodes:
@@ -67,8 +71,8 @@ class NaiveInferenceMachine(IInferenceMachine):
 
         p_evidence = torch.ones(
             dims,
-            dtype=self.settings.torch_settings.dtype,
-            device=self.settings.torch_settings.device,
+            dtype=self._settings.torch_settings.dtype,
+            device=self._settings.torch_settings.device,
         )
 
         for i, observed_node_index in enumerate(self.observed_nodes_indices):
@@ -109,7 +113,7 @@ class NaiveInferenceMachine(IInferenceMachine):
         if self.num_observed_nodes == 0:
             raise Exception("Log likelihood can't be calculated with 0 observed nodes")
 
-        if self.settings.average_log_likelihood:
+        if self._settings.average_log_likelihood:
             return self._log_likelihoods.mean().item()
         else:
             return self._log_likelihoods.sum().item()
