@@ -3,7 +3,7 @@ from unittest import TestCase
 import torch
 
 
-class TestCaseExtended(TestCase):
+class BaseTestCase(TestCase):
     def assertArrayAlmostEqual(self, actual: torch.Tensor, expected: torch.Tensor, places=None):
         self.assertEqual(actual.shape, expected.shape, msg="Shapes of tensors don't match")
 

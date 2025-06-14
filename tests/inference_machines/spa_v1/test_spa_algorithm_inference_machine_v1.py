@@ -17,7 +17,10 @@ from tests.inference_machines.torch_inference_machine_generic_tests import (
 # Helper class
 class TestSpaInferenceMachineV1Base(ABC):
     def get_torch_settings(self) -> TorchSettings:
-        return TorchSettings()
+        return TorchSettings(
+            device="cpu",
+            dtype="float64",
+        )
 
     def create_inference_machine(
         self,

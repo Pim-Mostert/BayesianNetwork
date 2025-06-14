@@ -1,7 +1,6 @@
 from typing import List, Tuple
 from unittest import TestCase
 
-import torch
 from torch.nn.functional import one_hot
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
@@ -20,19 +19,10 @@ from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
 
 class TestEmOptimizer(TestCase):
     def get_torch_settings(self) -> TorchSettings:
-        torch_settings = TorchSettings()
-
-        device = torch_settings.device
-
-        print(f"Running tests with configuration: {torch_settings}")
-
-        if device == torch.device("cuda") and not torch.cuda.is_available():
-            self.fail("Running tests for cuda, but cuda not available.")
-
-        if device == torch.device("mps") and not torch.backends.mps.is_available():
-            self.fail("Running tests for mps, but mps not available.")
-
-        return torch_settings
+        return TorchSettings(
+            device="cpu",
+            dtype="float64",
+        )
 
     def _generate_random_network(
         self,
