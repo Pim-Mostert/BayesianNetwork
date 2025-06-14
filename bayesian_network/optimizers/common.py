@@ -53,14 +53,14 @@ class OptimizerLogger:
 
 
 @dataclass(frozen=True)
-class OptimizationEvalulatorSettings:
+class OptimizationEvaluatorSettings:
     iteration_interval: int
 
 
 class OptimizationEvaluator:
     def __init__(
         self,
-        settings: OptimizationEvalulatorSettings,
+        settings: OptimizationEvaluatorSettings,
         inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
         evidence: Evidence,
     ):

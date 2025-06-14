@@ -12,7 +12,7 @@ from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
 )
 from bayesian_network.optimizers.common import (
     OptimizationEvaluator,
-    OptimizationEvalulatorSettings,
+    OptimizationEvaluatorSettings,
     OptimizerLogger,
 )
 from bayesian_network.optimizers.em_batch_optimizer import (
@@ -91,7 +91,7 @@ network = BayesianNetwork(nodes, parents)
 logger = OptimizerLogger()
 
 evaluator = OptimizationEvaluator(
-    OptimizationEvalulatorSettings(iteration_interval=1),
+    OptimizationEvaluatorSettings(iteration_interval=1),
     inference_machine_factory=lambda network: SpaInferenceMachine(
         settings=SpaInferenceMachineSettings(
             torch_settings=torch_settings,
