@@ -5,8 +5,9 @@ import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.inference_machines.common import IInferenceMachine
-from bayesian_network.optimizers.common import IOptimizer, OptimizerLogger
+from bayesian_network.inference_machines.abstractions import IInferenceMachine
+from bayesian_network.optimizers.abstractions import IOptimizer
+from bayesian_network.optimizers.common import OptimizerLogger
 
 
 @dataclass(frozen=True)

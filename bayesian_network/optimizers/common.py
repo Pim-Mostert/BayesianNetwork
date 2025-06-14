@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 import logging
@@ -7,20 +6,8 @@ from typing import Callable, Dict
 import numpy as np
 
 from bayesian_network.bayesian_network import BayesianNetwork
-from bayesian_network.inference_machines.common import IInferenceMachine
-from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
-
-
-class IBatchOptimizer(ABC):
-    @abstractmethod
-    def optimize(self, batches: EvidenceBatches) -> None:
-        pass
-
-
-class IOptimizer(ABC):
-    @abstractmethod
-    def optimize(self, evidence: Evidence) -> None:
-        pass
+from bayesian_network.inference_machines.abstractions import IInferenceMachine
+from bayesian_network.inference_machines.evidence import Evidence
 
 
 @dataclass(frozen=True)

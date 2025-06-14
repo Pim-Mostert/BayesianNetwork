@@ -3,8 +3,9 @@ from typing import Dict, List
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.inference_machines.abstractions import IInferenceMachine
 from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.inference_machines.common import IInferenceMachine, InferenceMachineSettings
+from bayesian_network.inference_machines.common import InferenceMachineSettings
 
 
 class NaiveInferenceMachine(IInferenceMachine):

@@ -3,7 +3,8 @@ from typing import List
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.inference_machines.common import IInferenceMachine, InferenceMachineSettings
+from bayesian_network.inference_machines.abstractions import IInferenceMachine
+from bayesian_network.inference_machines.common import InferenceMachineSettings
 from bayesian_network.inference_machines.naive.naive_inference_machine import NaiveInferenceMachine
 from tests.inference_machines.torch_inference_machine_generic_tests import (
     TorchInferenceMachineGenericTests,

@@ -10,8 +10,9 @@ from bayesian_network.common.statistics import generate_random_probability_matri
 from bayesian_network.common.tensor_helpers import rescale_tensors
 from bayesian_network.common.testcase_extensions import TestCaseExtended
 from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.abstractions import IInferenceMachine
 from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.inference_machines.common import IInferenceMachine, InferenceMachineSettings
+from bayesian_network.inference_machines.common import InferenceMachineSettings
 
 
 class TorchInferenceMachineGenericTests:

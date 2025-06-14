@@ -4,10 +4,10 @@ from typing import Callable, List, Optional
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork
-from bayesian_network.inference_machines.common import IInferenceMachine
+from bayesian_network.inference_machines.abstractions import IInferenceMachine
 from bayesian_network.inference_machines.evidence import IEvidenceBatches
+from bayesian_network.optimizers.abstractions import IBatchOptimizer
 from bayesian_network.optimizers.common import (
-    IBatchOptimizer,
     OptimizationEvaluator,
     OptimizerLogger,
 )
