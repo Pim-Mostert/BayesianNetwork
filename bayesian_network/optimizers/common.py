@@ -38,8 +38,9 @@ class OptimizerLogger:
 
         logging.info("%s", log)
 
-    def get_log_likelihood(self):
-        return np.array([self._logs[iteration].ll for iteration in sorted(self._logs)])
+    @property
+    def log_likelihoods(self):
+        return {iteration: self._logs[iteration].ll for iteration in sorted(self._logs)}
 
 
 @dataclass(frozen=True)

@@ -1,13 +1,13 @@
 # %% Imports
 import matplotlib.pyplot as plt
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 import torchvision
 from torchvision import transforms
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
+from bayesian_network.inference_machines.evidence import EvidenceLoader
 from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
     SpaInferenceMachine,
     SpaInferenceMachineSettings,
@@ -47,21 +47,8 @@ mnist = torchvision.datasets.MNIST(
     ),
     download=True,
 )
-
-data, _ = next(
-    iter(
-        DataLoader(
-            dataset=mnist,
-            batch_size=len(mnist),
-        )
-    )
-)
+mnist_subset = Subset(mnist, range(0, 10000))
 height, width = 28, 28
-
-evidence = Evidence.from_data(data, torch_settings)
-
-# Make selection
-evidence = evidence[:1000]
 
 # %% Define network
 num_classes = 10
@@ -98,19 +85,13 @@ network = BayesianNetwork(nodes, parents)
 # %% Fit network
 logger = OptimizerLogger()
 
-evaluator_batch_size = 1000
-evaluator_settings = BatchEvaluatorSettings(
-    iteration_interval=1,
-    torch_settings=torch_settings,
-)
 
-data_loader = DataLoader(
-    dataset=mnist,
-    batch_size=evaluator_batch_size,
-)
-
+evaluator_batch_size = 100
 evaluator = BatchEvaluator(
-    settings=evaluator_settings,
+    settings=BatchEvaluatorSettings(
+        iteration_interval=25,
+        torch_settings=torch_settings,
+    ),
     inference_machine_factory=lambda network: SpaInferenceMachine(
         settings=SpaInferenceMachineSettings(
             torch_settings=torch_settings,
@@ -121,15 +102,23 @@ evaluator = BatchEvaluator(
         observed_nodes=Ys,
         num_observations=evaluator_batch_size,
     ),
-    data_loader=data_loader,
+    data_loader=DataLoader(
+        dataset=mnist_subset,
+        batch_size=evaluator_batch_size,
+    ),
 )
 
-em_batch_optimizer_settings = EmBatchOptimizerSettings(
-    num_iterations=50,
-    learning_rate=0.05,
+
+batch_size = 100
+evidence_loader = EvidenceLoader(
+    DataLoader(
+        dataset=mnist_subset,
+        batch_size=batch_size,
+        shuffle=True,
+    ),
+    torch_settings=torch_settings,
 )
 
-batches = EvidenceBatches(evidence, 100)
 
 em_optimizer = EmBatchOptimizer(
     bayesian_network=network,
@@ -141,13 +130,16 @@ em_optimizer = EmBatchOptimizer(
         ),
         bayesian_network=network,
         observed_nodes=Ys,
-        num_observations=batches.batch_size,
+        num_observations=batch_size,
     ),
-    settings=em_batch_optimizer_settings,
+    settings=EmBatchOptimizerSettings(
+        learning_rate=0.1,
+    ),
     logger=logger,
     evaluator=evaluator,
 )
-em_optimizer.optimize(batches)
+
+em_optimizer.optimize(evidence_loader)
 
 # %% Plot
 
@@ -160,3 +152,9 @@ for i in range(0, 10):
     plt.imshow(w[:, i, 1].reshape(28, 28))
     plt.colorbar()
     plt.clim(0, 1)
+
+# %%
+
+plt.figure()
+plt.plot(list(logger.log_likelihoods.keys()), list(logger.log_likelihoods.values()))
+plt.plot(list(evaluator.log_likelihoods.keys()), list(evaluator.log_likelihoods.values()))

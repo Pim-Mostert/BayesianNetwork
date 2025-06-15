@@ -7,7 +7,7 @@ from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.common import InferenceMachineSettings
-from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
+from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
 from bayesian_network.inference_machines.naive.naive_inference_machine import NaiveInferenceMachine
 from bayesian_network.optimizers.common import Evaluator, EvaluatorSettings
 from bayesian_network.optimizers.em_batch_optimizer import (
@@ -106,7 +106,7 @@ class TestEmOptimizer(TestCase):
         )
 
         # Act
-        evidence_batches = EvidenceBatches(self.evidence, 100)
+        evidence_batches = EvidenceLoader(self.evidence, 100)
         sut.optimize(evidence_batches)
 
         # Assert either greater or almost equal

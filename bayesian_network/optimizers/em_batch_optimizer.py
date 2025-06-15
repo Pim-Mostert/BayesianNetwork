@@ -5,7 +5,7 @@ import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.inference_machines.abstractions import IInferenceMachine
-from bayesian_network.inference_machines.evidence import IEvidenceBatches
+from bayesian_network.inference_machines.evidence import EvidenceLoader
 from bayesian_network.optimizers.abstractions import IBatchOptimizer, IEvaluator
 from bayesian_network.optimizers.common import (
     OptimizerLogger,
@@ -14,7 +14,6 @@ from bayesian_network.optimizers.common import (
 
 @dataclass(frozen=True)
 class EmBatchOptimizerSettings:
-    num_iterations: int
     learning_rate: float
 
 
@@ -33,11 +32,8 @@ class EmBatchOptimizer(IBatchOptimizer):
         self._logger = logger
         self._evaluator = evaluator
 
-    def optimize(self, batches: IEvidenceBatches):
-        for iteration in range(self._settings.num_iterations):
-            # Get batch
-            evidence = batches.next()
-
+    def optimize(self, batches: EvidenceLoader):
+        for iteration, evidence in enumerate(batches):
             # Construct inference machine
             inference_machine = self._inference_machine_factory(self._bayesian_network)
 

@@ -1,6 +1,6 @@
 from typing import Dict
 from bayesian_network.bayesian_network import BayesianNetwork
-from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
+from bayesian_network.inference_machines.evidence import EvidenceLoader, Evidence
 
 
 from abc import ABC, abstractmethod
@@ -14,7 +14,7 @@ class IOptimizer(ABC):
 
 class IBatchOptimizer(ABC):
     @abstractmethod
-    def optimize(self, batches: EvidenceBatches) -> None:
+    def optimize(self, batches: EvidenceLoader) -> None:
         pass
 
 

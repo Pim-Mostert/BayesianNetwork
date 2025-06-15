@@ -1,7 +1,7 @@
-from abc import ABC, abstractmethod
 from typing import List
 
 import torch
+from torch.utils.data import DataLoader
 
 from bayesian_network.common.torch_settings import TorchSettings
 
@@ -53,28 +53,20 @@ class Evidence:
         return self._data
 
 
-class IEvidenceBatches(ABC):
-    @abstractmethod
-    def next(self) -> Evidence:
-        pass
-
-
-class EvidenceBatches(IEvidenceBatches):
+class EvidenceLoader:
     def __init__(
         self,
-        evidence: Evidence,
-        batch_size: int,
+        data_loader: DataLoader,
+        torch_settings: TorchSettings,
     ):
-        if batch_size > evidence.num_observations:
-            raise ValueError("batch_size may not be larger than number of observations in evidence")
+        self._data_loader = data_loader
+        self._torch_settings = torch_settings
 
-        self.evidence = evidence
-        self.batch_size = batch_size
+    def __len__(self):
+        return len(self._data_loader)
 
-    def next(self) -> Evidence:
-        num_observations = self.evidence.num_observations
-        batch_size = self.batch_size
+    def __iter__(self):
+        for batch, _ in iter(self._data_loader):
+            evidence = Evidence.from_data(batch, self._torch_settings)
 
-        indices = torch.randperm(num_observations)[0:batch_size]
-
-        return self.evidence[indices]
+            yield evidence
