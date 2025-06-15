@@ -7,8 +7,6 @@ from typing import Callable, Dict
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-import torchvision
-from torchvision import transforms
 
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.common.torch_settings import TorchSettings
@@ -84,35 +82,22 @@ class Evaluator(IEvaluator):
 
 
 @dataclass(frozen=True)
-class MnistBatchEvaluatorSettings(EvaluatorSettings):
+class BatchEvaluatorSettings(EvaluatorSettings):
     torch_settings: TorchSettings
-    batch_size: int
-    gamma: float
 
 
-class MnistBatchEvaluator(IEvaluator):
+class BatchEvaluator(IEvaluator):
     def __init__(
         self,
-        settings: MnistBatchEvaluatorSettings,
+        settings: BatchEvaluatorSettings,
         inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
+        data_loader: DataLoader,
     ):
         self._settings = settings
         self._inference_machine_factory = inference_machine_factory
+        self._data_loader = data_loader
+
         self._log_likelihoods: Dict[int, float] = {}
-
-        mnist = torchvision.datasets.MNIST(
-            "./experiments/mnist",
-            train=True,
-            download=True,
-            transform=transforms.ToTensor(),
-        )
-
-        self._num_samples = len(mnist)
-
-        self._data_loader = DataLoader(
-            dataset=mnist,
-            batch_size=self._settings.batch_size,
-        )
 
     def _morph_into_evidence(self, data):
         height, width = data.shape[2:4]
@@ -123,10 +108,7 @@ class MnistBatchEvaluator(IEvaluator):
         data = data.reshape([num_observations, num_features])
 
         evidence = Evidence(
-            [
-                torch.stack([1 - x, x]).T
-                for x in data.T * (1 - self._settings.gamma) + self._settings.gamma / 2
-            ],
+            [torch.stack([1 - x, x]).T for x in data.T],
             self._settings.torch_settings,
         )
 
@@ -148,9 +130,7 @@ class MnistBatchEvaluator(IEvaluator):
             ll = inference_machine.log_likelihood()
 
             if inference_machine.settings.average_log_likelihood:
-                # TODO:
-                # - Deze class generiek maken voor elke DataLoader?
-                ll *= len(batch) / self._num_samples
+                ll *= len(batch) / len(self._data_loader.dataset)
 
             lls.append(ll)
 

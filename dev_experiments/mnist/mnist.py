@@ -1,7 +1,9 @@
 # %% Imports
 import matplotlib.pyplot as plt
 import torch
+from torch.utils.data import DataLoader
 import torchvision
+from torchvision import transforms
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
@@ -11,8 +13,8 @@ from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
     SpaInferenceMachineSettings,
 )
 from bayesian_network.optimizers.common import (
-    MnistBatchEvaluatorSettings,
-    MnistBatchEvaluator,
+    BatchEvaluatorSettings,
+    BatchEvaluator,
     OptimizerLogger,
 )
 from bayesian_network.optimizers.em_batch_optimizer import (
@@ -31,24 +33,38 @@ torch_settings = TorchSettings(
 )
 
 # %% Load data
+gamma = 0.001
+
 mnist = torchvision.datasets.MNIST(
     "./experiments/mnist",
     train=True,
-    # transform=transforms.ToTensor(),
+    transform=transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.Lambda(lambda x: x * (1 - gamma) + gamma / 2),
+        ]
+    ),
     download=True,
 )
-data = mnist.data / 255
 
-height, width = data.shape[1:3]
+data, _ = next(
+    iter(
+        DataLoader(
+            dataset=mnist,
+            batch_size=len(mnist),
+        )
+    )
+)
+
+height, width = data.shape[2:4]
 num_features = height * width
 num_observations = data.shape[0]
 
 # Morph into evidence structure
 data = data.reshape([num_observations, num_features])
 
-gamma = 0.001
 evidence = Evidence(
-    [torch.stack([1 - x, x]).T for x in data.T * (1 - gamma) + gamma / 2],
+    [torch.stack([1 - x, x]).T for x in data.T],
     torch_settings,
 )
 
@@ -90,14 +106,18 @@ network = BayesianNetwork(nodes, parents)
 # %% Fit network
 logger = OptimizerLogger()
 
-evaluator_settings = MnistBatchEvaluatorSettings(
+evaluator_batch_size = 1000
+evaluator_settings = BatchEvaluatorSettings(
     iteration_interval=1,
-    batch_size=1000,
-    gamma=gamma,
     torch_settings=torch_settings,
 )
 
-evaluator = MnistBatchEvaluator(
+data_loader = DataLoader(
+    dataset=mnist,
+    batch_size=evaluator_batch_size,
+)
+
+evaluator = BatchEvaluator(
     settings=evaluator_settings,
     inference_machine_factory=lambda network: SpaInferenceMachine(
         settings=SpaInferenceMachineSettings(
@@ -107,8 +127,9 @@ evaluator = MnistBatchEvaluator(
         ),
         bayesian_network=network,
         observed_nodes=Ys,
-        num_observations=evaluator_settings.batch_size,
+        num_observations=evaluator_batch_size,
     ),
+    data_loader=data_loader,
 )
 
 em_batch_optimizer_settings = EmBatchOptimizerSettings(
