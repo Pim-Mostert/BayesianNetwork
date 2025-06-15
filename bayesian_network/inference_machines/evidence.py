@@ -22,6 +22,16 @@ class Evidence:
     def get_observation(self, index: int) -> torch.Tensor:
         return torch.stack(self[index].data)
 
+    @staticmethod
+    def from_data(
+        data: torch.Tensor,
+        torch_settings: TorchSettings,
+    ) -> "Evidence":
+        return Evidence(
+            [torch.stack([1 - x, x]).T for x in data.T],
+            torch_settings,
+        )
+
     def __init__(
         self,
         data: List[torch.Tensor],

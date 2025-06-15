@@ -1,11 +1,9 @@
 from dataclasses import dataclass
 from datetime import datetime
 import logging
-import time
 from typing import Callable, Dict
 
 import numpy as np
-import torch
 from torch.utils.data import DataLoader
 
 from bayesian_network.bayesian_network import BayesianNetwork
@@ -99,31 +97,18 @@ class BatchEvaluator(IEvaluator):
 
         self._log_likelihoods: Dict[int, float] = {}
 
-    def _morph_into_evidence(self, data):
-        height, width = data.shape[2:4]
-        num_features = height * width
-        num_observations = data.shape[0]
-
-        # Morph into evidence structure
-        data = data.reshape([num_observations, num_features])
-
-        evidence = Evidence(
-            [torch.stack([1 - x, x]).T for x in data.T],
-            self._settings.torch_settings,
-        )
-
-        return evidence
-
     def evaluate(self, iteration: int, network: BayesianNetwork):
         if not (iteration % self._settings.iteration_interval) == 0:
             return
 
         inference_machine = self._inference_machine_factory(network)
 
-        start = time.time()
         lls = []
         for _, (batch, _) in enumerate(self._data_loader):
-            evidence = self._morph_into_evidence(batch)
+            evidence = Evidence.from_data(
+                batch,
+                self._settings.torch_settings,
+            )
 
             inference_machine.enter_evidence(evidence)
 
@@ -136,8 +121,6 @@ class BatchEvaluator(IEvaluator):
 
         total_ll = np.array(lls).sum()
         self._log_likelihoods[iteration] = total_ll
-
-        print(f"It took {time.time() - start} seconds")
 
         logging.info("Evaluated for iteration %s, ll: %s", iteration, total_ll)
 

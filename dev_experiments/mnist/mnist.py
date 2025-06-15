@@ -42,6 +42,7 @@ mnist = torchvision.datasets.MNIST(
         [
             transforms.ToTensor(),
             transforms.Lambda(lambda x: x * (1 - gamma) + gamma / 2),
+            transforms.Lambda(lambda x: x.flatten()),
         ]
     ),
     download=True,
@@ -55,18 +56,9 @@ data, _ = next(
         )
     )
 )
+height, width = 28, 28
 
-height, width = data.shape[2:4]
-num_features = height * width
-num_observations = data.shape[0]
-
-# Morph into evidence structure
-data = data.reshape([num_observations, num_features])
-
-evidence = Evidence(
-    [torch.stack([1 - x, x]).T for x in data.T],
-    torch_settings,
-)
+evidence = Evidence.from_data(data, torch_settings)
 
 # Make selection
 evidence = evidence[:1000]
