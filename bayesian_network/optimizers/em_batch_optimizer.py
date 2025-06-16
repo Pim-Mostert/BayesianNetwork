@@ -15,6 +15,7 @@ from bayesian_network.optimizers.common import (
 @dataclass(frozen=True)
 class EmBatchOptimizerSettings:
     learning_rate: float
+    num_epochs: int
 
 
 class EmBatchOptimizer(IBatchOptimizer):
@@ -32,28 +33,31 @@ class EmBatchOptimizer(IBatchOptimizer):
         self._logger = logger
         self._evaluator = evaluator
 
-    def optimize(self, batches: EvidenceLoader):
-        for iteration, evidence in enumerate(batches):
-            # Construct inference machine
-            inference_machine = self._inference_machine_factory(self._bayesian_network)
+    def optimize(self, evidence_loader: EvidenceLoader):
+        for epoch in range(self._settings.num_epochs):
+            for iteration, evidence in enumerate(evidence_loader):
+                iteration = epoch * len(evidence_loader) + iteration
 
-            # Enter evidence
-            inference_machine.enter_evidence(evidence)
-            ll = inference_machine.log_likelihood()
+                # Construct inference machine
+                inference_machine = self._inference_machine_factory(self._bayesian_network)
 
-            # E-step
-            p_conditionals = self._e_step(inference_machine)
+                # Enter evidence
+                inference_machine.enter_evidence(evidence)
+                ll = inference_machine.log_likelihood()
 
-            # M-step
-            self._m_step(p_conditionals)
+                # E-step
+                p_conditionals = self._e_step(inference_machine)
 
-            # Log iteration
-            if self._logger:
-                self._logger.log_iteration(iteration, ll)
+                # M-step
+                self._m_step(p_conditionals)
 
-            # Evaluate
-            if self._evaluator:
-                self._evaluator.evaluate(iteration, self._bayesian_network)
+                # Log iteration
+                if self._logger:
+                    self._logger.log_iteration(iteration, ll)
+
+                # Evaluate
+                if self._evaluator:
+                    self._evaluator.evaluate(iteration, self._bayesian_network)
 
     def _e_step(self, inference_machine: IInferenceMachine) -> List[torch.Tensor]:
         # List[torch.Tensor((observations x parent1 x parent2 x ... x child))]

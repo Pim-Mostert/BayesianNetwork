@@ -36,7 +36,7 @@ class TorchInferenceMachineGenericTests:
 
         @abstractmethod
         def get_torch_settings(self) -> TorchSettings:
-            pass
+            raise NotImplementedError()
 
         @abstractmethod
         def create_inference_machine(
@@ -46,7 +46,7 @@ class TorchInferenceMachineGenericTests:
             observed_nodes: List[Node],
             num_observations: int,
         ) -> IInferenceMachine:
-            pass
+            raise NotImplementedError()
 
     class NetworkWithSingleParents(TorchInferenceMachineGenericTestsBase, ABC):
         def setUp(self):

@@ -11,21 +11,21 @@ from abc import ABC, abstractmethod
 class IOptimizer(ABC):
     @abstractmethod
     def optimize(self, evidence: Evidence) -> None:
-        pass
+        raise NotImplementedError()
 
 
 class IBatchOptimizer(ABC):
     @abstractmethod
-    def optimize(self, batches: EvidenceLoader) -> None:
-        pass
+    def optimize(self, evidence_loader: EvidenceLoader) -> None:
+        raise NotImplementedError()
 
 
 class IEvaluator(ABC):
     @abstractmethod
     def evaluate(self, iteration: int, network: BayesianNetwork):
-        pass
+        raise NotImplementedError()
 
     @property
     @abstractmethod
     def log_likelihoods(self) -> Tuple[np.ndarray, np.ndarray]:
-        pass
+        raise NotImplementedError()

@@ -1,8 +1,10 @@
 # %% Imports
+import logging
+
 import matplotlib.pyplot as plt
 import torch
-from torch.utils.data import DataLoader, Subset
 import torchvision
+from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
@@ -13,16 +15,14 @@ from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
     SpaInferenceMachineSettings,
 )
 from bayesian_network.optimizers.common import (
-    BatchEvaluatorSettings,
     BatchEvaluator,
+    BatchEvaluatorSettings,
     OptimizerLogger,
 )
 from bayesian_network.optimizers.em_batch_optimizer import (
     EmBatchOptimizer,
     EmBatchOptimizerSettings,
 )
-
-import logging
 
 logging.basicConfig(level=logging.INFO)
 
@@ -36,7 +36,7 @@ torch_settings = TorchSettings(
 gamma = 0.001
 
 mnist = torchvision.datasets.MNIST(
-    "./experiments/mnist",
+    "./dev_experiments/mnist",
     train=True,
     transform=transforms.Compose(
         [
@@ -47,7 +47,7 @@ mnist = torchvision.datasets.MNIST(
     ),
     download=True,
 )
-mnist_subset = Subset(mnist, range(0, 10000))
+mnist_subset = Subset(mnist, range(0, 1000))
 height, width = 28, 28
 
 # %% Define network
@@ -86,10 +86,10 @@ network = BayesianNetwork(nodes, parents)
 logger = OptimizerLogger()
 
 
-evaluator_batch_size = 100
+evaluator_batch_size = 1000
 evaluator = BatchEvaluator(
     settings=BatchEvaluatorSettings(
-        iteration_interval=25,
+        iteration_interval=10,
         torch_settings=torch_settings,
     ),
     inference_machine_factory=lambda network: SpaInferenceMachine(
@@ -133,7 +133,8 @@ em_optimizer = EmBatchOptimizer(
         num_observations=batch_size,
     ),
     settings=EmBatchOptimizerSettings(
-        learning_rate=0.1,
+        learning_rate=0.002,
+        num_epochs=25,
     ),
     logger=logger,
     evaluator=evaluator,
@@ -156,5 +157,8 @@ for i in range(0, 10):
 # %%
 
 plt.figure()
-plt.plot(list(logger.log_likelihoods.keys()), list(logger.log_likelihoods.values()))
-plt.plot(list(evaluator.log_likelihoods.keys()), list(evaluator.log_likelihoods.values()))
+plt.plot(*logger.log_likelihoods, label="Train")
+plt.plot(*evaluator.log_likelihoods, label="Eval")
+plt.legend()
+
+# %%

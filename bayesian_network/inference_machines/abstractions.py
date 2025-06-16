@@ -14,20 +14,20 @@ class IInferenceMachine(ABC):
     @property
     @abstractmethod
     def settings(self) -> InferenceMachineSettings:
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def enter_evidence(self, evidence: Evidence) -> None:
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def infer_single_nodes(self, nodes: List[Node]) -> List[torch.Tensor]:
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def infer_nodes_with_parents(self, child_nodes: List[Node]) -> List[torch.Tensor]:
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def log_likelihood(self) -> float:
-        pass
+        raise NotImplementedError()
