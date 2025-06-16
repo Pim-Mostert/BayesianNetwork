@@ -1,4 +1,6 @@
-from typing import Dict
+from typing import Tuple
+
+import numpy as np
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.inference_machines.evidence import EvidenceLoader, Evidence
 
@@ -25,5 +27,5 @@ class IEvaluator(ABC):
 
     @property
     @abstractmethod
-    def log_likelihoods(self) -> Dict[int, float]:
+    def log_likelihoods(self) -> Tuple[np.ndarray, np.ndarray]:
         pass

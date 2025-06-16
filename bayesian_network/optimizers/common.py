@@ -40,7 +40,10 @@ class OptimizerLogger:
 
     @property
     def log_likelihoods(self):
-        return {iteration: self._logs[iteration].ll for iteration in sorted(self._logs)}
+        iterations = sorted(self._logs)
+        log_likelihoods = [self._logs[iteration].ll for iteration in iterations]
+
+        return np.array(iterations), np.array(log_likelihoods)
 
 
 @dataclass(frozen=True)
@@ -76,8 +79,11 @@ class Evaluator(IEvaluator):
         logging.info("Evaluated for iteration %s, ll: %s", iteration, ll)
 
     @property
-    def log_likelihoods(self) -> Dict[int, float]:
-        return self._log_likelihoods
+    def log_likelihoods(self):
+        iterations = sorted(self._log_likelihoods)
+        log_likelihoods = [self._log_likelihoods[iteration] for iteration in iterations]
+
+        return np.array(iterations), np.array(log_likelihoods)
 
 
 @dataclass(frozen=True)
@@ -127,4 +133,7 @@ class BatchEvaluator(IEvaluator):
 
     @property
     def log_likelihoods(self):
-        return self._log_likelihoods
+        iterations = sorted(self._log_likelihoods)
+        log_likelihoods = [self._log_likelihoods[iteration] for iteration in iterations]
+
+        return np.array(iterations), np.array(log_likelihoods)
