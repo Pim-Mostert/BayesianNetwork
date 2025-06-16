@@ -1,15 +1,16 @@
 from typing import List, Tuple
 from unittest import TestCase
 
-from torch.nn.functional import one_hot
+import torch
+from torch.utils.data import DataLoader, TensorDataset
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.common import InferenceMachineSettings
-from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
+from bayesian_network.inference_machines.evidence import EvidenceLoader
 from bayesian_network.inference_machines.naive.naive_inference_machine import NaiveInferenceMachine
-from bayesian_network.optimizers.common import Evaluator, EvaluatorSettings
+from bayesian_network.optimizers.common import BatchEvaluator, EvaluatorSettings
 from bayesian_network.optimizers.em_batch_optimizer import (
     EmBatchOptimizer,
     EmBatchOptimizerSettings,
@@ -57,7 +58,8 @@ class TestEmOptimizer(TestCase):
 
     def setUp(self):
         self.em_batch_optimizer_settings = EmBatchOptimizerSettings(
-            num_iterations=20, learning_rate=0.01
+            num_epochs=2,
+            learning_rate=0.01,
         )
 
         # Create true network
@@ -71,12 +73,16 @@ class TestEmOptimizer(TestCase):
 
         num_samples = 1000
         data = sampler.sample(num_samples, self.observed_nodes)
-        evidence = Evidence(
-            [one_hot(node_data.long()) for node_data in data.T],
-            self.get_torch_settings(),
+
+        evidence_loader = EvidenceLoader(
+            data_loader=DataLoader(
+                dataset=TensorDataset(data, torch.zeros(num_samples)),
+                batch_size=100,
+            ),
+            torch_settings=self.get_torch_settings(),
         )
 
-        self.evidence = evidence
+        self.evidence_loader = evidence_loader
 
     def test_optimize_increase_log_likelihood_full_data(self):
         # Assign
@@ -92,10 +98,12 @@ class TestEmOptimizer(TestCase):
                 observed_nodes=observed_nodes,
             )
 
-        evaluator = Evaluator(
-            settings=EvaluatorSettings(iteration_interval=1),
-            evidence=self.evidence,
+        evaluator = BatchEvaluator(
+            settings=EvaluatorSettings(
+                iteration_interval=1,
+            ),
             inference_machine_factory=inference_machine_factory,
+            evidence_loader=self.evidence_loader,
         )
 
         sut = EmBatchOptimizer(
@@ -106,13 +114,12 @@ class TestEmOptimizer(TestCase):
         )
 
         # Act
-        evidence_batches = EvidenceLoader(self.evidence, 100)
-        sut.optimize(evidence_batches)
+        sut.optimize(self.evidence_loader)
 
         # Assert either greater or almost equal
-        ll = evaluator.get_log_likelihood()
+        _, ll = evaluator.log_likelihoods
 
-        for iteration in range(1, self.em_batch_optimizer_settings.num_iterations):
+        for iteration in range(1, len(ll)):
             diff = ll[iteration] - ll[iteration - 1]
 
             if diff > 0:

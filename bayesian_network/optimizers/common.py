@@ -4,12 +4,10 @@ import logging
 from typing import Callable, Dict
 
 import numpy as np
-from torch.utils.data import DataLoader
 
 from bayesian_network.bayesian_network import BayesianNetwork
-from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.abstractions import IInferenceMachine
-from bayesian_network.inference_machines.evidence import Evidence
+from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
 from bayesian_network.optimizers.abstractions import IEvaluator
 
 
@@ -86,21 +84,16 @@ class Evaluator(IEvaluator):
         return np.array(iterations), np.array(log_likelihoods)
 
 
-@dataclass(frozen=True)
-class BatchEvaluatorSettings(EvaluatorSettings):
-    torch_settings: TorchSettings
-
-
 class BatchEvaluator(IEvaluator):
     def __init__(
         self,
-        settings: BatchEvaluatorSettings,
+        settings: EvaluatorSettings,
         inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
-        data_loader: DataLoader,
+        evidence_loader: EvidenceLoader,
     ):
         self._settings = settings
         self._inference_machine_factory = inference_machine_factory
-        self._data_loader = data_loader
+        self._evidence_loader = evidence_loader
 
         self._log_likelihoods: Dict[int, float] = {}
 
@@ -111,18 +104,13 @@ class BatchEvaluator(IEvaluator):
         inference_machine = self._inference_machine_factory(network)
 
         lls = []
-        for _, (batch, _) in enumerate(self._data_loader):
-            evidence = Evidence.from_data(
-                batch,
-                self._settings.torch_settings,
-            )
-
+        for _, (evidence, _) in enumerate(self._evidence_loader):
             inference_machine.enter_evidence(evidence)
 
             ll = inference_machine.log_likelihood()
 
             if inference_machine.settings.average_log_likelihood:
-                ll *= len(batch) / len(self._data_loader.dataset)
+                ll *= len(evidence) / self._evidence_loader.num_observations
 
             lls.append(ll)
 

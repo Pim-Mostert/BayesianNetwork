@@ -16,7 +16,7 @@ from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
 )
 from bayesian_network.optimizers.common import (
     BatchEvaluator,
-    BatchEvaluatorSettings,
+    # BatchEvaluatorSettings,
     OptimizerLogger,
 )
 from bayesian_network.optimizers.em_batch_optimizer import (
@@ -102,7 +102,7 @@ evaluator = BatchEvaluator(
         observed_nodes=Ys,
         num_observations=evaluator_batch_size,
     ),
-    data_loader=DataLoader(
+    evidence_loader=DataLoader(
         dataset=mnist_subset,
         batch_size=evaluator_batch_size,
     ),
@@ -134,7 +134,7 @@ em_optimizer = EmBatchOptimizer(
     ),
     settings=EmBatchOptimizerSettings(
         learning_rate=0.002,
-        num_epochs=25,
+        num_epochs=10,
     ),
     logger=logger,
     evaluator=evaluator,

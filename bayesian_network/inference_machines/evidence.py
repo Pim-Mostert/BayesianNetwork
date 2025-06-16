@@ -13,6 +13,9 @@ class Evidence:
         num_observations: {self.num_observations}
         """
 
+    def __len__(self) -> int:
+        return self.num_observations
+
     def __getitem__(self, index) -> "Evidence":
         return Evidence(
             [x[index] for x in self._data],
@@ -70,3 +73,7 @@ class EvidenceLoader:
             evidence = Evidence.from_data(batch, self._torch_settings)
 
             yield evidence
+
+    @property
+    def num_observations(self) -> int:
+        return len(self._data_loader.dataset)
