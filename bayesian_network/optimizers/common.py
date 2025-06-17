@@ -104,7 +104,7 @@ class BatchEvaluator(IEvaluator):
         inference_machine = self._inference_machine_factory(network)
 
         lls = []
-        for _, (evidence, _) in enumerate(self._evidence_loader):
+        for iteration, evidence in enumerate(self._evidence_loader):
             inference_machine.enter_evidence(evidence)
 
             ll = inference_machine.log_likelihood()

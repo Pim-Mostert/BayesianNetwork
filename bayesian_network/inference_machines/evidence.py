@@ -1,6 +1,7 @@
 from typing import List
 
 import torch
+from torch.nn.functional import one_hot
 from torch.utils.data import DataLoader
 
 from bayesian_network.common.torch_settings import TorchSettings
@@ -9,9 +10,9 @@ from bayesian_network.common.torch_settings import TorchSettings
 class Evidence:
     def __repr__(self) -> str:
         return f"""
-        num_observed_nodes: {self.num_observed_nodes},
-        num_observations: {self.num_observations}
-        """
+num_observed_nodes: {self.num_observed_nodes},
+num_observations: {self.num_observations}
+"""
 
     def __len__(self) -> int:
         return self.num_observations
@@ -31,7 +32,7 @@ class Evidence:
         torch_settings: TorchSettings,
     ) -> "Evidence":
         return Evidence(
-            [torch.stack([1 - x, x]).T for x in data.T],
+            [one_hot(node_data.long()) for node_data in data.T],
             torch_settings,
         )
 
