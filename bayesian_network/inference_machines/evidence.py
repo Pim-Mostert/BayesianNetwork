@@ -1,7 +1,6 @@
 from typing import List
 
 import torch
-from torch.nn.functional import one_hot
 from torch.utils.data import DataLoader
 
 from bayesian_network.common.torch_settings import TorchSettings
@@ -32,7 +31,7 @@ num_observations: {self.num_observations}
         torch_settings: TorchSettings,
     ) -> "Evidence":
         return Evidence(
-            [one_hot(node_data.long()) for node_data in data.T],
+            [node_data for node_data in data.permute([1, 0, -1])],
             torch_settings,
         )
 

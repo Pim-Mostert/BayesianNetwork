@@ -16,7 +16,7 @@ from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
 )
 from bayesian_network.optimizers.common import (
     BatchEvaluator,
-    # BatchEvaluatorSettings,
+    EvaluatorSettings,
     OptimizerLogger,
 )
 from bayesian_network.optimizers.em_batch_optimizer import (
@@ -42,7 +42,15 @@ mnist = torchvision.datasets.MNIST(
         [
             transforms.ToTensor(),
             transforms.Lambda(lambda x: x * (1 - gamma) + gamma / 2),
-            transforms.Lambda(lambda x: x.flatten()),
+            transforms.Lambda(
+                lambda x: torch.stack(
+                    [
+                        1 - x.flatten(),
+                        x.flatten(),
+                    ],
+                    dim=1,
+                )
+            ),
         ]
     ),
     download=True,
@@ -88,9 +96,8 @@ logger = OptimizerLogger()
 
 evaluator_batch_size = 1000
 evaluator = BatchEvaluator(
-    settings=BatchEvaluatorSettings(
+    settings=EvaluatorSettings(
         iteration_interval=10,
-        torch_settings=torch_settings,
     ),
     inference_machine_factory=lambda network: SpaInferenceMachine(
         settings=SpaInferenceMachineSettings(
@@ -102,9 +109,12 @@ evaluator = BatchEvaluator(
         observed_nodes=Ys,
         num_observations=evaluator_batch_size,
     ),
-    evidence_loader=DataLoader(
-        dataset=mnist_subset,
-        batch_size=evaluator_batch_size,
+    evidence_loader=EvidenceLoader(
+        DataLoader(
+            dataset=mnist_subset,
+            batch_size=evaluator_batch_size,
+        ),
+        torch_settings=torch_settings,
     ),
 )
 
@@ -119,7 +129,6 @@ evidence_loader = EvidenceLoader(
     torch_settings=torch_settings,
 )
 
-
 em_optimizer = EmBatchOptimizer(
     bayesian_network=network,
     inference_machine_factory=lambda network: SpaInferenceMachine(
@@ -133,7 +142,7 @@ em_optimizer = EmBatchOptimizer(
         num_observations=batch_size,
     ),
     settings=EmBatchOptimizerSettings(
-        learning_rate=0.002,
+        learning_rate=0.02,
         num_epochs=10,
     ),
     logger=logger,
