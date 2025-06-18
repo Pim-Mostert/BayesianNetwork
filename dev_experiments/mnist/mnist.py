@@ -42,6 +42,8 @@ mnist = torchvision.datasets.MNIST(
         [
             transforms.ToTensor(),
             transforms.Lambda(lambda x: x * (1 - gamma) + gamma / 2),
+            DIT GAAT NIET WERKEN. HET IS NIET GEGARANDAARD DAT ELKE NODE
+            EVENVEEL STATES HEEFT. DUS HET KAN NIET IN EEN TENSOR. 
             transforms.Lambda(
                 lambda x: torch.stack(
                     [

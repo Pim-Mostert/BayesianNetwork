@@ -2,6 +2,7 @@ from typing import List, Tuple
 from unittest import TestCase
 
 import torch
+from torch.nn.functional import one_hot
 from torch.utils.data import DataLoader, TensorDataset
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
@@ -73,6 +74,7 @@ class TestEmOptimizer(TestCase):
 
         num_samples = 1000
         data = sampler.sample(num_samples, self.observed_nodes)
+        data = torch.stack([one_hot(node_data.long()) for node_data in data.T], dim=1)
 
         evidence_loader = EvidenceLoader(
             data_loader=DataLoader(
