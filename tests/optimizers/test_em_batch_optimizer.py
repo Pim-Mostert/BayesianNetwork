@@ -9,7 +9,7 @@ from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.common import InferenceMachineSettings
-from bayesian_network.inference_machines.evidence import EvidenceLoader
+from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
 from bayesian_network.inference_machines.naive.naive_inference_machine import NaiveInferenceMachine
 from bayesian_network.optimizers.common import BatchEvaluator, EvaluatorSettings
 from bayesian_network.optimizers.em_batch_optimizer import (
@@ -74,14 +74,16 @@ class TestEmOptimizer(TestCase):
 
         num_samples = 1000
         data = sampler.sample(num_samples, self.observed_nodes)
-        data = torch.stack([one_hot(node_data.long()) for node_data in data.T], dim=1)
 
         evidence_loader = EvidenceLoader(
             data_loader=DataLoader(
                 dataset=TensorDataset(data, torch.zeros(num_samples)),
                 batch_size=100,
             ),
-            torch_settings=self.get_torch_settings(),
+            transform=lambda batch: Evidence(
+                [one_hot(x.long()) for x in batch.T],
+                self.get_torch_settings(),
+            ),
         )
 
         self.evidence_loader = evidence_loader

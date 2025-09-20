@@ -1,4 +1,4 @@
-from typing import List
+from typing import Callable, List
 
 import torch
 from torch.utils.data import DataLoader
@@ -25,16 +25,6 @@ num_observations: {self.num_observations}
     def get_observation(self, index: int) -> torch.Tensor:
         return torch.stack(self[index].data)
 
-    @staticmethod
-    def from_data(
-        data: torch.Tensor,
-        torch_settings: TorchSettings,
-    ) -> "Evidence":
-        return Evidence(
-            [node_data for node_data in data.permute([1, 0, -1])],
-            torch_settings,
-        )
-
     def __init__(
         self,
         data: List[torch.Tensor],
@@ -60,17 +50,17 @@ class EvidenceLoader:
     def __init__(
         self,
         data_loader: DataLoader,
-        torch_settings: TorchSettings,
+        transform: Callable[[torch.Tensor], Evidence],
     ):
         self._data_loader = data_loader
-        self._torch_settings = torch_settings
+        self._transform = transform
 
     def __len__(self):
         return len(self._data_loader)
 
     def __iter__(self):
         for batch, _ in iter(self._data_loader):
-            evidence = Evidence.from_data(batch, self._torch_settings)
+            evidence = self._transform(batch)
 
             yield evidence
 

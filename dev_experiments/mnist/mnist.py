@@ -9,7 +9,7 @@ from torchvision import transforms
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.inference_machines.evidence import EvidenceLoader
+from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
 from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
     SpaInferenceMachine,
     SpaInferenceMachineSettings,
@@ -41,18 +41,8 @@ mnist = torchvision.datasets.MNIST(
     transform=transforms.Compose(
         [
             transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.flatten()),
             transforms.Lambda(lambda x: x * (1 - gamma) + gamma / 2),
-            DIT GAAT NIET WERKEN. HET IS NIET GEGARANDAARD DAT ELKE NODE
-            EVENVEEL STATES HEEFT. DUS HET KAN NIET IN EEN TENSOR. 
-            transforms.Lambda(
-                lambda x: torch.stack(
-                    [
-                        1 - x.flatten(),
-                        x.flatten(),
-                    ],
-                    dim=1,
-                )
-            ),
         ]
     ),
     download=True,
@@ -91,9 +81,24 @@ parents[Q] = []
 
 network = BayesianNetwork(nodes, parents)
 
-
 # %% Fit network
 logger = OptimizerLogger()
+
+
+def transform(batch: torch.Tensor) -> Evidence:
+    return Evidence(
+        [
+            torch.stack(
+                [
+                    1 - x,
+                    x,
+                ],
+                dim=1,
+            )
+            for x in batch.T
+        ],
+        torch_settings,
+    )
 
 
 evaluator_batch_size = 1000
@@ -116,7 +121,7 @@ evaluator = BatchEvaluator(
             dataset=mnist_subset,
             batch_size=evaluator_batch_size,
         ),
-        torch_settings=torch_settings,
+        transform=transform,
     ),
 )
 
@@ -128,7 +133,7 @@ evidence_loader = EvidenceLoader(
         batch_size=batch_size,
         shuffle=True,
     ),
-    torch_settings=torch_settings,
+    transform=transform,
 )
 
 em_optimizer = EmBatchOptimizer(
