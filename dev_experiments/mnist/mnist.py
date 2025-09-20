@@ -1,26 +1,28 @@
 # %% Imports
+import logging
+
 import matplotlib.pyplot as plt
 import torch
 import torchvision
+from torch.utils.data import DataLoader, Subset
+from torchvision import transforms
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
+from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
 from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
     SpaInferenceMachine,
     SpaInferenceMachineSettings,
 )
 from bayesian_network.optimizers.common import (
-    OptimizationEvaluator,
-    OptimizationEvalulatorSettings,
+    BatchEvaluator,
+    EvaluatorSettings,
     OptimizerLogger,
 )
 from bayesian_network.optimizers.em_batch_optimizer import (
     EmBatchOptimizer,
     EmBatchOptimizerSettings,
 )
-
-import logging
 
 logging.basicConfig(level=logging.INFO)
 
@@ -31,29 +33,22 @@ torch_settings = TorchSettings(
 )
 
 # %% Load data
+gamma = 0.001
+
 mnist = torchvision.datasets.MNIST(
-    "./experiments/mnist",
+    "./dev_experiments/mnist",
     train=True,
-    # transform=transforms.ToTensor(),
+    transform=transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.flatten()),
+            transforms.Lambda(lambda x: x * (1 - gamma) + gamma / 2),
+        ]
+    ),
     download=True,
 )
-data = mnist.data / 255
-
-height, width = data.shape[1:3]
-num_features = height * width
-num_observations = data.shape[0]
-
-# Morph into evidence structure
-data = data.reshape([num_observations, num_features])
-
-gamma = 0.001
-evidence = Evidence(
-    [torch.stack([1 - x, x]).T for x in data.T * (1 - gamma) + gamma / 2],
-    torch_settings,
-)
-
-# Make selection
-evidence = evidence[:1000]
+mnist_subset = Subset(mnist, range(0, 1000))
+height, width = 28, 28
 
 # %% Define network
 num_classes = 10
@@ -86,31 +81,60 @@ parents[Q] = []
 
 network = BayesianNetwork(nodes, parents)
 
-
 # %% Fit network
 logger = OptimizerLogger()
 
-evaluator = OptimizationEvaluator(
-    OptimizationEvalulatorSettings(iteration_interval=1),
+
+def transform(batch: torch.Tensor) -> Evidence:
+    return Evidence(
+        [
+            torch.stack(
+                [
+                    1 - x,
+                    x,
+                ],
+                dim=1,
+            )
+            for x in batch.T
+        ],
+        torch_settings,
+    )
+
+
+evaluator_batch_size = 1000
+evaluator = BatchEvaluator(
+    settings=EvaluatorSettings(
+        iteration_interval=10,
+    ),
     inference_machine_factory=lambda network: SpaInferenceMachine(
         settings=SpaInferenceMachineSettings(
             torch_settings=torch_settings,
             num_iterations=3,
-            average_log_likelihood=False,
+            average_log_likelihood=True,
         ),
         bayesian_network=network,
         observed_nodes=Ys,
-        num_observations=evidence.num_observations,
+        num_observations=evaluator_batch_size,
     ),
-    evidence=evidence,
+    evidence_loader=EvidenceLoader(
+        DataLoader(
+            dataset=mnist_subset,
+            batch_size=evaluator_batch_size,
+        ),
+        transform=transform,
+    ),
 )
 
-em_batch_optimizer_settings = EmBatchOptimizerSettings(
-    num_iterations=50,
-    learning_rate=0.01,
-)
 
-batches = EvidenceBatches(evidence, 50)
+batch_size = 100
+evidence_loader = EvidenceLoader(
+    DataLoader(
+        dataset=mnist_subset,
+        batch_size=batch_size,
+        shuffle=True,
+    ),
+    transform=transform,
+)
 
 em_optimizer = EmBatchOptimizer(
     bayesian_network=network,
@@ -122,13 +146,17 @@ em_optimizer = EmBatchOptimizer(
         ),
         bayesian_network=network,
         observed_nodes=Ys,
-        num_observations=batches.batch_size,
+        num_observations=batch_size,
     ),
-    settings=em_batch_optimizer_settings,
+    settings=EmBatchOptimizerSettings(
+        learning_rate=0.02,
+        num_epochs=10,
+    ),
     logger=logger,
     evaluator=evaluator,
 )
-em_optimizer.optimize(batches)
+
+em_optimizer.optimize(evidence_loader)
 
 # %% Plot
 
@@ -141,3 +169,12 @@ for i in range(0, 10):
     plt.imshow(w[:, i, 1].reshape(28, 28))
     plt.colorbar()
     plt.clim(0, 1)
+
+# %%
+
+plt.figure()
+plt.plot(*logger.log_likelihoods, label="Train")
+plt.plot(*evaluator.log_likelihoods, label="Eval")
+plt.legend()
+
+# %%

@@ -21,7 +21,7 @@ class FactorGraphNodeBase(ABC):
 
     @abstractmethod
     def calculate_outputs(self) -> None:
-        pass
+        raise NotImplementedError()
 
 
 class VariableNode(FactorGraphNodeBase):

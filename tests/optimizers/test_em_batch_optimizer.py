@@ -3,14 +3,15 @@ from unittest import TestCase
 
 import torch
 from torch.nn.functional import one_hot
+from torch.utils.data import DataLoader, TensorDataset
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.common import InferenceMachineSettings
-from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
+from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
 from bayesian_network.inference_machines.naive.naive_inference_machine import NaiveInferenceMachine
-from bayesian_network.optimizers.common import OptimizationEvaluator, OptimizationEvalulatorSettings
+from bayesian_network.optimizers.common import BatchEvaluator, EvaluatorSettings
 from bayesian_network.optimizers.em_batch_optimizer import (
     EmBatchOptimizer,
     EmBatchOptimizerSettings,
@@ -20,19 +21,10 @@ from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
 
 class TestEmOptimizer(TestCase):
     def get_torch_settings(self) -> TorchSettings:
-        torch_settings = TorchSettings()
-
-        device = torch_settings.device
-
-        print(f"Running tests with configuration: {torch_settings}")
-
-        if device == torch.device("cuda") and not torch.cuda.is_available():
-            self.fail("Running tests for cuda, but cuda not available.")
-
-        if device == torch.device("mps") and not torch.backends.mps.is_available():
-            self.fail("Running tests for mps, but mps not available.")
-
-        return torch_settings
+        return TorchSettings(
+            device="cpu",
+            dtype="float64",
+        )
 
     def _generate_random_network(
         self,
@@ -67,7 +59,8 @@ class TestEmOptimizer(TestCase):
 
     def setUp(self):
         self.em_batch_optimizer_settings = EmBatchOptimizerSettings(
-            num_iterations=20, learning_rate=0.01
+            num_epochs=2,
+            learning_rate=0.01,
         )
 
         # Create true network
@@ -81,12 +74,19 @@ class TestEmOptimizer(TestCase):
 
         num_samples = 1000
         data = sampler.sample(num_samples, self.observed_nodes)
-        evidence = Evidence(
-            [one_hot(node_data.long()) for node_data in data.T],
-            self.get_torch_settings(),
+
+        evidence_loader = EvidenceLoader(
+            data_loader=DataLoader(
+                dataset=TensorDataset(data, torch.zeros(num_samples)),
+                batch_size=100,
+            ),
+            transform=lambda batch: Evidence(
+                [one_hot(x.long()) for x in batch.T],
+                self.get_torch_settings(),
+            ),
         )
 
-        self.evidence = evidence
+        self.evidence_loader = evidence_loader
 
     def test_optimize_increase_log_likelihood_full_data(self):
         # Assign
@@ -102,10 +102,12 @@ class TestEmOptimizer(TestCase):
                 observed_nodes=observed_nodes,
             )
 
-        evaluator = OptimizationEvaluator(
-            settings=OptimizationEvalulatorSettings(iteration_interval=1),
-            evidence=self.evidence,
+        evaluator = BatchEvaluator(
+            settings=EvaluatorSettings(
+                iteration_interval=1,
+            ),
             inference_machine_factory=inference_machine_factory,
+            evidence_loader=self.evidence_loader,
         )
 
         sut = EmBatchOptimizer(
@@ -116,13 +118,12 @@ class TestEmOptimizer(TestCase):
         )
 
         # Act
-        evidence_batches = EvidenceBatches(self.evidence, 100)
-        sut.optimize(evidence_batches)
+        sut.optimize(self.evidence_loader)
 
         # Assert either greater or almost equal
-        ll = evaluator.get_log_likelihood()
+        _, ll = evaluator.log_likelihoods
 
-        for iteration in range(1, self.em_batch_optimizer_settings.num_iterations):
+        for iteration in range(1, len(ll)):
             diff = ll[iteration] - ll[iteration - 1]
 
             if diff > 0:

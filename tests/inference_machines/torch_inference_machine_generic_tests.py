@@ -8,14 +8,15 @@ import torch
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.tensor_helpers import rescale_tensors
-from bayesian_network.common.testcase_extensions import TestCaseExtended
+from bayesian_network.common.testcase_extensions import BaseTestCase
 from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.abstractions import IInferenceMachine
 from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.inference_machines.common import IInferenceMachine, InferenceMachineSettings
+from bayesian_network.inference_machines.common import InferenceMachineSettings
 
 
 class TorchInferenceMachineGenericTests:
-    class TorchInferenceMachineGenericTestsBase(TestCaseExtended, ABC):
+    class TorchInferenceMachineGenericTestsBase(BaseTestCase, ABC):
         def setUp(self):
             # Set default SpaInferenceMachineSettings
             self.settings = InferenceMachineSettings(
@@ -35,7 +36,7 @@ class TorchInferenceMachineGenericTests:
 
         @abstractmethod
         def get_torch_settings(self) -> TorchSettings:
-            pass
+            raise NotImplementedError()
 
         @abstractmethod
         def create_inference_machine(
@@ -45,7 +46,7 @@ class TorchInferenceMachineGenericTests:
             observed_nodes: List[Node],
             num_observations: int,
         ) -> IInferenceMachine:
-            pass
+            raise NotImplementedError()
 
     class NetworkWithSingleParents(TorchInferenceMachineGenericTestsBase, ABC):
         def setUp(self):

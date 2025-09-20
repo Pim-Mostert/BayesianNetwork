@@ -4,10 +4,10 @@ from typing import Callable, List, Optional
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.inference_machines.abstractions import IInferenceMachine
 from bayesian_network.inference_machines.evidence import Evidence
 from bayesian_network.inference_machines.spa_v1.factor_graph import FactorGraph
 from bayesian_network.inference_machines.common import (
-    IInferenceMachine,
     InferenceMachineSettings,
 )
 
@@ -26,16 +26,20 @@ class SpaInferenceMachine(IInferenceMachine):
         observed_nodes: List[Node],
         num_observations: int,
     ):
-        self.settings = settings
+        self._settings = settings
         self.factor_graph = FactorGraph(
             bayesian_network,
             observed_nodes,
-            torch_settings=self.settings.torch_settings,
+            torch_settings=self._settings.torch_settings,
             num_observations=num_observations,
         )
         self.observed_nodes = observed_nodes
         self.num_observations = num_observations
         self.must_iterate: bool = True
+
+    @property
+    def settings(self) -> InferenceMachineSettings:
+        return self._settings
 
     def infer_single_nodes(self, nodes: List[Node]) -> List[torch.Tensor]:
         if self.must_iterate:
@@ -90,11 +94,11 @@ class SpaInferenceMachine(IInferenceMachine):
         return p
 
     def _iterate(self):
-        for iteration in range(self.settings.num_iterations):
+        for iteration in range(self._settings.num_iterations):
             self.factor_graph.iterate()
 
-            if self.settings.callback:
-                self.settings.callback(iteration)
+            if self._settings.callback:
+                self._settings.callback(iteration)
 
         self.must_iterate = False
 
@@ -118,7 +122,7 @@ class SpaInferenceMachine(IInferenceMachine):
 
         log_likelihoods = torch.log(local_likelihoods)
 
-        if self.settings.average_log_likelihood:
+        if self._settings.average_log_likelihood:
             return log_likelihoods.sum(dim=1).mean().item()
         else:
             return log_likelihoods.sum().item()

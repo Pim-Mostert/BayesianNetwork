@@ -1,7 +1,7 @@
-from abc import ABC, abstractmethod
-from typing import List
+from typing import Callable, List
 
 import torch
+from torch.utils.data import DataLoader
 
 from bayesian_network.common.torch_settings import TorchSettings
 
@@ -9,9 +9,12 @@ from bayesian_network.common.torch_settings import TorchSettings
 class Evidence:
     def __repr__(self) -> str:
         return f"""
-        num_observed_nodes: {self.num_observed_nodes},
-        num_observations: {self.num_observations}
-        """
+num_observed_nodes: {self.num_observed_nodes},
+num_observations: {self.num_observations}
+"""
+
+    def __len__(self) -> int:
+        return self.num_observations
 
     def __getitem__(self, index) -> "Evidence":
         return Evidence(
@@ -43,28 +46,24 @@ class Evidence:
         return self._data
 
 
-class IEvidenceBatches(ABC):
-    @abstractmethod
-    def next(self) -> Evidence:
-        pass
-
-
-class EvidenceBatches(IEvidenceBatches):
+class EvidenceLoader:
     def __init__(
         self,
-        evidence: Evidence,
-        batch_size: int,
+        data_loader: DataLoader,
+        transform: Callable[[torch.Tensor], Evidence],
     ):
-        if batch_size > evidence.num_observations:
-            raise ValueError("batch_size may not be larger than number of observations in evidence")
+        self._data_loader = data_loader
+        self._transform = transform
 
-        self.evidence = evidence
-        self.batch_size = batch_size
+    def __len__(self):
+        return len(self._data_loader)
 
-    def next(self) -> Evidence:
-        num_observations = self.evidence.num_observations
-        batch_size = self.batch_size
+    def __iter__(self):
+        for batch, _ in iter(self._data_loader):
+            evidence = self._transform(batch)
 
-        indices = torch.randperm(num_observations)[0:batch_size]
+            yield evidence
 
-        return self.evidence[indices]
+    @property
+    def num_observations(self) -> int:
+        return len(self._data_loader.dataset)

@@ -7,4 +7,4 @@ from bayesian_network.bayesian_network import Node
 class IBayesianNetworkSampler(ABC):
     @abstractmethod
     def sample(self, num_samples: int, nodes: List[Node]):
-        pass
+        raise NotImplementedError()

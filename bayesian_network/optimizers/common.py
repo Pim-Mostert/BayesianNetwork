@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 import logging
@@ -7,20 +6,9 @@ from typing import Callable, Dict
 import numpy as np
 
 from bayesian_network.bayesian_network import BayesianNetwork
-from bayesian_network.inference_machines.common import IInferenceMachine
-from bayesian_network.inference_machines.evidence import Evidence, EvidenceBatches
-
-
-class IBatchOptimizer(ABC):
-    @abstractmethod
-    def optimize(self, batches: EvidenceBatches) -> None:
-        pass
-
-
-class IOptimizer(ABC):
-    @abstractmethod
-    def optimize(self, evidence: Evidence) -> None:
-        pass
+from bayesian_network.inference_machines.abstractions import IInferenceMachine
+from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
+from bayesian_network.optimizers.abstractions import IEvaluator
 
 
 @dataclass(frozen=True)
@@ -48,19 +36,23 @@ class OptimizerLogger:
 
         logging.info("%s", log)
 
-    def get_log_likelihood(self):
-        return np.array([self._logs[iteration].ll for iteration in sorted(self._logs)])
+    @property
+    def log_likelihoods(self):
+        iterations = sorted(self._logs)
+        log_likelihoods = [self._logs[iteration].ll for iteration in iterations]
+
+        return np.array(iterations), np.array(log_likelihoods)
 
 
 @dataclass(frozen=True)
-class OptimizationEvalulatorSettings:
+class EvaluatorSettings:
     iteration_interval: int
 
 
-class OptimizationEvaluator:
+class Evaluator(IEvaluator):
     def __init__(
         self,
-        settings: OptimizationEvalulatorSettings,
+        settings: EvaluatorSettings,
         inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
         evidence: Evidence,
     ):
@@ -84,7 +76,52 @@ class OptimizationEvaluator:
 
         logging.info("Evaluated for iteration %s, ll: %s", iteration, ll)
 
-    def get_log_likelihood(self) -> np.ndarray:
-        return np.array(
-            [self._log_likelihoods[iteration] for iteration in sorted(self._log_likelihoods)]
-        )
+    @property
+    def log_likelihoods(self):
+        iterations = sorted(self._log_likelihoods)
+        log_likelihoods = [self._log_likelihoods[iteration] for iteration in iterations]
+
+        return np.array(iterations), np.array(log_likelihoods)
+
+
+class BatchEvaluator(IEvaluator):
+    def __init__(
+        self,
+        settings: EvaluatorSettings,
+        inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
+        evidence_loader: EvidenceLoader,
+    ):
+        self._settings = settings
+        self._inference_machine_factory = inference_machine_factory
+        self._evidence_loader = evidence_loader
+
+        self._log_likelihoods: Dict[int, float] = {}
+
+    def evaluate(self, iteration: int, network: BayesianNetwork):
+        if not (iteration % self._settings.iteration_interval) == 0:
+            return
+
+        inference_machine = self._inference_machine_factory(network)
+
+        lls = []
+        for evidence in iter(self._evidence_loader):
+            inference_machine.enter_evidence(evidence)
+
+            ll = inference_machine.log_likelihood()
+
+            if inference_machine.settings.average_log_likelihood:
+                ll *= len(evidence) / self._evidence_loader.num_observations
+
+            lls.append(ll)
+
+        total_ll = np.array(lls).sum()
+        self._log_likelihoods[iteration] = total_ll
+
+        logging.info("Evaluated for iteration %s, ll: %s", iteration, total_ll)
+
+    @property
+    def log_likelihoods(self):
+        iterations = sorted(self._log_likelihoods)
+        log_likelihoods = [self._log_likelihoods[iteration] for iteration in iterations]
+
+        return np.array(iterations), np.array(log_likelihoods)
