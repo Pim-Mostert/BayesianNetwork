@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 import logging
-from typing import Callable, Dict
+from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 
@@ -14,56 +14,55 @@ from bayesian_network.optimizers.abstractions import IEvaluator
 @dataclass(frozen=True)
 class Log:
     ts: datetime
+    epoch: int
     iteration: int
     ll: float
 
 
 class OptimizerLogger:
-    def __init__(self):
-        self._logs: Dict[int, Log] = {}
+    def __init__(self, should_log: Callable[[int, int], bool] | None = None):
+        self._should_log = should_log
+        self._logs: List[Log] = []
 
-    def log_iteration(self, iteration: int, ll: float):
+    def log(self, epoch: int, iteration: int, ll: float):
+        if self._should_log:
+            if not self._should_log(epoch, iteration):
+                return
+
         if iteration in self._logs:
             raise RuntimeError(f"A log for iteration {iteration} was already added")
 
         log = Log(
             datetime.now(),
+            epoch,
             iteration,
             ll,
         )
 
-        self._logs[iteration] = log
+        self._logs.append(log)
 
         logging.info("%s", log)
 
     @property
-    def log_likelihoods(self):
-        iterations = sorted(self._logs)
-        log_likelihoods = [self._logs[iteration].ll for iteration in iterations]
-
-        return np.array(iterations), np.array(log_likelihoods)
-
-
-@dataclass(frozen=True)
-class EvaluatorSettings:
-    iteration_interval: int
+    def logs(self):
+        return self._logs
 
 
 class Evaluator(IEvaluator):
     def __init__(
         self,
-        settings: EvaluatorSettings,
         inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
         evidence: Evidence,
+        should_evaluate: Callable[[int, int], bool],
     ):
-        self._settings = settings
         self._inference_machine_factory = inference_machine_factory
         self._evidence = evidence
+        self._should_evaluate = should_evaluate
 
-        self._log_likelihoods: Dict[int, float] = {}
+        self._log_likelihoods: Dict[Tuple[int, int], float] = {}
 
-    def evaluate(self, iteration: int, network: BayesianNetwork):
-        if not (iteration % self._settings.iteration_interval) == 0:
+    def evaluate(self, epoch: int, iteration: int, network: BayesianNetwork):
+        if not self._should_evaluate(epoch, iteration):
             return
 
         inference_machine = self._inference_machine_factory(network)
@@ -72,33 +71,30 @@ class Evaluator(IEvaluator):
 
         ll = inference_machine.log_likelihood()
 
-        self._log_likelihoods[iteration] = ll
+        self._log_likelihoods[(epoch, iteration)] = ll
 
-        logging.info("Evaluated for iteration %s, ll: %s", iteration, ll)
+        logging.info("Evaluated for epoch %s, iteration: %s - ll: %s", epoch, iteration, ll)
 
     @property
     def log_likelihoods(self):
-        iterations = sorted(self._log_likelihoods)
-        log_likelihoods = [self._log_likelihoods[iteration] for iteration in iterations]
-
-        return np.array(iterations), np.array(log_likelihoods)
+        return self._log_likelihoods
 
 
 class BatchEvaluator(IEvaluator):
     def __init__(
         self,
-        settings: EvaluatorSettings,
         inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
         evidence_loader: EvidenceLoader,
+        should_evaluate: Callable[[int, int], bool],
     ):
-        self._settings = settings
         self._inference_machine_factory = inference_machine_factory
         self._evidence_loader = evidence_loader
+        self._should_evaluate = should_evaluate
 
-        self._log_likelihoods: Dict[int, float] = {}
+        self._log_likelihoods: Dict[Tuple[int, int], float] = {}
 
-    def evaluate(self, iteration: int, network: BayesianNetwork):
-        if not (iteration % self._settings.iteration_interval) == 0:
+    def evaluate(self, epoch: int, iteration: int, network: BayesianNetwork):
+        if not self._should_evaluate(epoch, iteration):
             return
 
         inference_machine = self._inference_machine_factory(network)
@@ -115,13 +111,10 @@ class BatchEvaluator(IEvaluator):
             lls.append(ll)
 
         total_ll = np.array(lls).sum()
-        self._log_likelihoods[iteration] = total_ll
+        self._log_likelihoods[(epoch, iteration)] = total_ll
 
-        logging.info("Evaluated for iteration %s, ll: %s", iteration, total_ll)
+        logging.info("Evaluated for epoch %s, ll: %s", epoch, total_ll)
 
     @property
     def log_likelihoods(self):
-        iterations = sorted(self._log_likelihoods)
-        log_likelihoods = [self._log_likelihoods[iteration] for iteration in iterations]
-
-        return np.array(iterations), np.array(log_likelihoods)
+        return self._log_likelihoods

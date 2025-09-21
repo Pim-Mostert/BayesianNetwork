@@ -1,6 +1,5 @@
-from typing import Tuple
+from typing import Dict, Tuple
 
-import numpy as np
 from bayesian_network.bayesian_network import BayesianNetwork
 from bayesian_network.inference_machines.evidence import EvidenceLoader, Evidence
 
@@ -22,10 +21,10 @@ class IBatchOptimizer(ABC):
 
 class IEvaluator(ABC):
     @abstractmethod
-    def evaluate(self, iteration: int, network: BayesianNetwork):
+    def evaluate(self, epoch: int, iteration: int, network: BayesianNetwork):
         raise NotImplementedError()
 
     @property
     @abstractmethod
-    def log_likelihoods(self) -> Tuple[np.ndarray, np.ndarray]:
+    def log_likelihoods(self) -> Dict[Tuple[int, int], float]:
         raise NotImplementedError()
