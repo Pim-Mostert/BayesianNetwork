@@ -15,21 +15,28 @@ from bayesian_network.optimizers.abstractions import IEvaluator
 class Log:
     ts: datetime
     iteration: int
-    ll: float
+    ll_train: float | None
+    ll_eval: float | None
 
 
 class OptimizerLogger:
     def __init__(self):
         self._logs: Dict[int, Log] = {}
 
-    def log_iteration(self, iteration: int, ll: float):
+    def log_iteration(
+        self,
+        iteration: int,
+        ll_train: float | None,
+        ll_eval: float | None,
+    ):
         if iteration in self._logs:
             raise RuntimeError(f"A log for iteration {iteration} was already added")
 
         log = Log(
             datetime.now(),
             iteration,
-            ll,
+            ll_train,
+            ll_eval,
         )
 
         self._logs[iteration] = log
