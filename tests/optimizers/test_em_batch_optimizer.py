@@ -11,7 +11,7 @@ from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.common import InferenceMachineSettings
 from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
 from bayesian_network.inference_machines.naive.naive_inference_machine import NaiveInferenceMachine
-from bayesian_network.optimizers.common import BatchEvaluator, EvaluatorSettings
+from bayesian_network.optimizers.common import BatchEvaluator
 from bayesian_network.optimizers.em_batch_optimizer import (
     EmBatchOptimizer,
     EmBatchOptimizerSettings,
@@ -103,9 +103,6 @@ class TestEmOptimizer(TestCase):
             )
 
         evaluator = BatchEvaluator(
-            settings=EvaluatorSettings(
-                iteration_interval=1,
-            ),
             inference_machine_factory=inference_machine_factory,
             evidence_loader=self.evidence_loader,
         )
@@ -121,7 +118,7 @@ class TestEmOptimizer(TestCase):
         sut.optimize(self.evidence_loader)
 
         # Assert either greater or almost equal
-        _, ll = evaluator.log_likelihoods
+        ll = list(evaluator.log_likelihoods.values())
 
         for iteration in range(1, len(ll)):
             diff = ll[iteration] - ll[iteration - 1]

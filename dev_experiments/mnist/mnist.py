@@ -181,7 +181,7 @@ plt.legend()
 
 # %%
 
-iterations = [log.iteration + log.epoch * 10 for log in logger.logs]
+iterations = [log.iteration + log.epoch * 100 for log in logger.logs]
 train_values = [log.ll for log in logger.logs]
 
 plt.figure()

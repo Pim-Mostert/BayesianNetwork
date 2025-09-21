@@ -85,7 +85,7 @@ class BatchEvaluator(IEvaluator):
         self,
         inference_machine_factory: Callable[[BayesianNetwork], IInferenceMachine],
         evidence_loader: EvidenceLoader,
-        should_evaluate: Callable[[int, int], bool],
+        should_evaluate: Callable[[int, int], bool] | None = None,
     ):
         self._inference_machine_factory = inference_machine_factory
         self._evidence_loader = evidence_loader
@@ -94,8 +94,9 @@ class BatchEvaluator(IEvaluator):
         self._log_likelihoods: Dict[Tuple[int, int], float] = {}
 
     def evaluate(self, epoch: int, iteration: int, network: BayesianNetwork):
-        if not self._should_evaluate(epoch, iteration):
-            return
+        if self._should_evaluate:
+            if not self._should_evaluate(epoch, iteration):
+                return
 
         inference_machine = self._inference_machine_factory(network)
 
