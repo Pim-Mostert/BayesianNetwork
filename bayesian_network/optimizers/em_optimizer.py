@@ -43,7 +43,7 @@ class EmOptimizer(IOptimizer):
 
             # Log iteration feedback
             if self._logger:
-                self._logger.log_iteration(iteration, ll)
+                self._logger.log(iteration, ll)
 
     def _e_step(self, inference_machine: IInferenceMachine) -> List[torch.Tensor]:
         # List[torch.Tensor((observations x parent1 x parent2 x ... x child))]

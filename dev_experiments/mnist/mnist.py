@@ -16,7 +16,6 @@ from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
 )
 from bayesian_network.optimizers.common import (
     BatchEvaluator,
-    EvaluatorSettings,
     OptimizerLogger,
 )
 from bayesian_network.optimizers.em_batch_optimizer import (
@@ -47,7 +46,7 @@ mnist = torchvision.datasets.MNIST(
     ),
     download=True,
 )
-mnist_subset = Subset(mnist, range(0, 1000))
+mnist_subset = Subset(mnist, range(0, 10000))
 height, width = 28, 28
 
 # %% Define network
@@ -103,9 +102,6 @@ def transform(batch: torch.Tensor) -> Evidence:
 
 evaluator_batch_size = 1000
 evaluator = BatchEvaluator(
-    settings=EvaluatorSettings(
-        iteration_interval=10,
-    ),
     inference_machine_factory=lambda network: SpaInferenceMachine(
         settings=SpaInferenceMachineSettings(
             torch_settings=torch_settings,
@@ -123,6 +119,7 @@ evaluator = BatchEvaluator(
         ),
         transform=transform,
     ),
+    should_evaluate=lambda epoch, iteration: iteration == 0,
 )
 
 
@@ -172,9 +169,24 @@ for i in range(0, 10):
 
 # %%
 
+epochs = [epoch for epoch, iteration in evaluator.log_likelihoods.keys()]
+train_values = [log.ll for log in logger.logs if log.iteration == 0]
+eval_values = list(evaluator.log_likelihoods.values())
+
 plt.figure()
-plt.plot(*logger.log_likelihoods, label="Train")
-plt.plot(*evaluator.log_likelihoods, label="Eval")
+plt.plot(epochs, train_values, label="Train")
+plt.plot(epochs, eval_values, label="Eval")
+plt.xlabel("Epochs")
+plt.legend()
+
+# %%
+
+iterations = [log.iteration + log.epoch * 10 for log in logger.logs]
+train_values = [log.ll for log in logger.logs]
+
+plt.figure()
+plt.plot(iterations, train_values, label="Train")
+plt.xlabel("Iterations")
 plt.legend()
 
 # %%
