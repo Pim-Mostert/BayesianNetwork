@@ -129,6 +129,9 @@ class VariableNodeGroup:
         # [num_nodes, num_observations, 1]
         c = x.sum(dim=2, keepdim=True)
 
+        if c.isnan().any():
+            pass
+
         self._calculation_result[self._i_output_to_local_factor_node] /= c
 
         # Assign calculation result to output vectors
@@ -250,6 +253,9 @@ class FactorNodeGroup:
 
             einsum_equation = self._calculation_einsum_equation_per_output[i_output]
             self._calculation_result = torch.einsum(*einsum_equation)
+
+            if self._calculation_result.isnan().any():
+                pass
 
             exec(self._calculation_assignment_statement)
 

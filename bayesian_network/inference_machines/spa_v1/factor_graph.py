@@ -199,7 +199,9 @@ class VariableNode(FactorGraphNodeBase):
             [input_message.value for input_message in self.input_messages], dim=1
         )
 
+        c = torch.log(all_input_tensors).sum(dim=1)
         # local_likelihood: [num_observations]
+        # WAARSCHIJNLIJK GOED OM DIT OOK TE DOEN MET LOG. PRODS ZIJN EVIL
         self.local_likelihood = all_input_tensors.prod(dim=1).sum(axis=1)
 
         if self.is_leaf_node and not self.is_observed:
@@ -212,6 +214,9 @@ class VariableNode(FactorGraphNodeBase):
                 )
                 / self.local_likelihood[:, None]
             )
+
+            if output_message.value.isnan().any():
+                pass
         else:
             for output_message in self.output_messages:
                 # input_tensors: [num_observations x num_inputs x num_states]
@@ -227,11 +232,29 @@ class VariableNode(FactorGraphNodeBase):
                 result = input_tensors.prod(dim=1)
 
                 if output_message.destination is self.factor_node:
-                    result /= self.local_likelihood[:, None]
+                    # THIS SEEMS TO FIX IT
+                    hoi = torch.log(input_tensors)
+                    hoi = hoi.sum(dim=1)
+                    c_max = c.max(dim=1, keepdim=True).values
+                    hoi = hoi - c_max
+                    hoi = torch.exp(hoi)
+                    hoi = hoi / torch.exp(c - c_max).sum(dim=1, keepdim=True)
+                    result = hoi
+
+                    # result /= self.local_likelihood[:, None]
                 else:
-                    result /= result.sum(axis=1, keepdim=True)
+                    # THIS SEEMS TO FIX IT
+                    hoi = torch.log(input_tensors)
+                    hoi = hoi.sum(dim=1)
+                    hoi = hoi - hoi.max(dim=1, keepdim=True).values
+                    hoi = torch.exp(hoi)
+                    result = hoi / hoi.sum(dim=1, keepdim=True)
+                    # result /= result.sum(dim=1, keepdim=True)
 
                 output_message.value = result
+
+                if output_message.value.isnan().any():
+                    pass
 
 
 class FactorNode(FactorGraphNodeBase):
