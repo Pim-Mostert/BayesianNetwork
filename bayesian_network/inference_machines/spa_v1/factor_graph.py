@@ -168,7 +168,7 @@ class VariableNode(FactorGraphNodeBase):
         )
 
         self.factor_node = corresponding_factor_node
-        self.local_likelihood: torch.Tensor = torch.nan
+        self.local_log_likelihood: torch.Tensor = torch.nan
         self.is_leaf_node = is_leaf_node
         self.is_observed = is_observed
         self.observation_message: Union[Message, None] = (
@@ -202,21 +202,16 @@ class VariableNode(FactorGraphNodeBase):
 
         c = torch.log(all_input_tensors).sum(dim=1)
         c_max = c.max(dim=1, keepdim=True).values
-        # local_likelihood: [num_observations]
-        self.local_likelihood = torch.exp(
-            torch.log(torch.exp(c - c_max).sum(dim=1)) + c_max.squeeze()
-        )
+        # local_log_likelihood: [num_observations]
+        self.local_log_likelihood = torch.log(torch.exp(c - c_max).sum(dim=1)) + c_max.squeeze()
 
         if self.is_leaf_node and not self.is_observed:
             [output_message] = self.output_messages
-            output_message.value = (
-                torch.ones(
-                    (self.num_observations, self.num_states),
-                    dtype=self.torch_settings.dtype,
-                    device=self.torch_settings.device,
-                )
-                / self.local_likelihood[:, None]
-            )
+            output_message.value = torch.ones(
+                (self.num_observations, self.num_states),
+                dtype=self.torch_settings.dtype,
+                device=self.torch_settings.device,
+            ) / torch.exp(self.local_log_likelihood[:, None])
 
             if output_message.value.isnan().any():
                 pass

@@ -116,12 +116,9 @@ class SpaInferenceMachine(IInferenceMachine):
             self._iterate()
 
         # local_likelihoods: [num_observations, num_nodes]
-        local_likelihoods = torch.stack(
-            [node.local_likelihood for node in self.factor_graph.variable_nodes.values()], dim=1
+        log_likelihoods = torch.stack(
+            [node.local_log_likelihood for node in self.factor_graph.variable_nodes.values()], dim=1
         )
-
-        log_likelihoods = torch.log(local_likelihoods)
-
         if self._settings.average_log_likelihood:
             return log_likelihoods.sum(dim=1).mean().item()
         else:
