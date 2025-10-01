@@ -201,9 +201,11 @@ class VariableNode(FactorGraphNodeBase):
         )
 
         c = torch.log(all_input_tensors).sum(dim=1)
+        c_max = c.max(dim=1, keepdim=True).values
         # local_likelihood: [num_observations]
-        # WAARSCHIJNLIJK GOED OM DIT OOK TE DOEN MET LOG. PRODS ZIJN EVIL
-        self.local_likelihood = all_input_tensors.prod(dim=1).sum(axis=1)
+        self.local_likelihood = torch.exp(
+            torch.log(torch.exp(c - c_max).sum(dim=1)) + c_max.squeeze()
+        )
 
         if self.is_leaf_node and not self.is_observed:
             [output_message] = self.output_messages
@@ -233,7 +235,6 @@ class VariableNode(FactorGraphNodeBase):
                 result = torch.log(input_tensors).sum(dim=1)
 
                 if output_message.destination is self.factor_node:
-                    c_max = c.max(dim=1, keepdim=True).values
                     result = torch.exp(result - c_max)
                     result = result / torch.exp(c - c_max).sum(dim=1, keepdim=True)
                 else:
