@@ -2,6 +2,7 @@ from abc import abstractmethod
 from typing import Dict, List, Union
 
 import torch
+import torch.nn.functional as F
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
@@ -229,27 +230,14 @@ class VariableNode(FactorGraphNodeBase):
                 )
 
                 # [num_observations x num_states]
-                result = input_tensors.prod(dim=1)
+                result = torch.log(input_tensors).sum(dim=1)
 
                 if output_message.destination is self.factor_node:
-                    # THIS SEEMS TO FIX IT
-                    hoi = torch.log(input_tensors)
-                    hoi = hoi.sum(dim=1)
                     c_max = c.max(dim=1, keepdim=True).values
-                    hoi = hoi - c_max
-                    hoi = torch.exp(hoi)
-                    hoi = hoi / torch.exp(c - c_max).sum(dim=1, keepdim=True)
-                    result = hoi
-
-                    # result /= self.local_likelihood[:, None]
+                    result = torch.exp(result - c_max)
+                    result = result / torch.exp(c - c_max).sum(dim=1, keepdim=True)
                 else:
-                    # THIS SEEMS TO FIX IT
-                    hoi = torch.log(input_tensors)
-                    hoi = hoi.sum(dim=1)
-                    hoi = hoi - hoi.max(dim=1, keepdim=True).values
-                    hoi = torch.exp(hoi)
-                    result = hoi / hoi.sum(dim=1, keepdim=True)
-                    # result /= result.sum(dim=1, keepdim=True)
+                    result = F.softmax(result, dim=1)
 
                 output_message.value = result
 
