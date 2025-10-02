@@ -227,12 +227,20 @@ class VariableNode(FactorGraphNodeBase):
                 )
 
                 # [num_observations x num_states]
-                result = torch.log(input_tensors).sum(dim=1)
 
                 if output_message.destination is self.factor_node:
-                    result = torch.exp(result - c_max)
-                    result = result / torch.exp(c - c_max).sum(dim=1, keepdim=True)
+                    [d] = [
+                        input_message.value
+                        for input_message in self.input_messages
+                        if input_message.source == self.factor_node
+                    ]
+
+                    result = torch.log(all_input_tensors).sum(dim=1)
+                    result = F.softmax(result, dim=1)
+
+                    result /= d
                 else:
+                    result = torch.log(input_tensors).sum(dim=1)
                     result = F.softmax(result, dim=1)
 
                 output_message.value = result
