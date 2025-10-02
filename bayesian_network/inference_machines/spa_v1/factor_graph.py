@@ -212,9 +212,6 @@ class VariableNode(FactorGraphNodeBase):
                 dtype=self.torch_settings.dtype,
                 device=self.torch_settings.device,
             ) / torch.exp(self.local_log_likelihood[:, None])
-
-            if output_message.value.isnan().any():
-                pass
         else:
             for output_message in self.output_messages:
                 # input_tensors: [num_observations x num_inputs x num_states]
@@ -244,9 +241,6 @@ class VariableNode(FactorGraphNodeBase):
                     result = F.softmax(result, dim=1)
 
                 output_message.value = result
-
-                if output_message.value.isnan().any():
-                    pass
 
 
 class FactorNode(FactorGraphNodeBase):
