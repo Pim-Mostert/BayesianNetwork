@@ -7,7 +7,7 @@ import torchvision
 
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import EvidenceLoader
-from bayesian_network.inference_machines.spa_v1.spa_inference_machine import (
+from bayesian_network.inference_machines.spa_v1_1.spa_inference_machine import (
     SpaInferenceMachine,
     SpaInferenceMachineSettings,
 )

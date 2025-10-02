@@ -2,6 +2,7 @@ from abc import abstractmethod
 from typing import Dict, List, Union
 
 import torch
+import torch.nn.functional as F
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
@@ -167,7 +168,7 @@ class VariableNode(FactorGraphNodeBase):
         )
 
         self.factor_node = corresponding_factor_node
-        self.local_likelihood: torch.Tensor = torch.nan
+        self.local_log_likelihood: torch.Tensor = torch.nan
         self.is_leaf_node = is_leaf_node
         self.is_observed = is_observed
         self.observation_message: Union[Message, None] = (
@@ -199,19 +200,18 @@ class VariableNode(FactorGraphNodeBase):
             [input_message.value for input_message in self.input_messages], dim=1
         )
 
-        # local_likelihood: [num_observations]
-        self.local_likelihood = all_input_tensors.prod(dim=1).sum(axis=1)
+        c = torch.log(all_input_tensors).sum(dim=1)
+        c_max = c.max(dim=1, keepdim=True).values
+        # local_log_likelihood: [num_observations]
+        self.local_log_likelihood = torch.log(torch.exp(c - c_max).sum(dim=1)) + c_max.squeeze()
 
         if self.is_leaf_node and not self.is_observed:
             [output_message] = self.output_messages
-            output_message.value = (
-                torch.ones(
-                    (self.num_observations, self.num_states),
-                    dtype=self.torch_settings.dtype,
-                    device=self.torch_settings.device,
-                )
-                / self.local_likelihood[:, None]
-            )
+            output_message.value = torch.ones(
+                (self.num_observations, self.num_states),
+                dtype=self.torch_settings.dtype,
+                device=self.torch_settings.device,
+            ) / torch.exp(self.local_log_likelihood[:, None])
         else:
             for output_message in self.output_messages:
                 # input_tensors: [num_observations x num_inputs x num_states]
@@ -224,12 +224,21 @@ class VariableNode(FactorGraphNodeBase):
                 )
 
                 # [num_observations x num_states]
-                result = input_tensors.prod(dim=1)
 
                 if output_message.destination is self.factor_node:
-                    result /= self.local_likelihood[:, None]
+                    [d] = [
+                        input_message.value
+                        for input_message in self.input_messages
+                        if input_message.source == self.factor_node
+                    ]
+
+                    result = torch.log(all_input_tensors).sum(dim=1)
+                    result = F.softmax(result, dim=1)
+
+                    result /= d
                 else:
-                    result /= result.sum(axis=1, keepdim=True)
+                    result = torch.log(input_tensors).sum(dim=1)
+                    result = F.softmax(result, dim=1)
 
                 output_message.value = result
 
