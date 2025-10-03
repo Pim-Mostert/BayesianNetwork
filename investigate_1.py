@@ -7,7 +7,7 @@ import torchvision
 
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import EvidenceLoader
-from bayesian_network.inference_machines.spa_v1_1.spa_inference_machine import (
+from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
     SpaInferenceMachine,
     SpaInferenceMachineSettings,
 )
@@ -88,9 +88,6 @@ inference_machine = SpaInferenceMachine(
         torch_settings=torch_settings,
         num_iterations=4,
         average_log_likelihood=True,
-        callback=lambda i: print(
-            inference_machine.factor_graph.variable_nodes[Q].output_messages[0].value[664]
-        ),
     ),
     bayesian_network=network,
     observed_nodes=Ys,

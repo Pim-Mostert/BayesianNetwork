@@ -59,11 +59,11 @@ class SpaInferenceMachine(IInferenceMachine):
 
         return p
 
-    def infer_nodes_with_parents(self, nodes: List[Node]) -> List[torch.Tensor]:
+    def infer_nodes_with_parents(self, child_nodes: List[Node]) -> List[torch.Tensor]:
         if self.must_iterate:
             self._iterate()
 
-        return [self._infer_node_with_parents(node) for node in nodes]
+        return [self._infer_node_with_parents(node) for node in child_nodes]
 
     def _infer_node_with_parents(self, node: Node) -> torch.Tensor:
         factor_node_group = self.factor_graph.get_factor_node_group(node)

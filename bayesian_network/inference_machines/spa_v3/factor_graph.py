@@ -3,6 +3,7 @@ from collections import namedtuple
 from typing import Dict, List
 
 import torch
+import torch.nn.functional as F
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.torch_settings import TorchSettings
@@ -97,7 +98,7 @@ class VariableNodeGroup:
                 ]
             )
             + " = self._calculation_result"
-            + ".reshape(self._num_outputs*self._num_nodes, self._num_observations, self.num_states)"  # noqa
+            + ".reshape(self._num_outputs*self._num_nodes, self._num_observations, self.num_states)"
         )
 
         self._calculation_indices_per_i_output = {
@@ -131,11 +132,36 @@ class VariableNodeGroup:
 
         self._calculation_result[self._i_output_to_local_factor_node] /= c
 
+        r = self._calculation_result
+        i = self._i_outputs_to_remote_factor_nodes
+        j = self._i_output_to_local_factor_node
+
+        x1 = self._inputs.log()
+        x2 = x1.sum(dim=0, keepdim=True)
+        x3 = x2 - x1
+        x3[i] = F.softmax(x3[i], dim=3)
+
+        x2_max = x2.max(dim=3, keepdim=True).values
+        hoi = (x2 - x2_max).exp().sum(dim=3, keepdim=True).log()
+        c_hoi = hoi + x2_max
+
+        x4 = x3[j][None, :, :, :] - x2_max
+        x4 = x4 - hoi
+        x3[j] = x4.exp()
+
+        # print(x3[i].isclose(r[i]).all())
+        # print(x3[j].isclose(r[j]).all())
+        # print(c_hoi.exp().isclose(c).all())
+
+        # GOT SOMETHING WORKING
+        self._calculation_result = x3
+
         # Assign calculation result to output vectors
         exec(self._calculation_assignment_statement)
 
         # Store local likelihoods
-        self.local_log_likelihoods = c.squeeze(dim=2).log()
+        self.local_log_likelihoods = c_hoi.squeeze(dim=(0, 3))
+        # self.local_log_likelihoods = c.squeeze(dim=2).log()
 
     def set_output_tensor(self, node: Node, output_node: Node, tensor: torch.Tensor):
         i_node = self.nodes.index(node)
