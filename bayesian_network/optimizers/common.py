@@ -114,7 +114,7 @@ class BatchEvaluator(IEvaluator):
         total_ll = np.array(lls).sum()
         self._log_likelihoods[(epoch, iteration)] = total_ll
 
-        logging.info("Evaluated for epoch %s, ll: %s", epoch, total_ll)
+        logging.info("Evaluated for epoch %s, iteration: %s, ll: %s", epoch, iteration, total_ll)
 
     @property
     def log_likelihoods(self):
