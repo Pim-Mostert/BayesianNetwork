@@ -111,9 +111,6 @@ class VariableNodeGroup:
         }
 
     def calculate_outputs(self):
-        i_remote = self._i_outputs_to_remote_factor_nodes
-        i_local = self._i_output_to_local_factor_node
-
         # [num_inputs, num_nodes, num_observations, num_states]
         x1 = self._inputs.log()
 
@@ -121,28 +118,31 @@ class VariableNodeGroup:
         x2 = x1.sum(dim=0, keepdim=True)
 
         # [num_outputs, num_nodes, num_observations, num_states]
-        x3 = x2 - x1
+        self._calculation_result = x2 - x1
 
-        # Normalization to remote factor nodes
-        x3[i_remote] = F.softmax(x3[i_remote], dim=3)
+        # [num_nodes, num_observations, num_states]
+        x2 = x2.squeeze(dim=0)
 
-        # [1, num_nodes, num_observations, 1]
-        z = x2.max(dim=3, keepdim=True).values
+        ### Normalization to remote factor nodes
+        i_remote = self._i_outputs_to_remote_factor_nodes
+        self._calculation_result[i_remote] = F.softmax(self._calculation_result[i_remote], dim=3)
 
-        # c
-        c = (x2 - z).exp().sum(dim=3, keepdim=True).log()
+        ### Normalization to local factor node
+        i_local = self._i_output_to_local_factor_node
 
-        x4 = x3[i_local][None, :, :, :] - z
-        x4 = x4 - c
-        x3[i_local] = x4.exp()
+        # [num_nodes, num_observations, 1]
+        z = x2.max(dim=2, keepdim=True).values
 
-        self._calculation_result = x3
+        # [num_nodes, num_observations, 1]
+        c = (x2 - z).exp().sum(dim=2, keepdim=True).log() + z
+
+        self._calculation_result[i_local] = (self._calculation_result[i_local] - c).exp()
 
         # Assign calculation result to output vectors
         exec(self._calculation_assignment_statement)
 
         # Store local likelihoods
-        self.local_log_likelihoods = (c + z).squeeze(dim=(0, 3))
+        self.local_log_likelihoods = c.squeeze(dim=2)
 
     def set_output_tensor(self, node: Node, output_node: Node, tensor: torch.Tensor):
         i_node = self.nodes.index(node)

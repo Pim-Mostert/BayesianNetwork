@@ -31,16 +31,6 @@ torch_settings = TorchSettings(
     dtype="float64",
 )
 
-BATCH_SIZE = 50
-LEARNING_RATE = 0.1
-
-TRUE_MEANS_NOISE = 0
-
-NUM_EPOCHS = 1
-
-LENGTH_SUBSET = 60000
-
-
 # %% Load data
 gamma = 0.001
 
@@ -56,39 +46,13 @@ mnist = torchvision.datasets.MNIST(
     ),
     download=True,
 )
-mnist_subset = Subset(mnist, range(0, LENGTH_SUBSET))
+mnist_subset = Subset(mnist, range(0, 10000))
 height, width = 28, 28
-num_classes = 10
-
-iterations_per_epoch = len(mnist_subset) / BATCH_SIZE
-assert int(iterations_per_epoch) == iterations_per_epoch, (
-    "len(mnist) / BATCH_SIZE should be an integer"
-)
-
-# %% True means
-
-data_loader = DataLoader(
-    dataset=mnist,
-    batch_size=1000,
-    shuffle=False,
-)
-
-# To store sums and counts per class
-sums = torch.zeros(num_classes, height * width)
-counts = torch.zeros(num_classes)
-
-# Iterate over batches
-for images, labels in data_loader:
-    for i in range(num_classes):
-        mask = labels == i
-        sums[i] += images[mask].sum(dim=0)
-        counts[i] += mask.sum()
-
-# Compute means
-mu_true = sums / counts[:, None]
 
 # %% Define network
+num_classes = 10
 
+# Create network
 Q = Node(
     torch.ones(
         (num_classes),
@@ -98,20 +62,18 @@ Q = Node(
     / num_classes,
     name="Q",
 )
-noise = torch.rand(
-    (num_classes, height * width),
-    device=torch_settings.device,
-    dtype=torch_settings.dtype,
+mu = (
+    torch.rand(
+        (height, width, num_classes),
+        device=torch_settings.device,
+        dtype=torch_settings.dtype,
+    )
+    * 0.2
+    + 0.4
 )
+mu = torch.stack([1 - mu, mu], dim=3)
+Ys = [Node(mu[iy, ix], name=f"Y_{iy}x{ix}") for iy in range(height) for ix in range(width)]
 
-mu = (1 - TRUE_MEANS_NOISE) * mu_true + TRUE_MEANS_NOISE * noise
-mu = torch.stack([1 - mu, mu], dim=2)
-
-Ys = [
-    Node(mu[:, iy + ix * height], name=f"Y_{iy}x{ix}")
-    for iy in range(height)
-    for ix in range(width)
-]
 nodes = [Q] + Ys
 parents = {Y: [Q] for Y in Ys}
 parents[Q] = []
@@ -138,12 +100,12 @@ def transform(batch: torch.Tensor) -> Evidence:
     )
 
 
-evaluator_batch_size = 2000
+evaluator_batch_size = 1000
 evaluator = BatchEvaluator(
     inference_machine_factory=lambda network: SpaInferenceMachine(
         settings=SpaInferenceMachineSettings(
             torch_settings=torch_settings,
-            num_iterations=4,
+            num_iterations=3,
             average_log_likelihood=True,
         ),
         bayesian_network=network,
@@ -157,14 +119,15 @@ evaluator = BatchEvaluator(
         ),
         transform=transform,
     ),
-    should_evaluate=lambda epoch, iteration: (iteration % 100) == 0,
+    should_evaluate=lambda epoch, iteration: iteration == 0,
 )
 
 
+batch_size = 100
 evidence_loader = EvidenceLoader(
     DataLoader(
         dataset=mnist_subset,
-        batch_size=BATCH_SIZE,
+        batch_size=batch_size,
         shuffle=True,
     ),
     transform=transform,
@@ -175,16 +138,16 @@ em_optimizer = EmBatchOptimizer(
     inference_machine_factory=lambda network: SpaInferenceMachine(
         settings=SpaInferenceMachineSettings(
             torch_settings=torch_settings,
-            num_iterations=4,
+            num_iterations=3,
             average_log_likelihood=True,
         ),
         bayesian_network=network,
         observed_nodes=Ys,
-        num_observations=BATCH_SIZE,
+        num_observations=batch_size,
     ),
     settings=EmBatchOptimizerSettings(
-        learning_rate=LEARNING_RATE,
-        num_epochs=NUM_EPOCHS,
+        learning_rate=0.02,
+        num_epochs=10,
     ),
     logger=logger,
     evaluator=evaluator,
@@ -226,43 +189,4 @@ plt.plot(iterations, train_values, label="Train")
 plt.xlabel("Iterations")
 plt.legend()
 
-# %%
-
-batch_size = 2000
-evidence_loader = EvidenceLoader(
-    DataLoader(
-        dataset=mnist_subset,
-        batch_size=batch_size,
-    ),
-    transform=transform,
-)
-
-
-# SpaInferenceMachineV1 geeft 't probleem ook
-def inference_machine_factory(network):
-    return SpaInferenceMachine(
-        settings=SpaInferenceMachineSettings(
-            torch_settings=torch_settings,
-            num_iterations=4,
-            average_log_likelihood=True,
-        ),
-        bayesian_network=network,
-        observed_nodes=Ys,
-        num_observations=batch_size,
-    )
-
-
-inference_machine = inference_machine_factory(network)
-
-for evidence in iter(evidence_loader):
-    inference_machine.enter_evidence(evidence)
-    ll = inference_machine.log_likelihood()
-    ll *= len(evidence) / evidence_loader.num_observations
-    print(ll)
-
-# %%
-
-with open("network.pickle", "wb") as f:
-    # Pickle the 'data' dictionary using the highest protocol available.
-    pickle.dump(network, f, pickle.HIGHEST_PROTOCOL)
 # %%
