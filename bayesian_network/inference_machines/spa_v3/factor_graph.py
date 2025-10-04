@@ -111,57 +111,38 @@ class VariableNodeGroup:
         }
 
     def calculate_outputs(self):
-        # Calculation
+        i_remote = self._i_outputs_to_remote_factor_nodes
+        i_local = self._i_output_to_local_factor_node
+
         # [num_inputs, num_nodes, num_observations, num_states]
-        x = self._inputs.prod(dim=0)
-        x[x == 0] = torch.finfo(self._torch_settings.dtype).tiny
+        x1 = self._inputs.log()
+
+        # [1, num_nodes, num_observations, num_states]
+        x2 = x1.sum(dim=0, keepdim=True)
 
         # [num_outputs, num_nodes, num_observations, num_states]
-        self._calculation_result = x / self._inputs
+        x3 = x2 - x1
 
         # Normalization to remote factor nodes
-        self._calculation_result[self._i_outputs_to_remote_factor_nodes] /= (
-            self._calculation_result[self._i_outputs_to_remote_factor_nodes].sum(
-                dim=3, keepdim=True
-            )
-        )
+        x3[i_remote] = F.softmax(x3[i_remote], dim=3)
 
-        # Normalization to local factor node
-        # [num_nodes, num_observations, 1]
-        c = x.sum(dim=2, keepdim=True)
+        # [1, num_nodes, num_observations, 1]
+        z = x2.max(dim=3, keepdim=True).values
 
-        self._calculation_result[self._i_output_to_local_factor_node] /= c
+        # c
+        c = (x2 - z).exp().sum(dim=3, keepdim=True).log()
 
-        r = self._calculation_result
-        i = self._i_outputs_to_remote_factor_nodes
-        j = self._i_output_to_local_factor_node
+        x4 = x3[i_local][None, :, :, :] - z
+        x4 = x4 - c
+        x3[i_local] = x4.exp()
 
-        x1 = self._inputs.log()
-        x2 = x1.sum(dim=0, keepdim=True)
-        x3 = x2 - x1
-        x3[i] = F.softmax(x3[i], dim=3)
-
-        x2_max = x2.max(dim=3, keepdim=True).values
-        hoi = (x2 - x2_max).exp().sum(dim=3, keepdim=True).log()
-        c_hoi = hoi + x2_max
-
-        x4 = x3[j][None, :, :, :] - x2_max
-        x4 = x4 - hoi
-        x3[j] = x4.exp()
-
-        # print(x3[i].isclose(r[i]).all())
-        # print(x3[j].isclose(r[j]).all())
-        # print(c_hoi.exp().isclose(c).all())
-
-        # GOT SOMETHING WORKING
         self._calculation_result = x3
 
         # Assign calculation result to output vectors
         exec(self._calculation_assignment_statement)
 
         # Store local likelihoods
-        self.local_log_likelihoods = c_hoi.squeeze(dim=(0, 3))
-        # self.local_log_likelihoods = c.squeeze(dim=2).log()
+        self.local_log_likelihoods = (c + z).squeeze(dim=(0, 3))
 
     def set_output_tensor(self, node: Node, output_node: Node, tensor: torch.Tensor):
         i_node = self.nodes.index(node)
