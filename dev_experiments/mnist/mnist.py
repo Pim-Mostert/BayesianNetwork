@@ -31,6 +31,11 @@ torch_settings = TorchSettings(
     dtype="float64",
 )
 
+NUM_EPOCHS = 10
+LEARNING_RATE = 0.01
+REGULARIZATION = 0.05
+BATCH_SIZE = 100
+
 # %% Load data
 gamma = 0.001
 
@@ -48,6 +53,12 @@ mnist = torchvision.datasets.MNIST(
 )
 mnist_subset = Subset(mnist, range(0, 10000))
 height, width = 28, 28
+
+iterations_per_epoch = len(mnist_subset) / BATCH_SIZE
+assert int(iterations_per_epoch) == iterations_per_epoch, (
+    "len(mnist_subset) / BATCH_SIZE should be an integer"
+)
+iterations_per_epoch = int(iterations_per_epoch)
 
 # %% Define network
 num_classes = 10
@@ -100,12 +111,12 @@ def transform(batch: torch.Tensor) -> Evidence:
     )
 
 
-evaluator_batch_size = 1000
+evaluator_batch_size = 2000
 evaluator = BatchEvaluator(
     inference_machine_factory=lambda network: SpaInferenceMachine(
         settings=SpaInferenceMachineSettings(
             torch_settings=torch_settings,
-            num_iterations=3,
+            num_iterations=4,
             average_log_likelihood=True,
         ),
         bayesian_network=network,
@@ -119,15 +130,18 @@ evaluator = BatchEvaluator(
         ),
         transform=transform,
     ),
-    should_evaluate=lambda epoch, iteration: iteration == 0,
+    should_evaluate=lambda epoch, iteration: (
+        (iteration == 0)
+        or (iteration == int(iterations_per_epoch / 2))
+        or (epoch == (NUM_EPOCHS - 1) and (iteration == iterations_per_epoch - 1))
+    ),
 )
 
 
-batch_size = 100
 evidence_loader = EvidenceLoader(
     DataLoader(
         dataset=mnist_subset,
-        batch_size=batch_size,
+        batch_size=BATCH_SIZE,
         shuffle=True,
     ),
     transform=transform,
@@ -138,16 +152,17 @@ em_optimizer = EmBatchOptimizer(
     inference_machine_factory=lambda network: SpaInferenceMachine(
         settings=SpaInferenceMachineSettings(
             torch_settings=torch_settings,
-            num_iterations=3,
+            num_iterations=4,
             average_log_likelihood=True,
         ),
         bayesian_network=network,
         observed_nodes=Ys,
-        num_observations=batch_size,
+        num_observations=BATCH_SIZE,
     ),
     settings=EmBatchOptimizerSettings(
-        learning_rate=0.02,
-        num_epochs=10,
+        learning_rate=LEARNING_RATE,
+        num_epochs=NUM_EPOCHS,
+        regularization=REGULARIZATION,
     ),
     logger=logger,
     evaluator=evaluator,
@@ -167,26 +182,21 @@ for i in range(0, 10):
     plt.colorbar()
     plt.clim(0, 1)
 
-# %%
 
-epochs = [epoch for epoch, iteration in evaluator.log_likelihoods.keys()]
-train_values = [log.ll for log in logger.logs if log.iteration == 0]
+# %% Plot log_likelihood
+train_iterations = [log.epoch * iterations_per_epoch + log.iteration for log in logger.logs]
+train_values = [log.ll for log in logger.logs]
+eval_iterations = [
+    epoch * iterations_per_epoch + iteration
+    for epoch, iteration in evaluator.log_likelihoods.keys()
+]
 eval_values = list(evaluator.log_likelihoods.values())
 
 plt.figure()
-plt.plot(epochs, train_values, label="Train")
-plt.plot(epochs, eval_values, label="Eval")
-plt.xlabel("Epochs")
-plt.legend()
-
-# %%
-
-iterations = [log.iteration + log.epoch * 100 for log in logger.logs]
-train_values = [log.ll for log in logger.logs]
-
-plt.figure()
-plt.plot(iterations, train_values, label="Train")
+plt.plot(train_iterations, train_values, label="Train")
+plt.plot(eval_iterations, eval_values, label="Eval")
 plt.xlabel("Iterations")
+plt.ylabel("Average log-likelihood")
 plt.legend()
 
 # %%

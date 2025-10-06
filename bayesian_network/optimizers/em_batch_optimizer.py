@@ -16,6 +16,7 @@ from bayesian_network.optimizers.common import (
 class EmBatchOptimizerSettings:
     learning_rate: float
     num_epochs: int
+    regularization: float | None = None
 
 
 class EmBatchOptimizer(IBatchOptimizer):
@@ -70,6 +71,13 @@ class EmBatchOptimizer(IBatchOptimizer):
         for node, p_conditional in zip(self._bayesian_network.nodes, p_conditionals):
             # Normalize to conditional probability distribution
             cpt = p_conditional / p_conditional.sum(dim=-1, keepdim=True)
+
+            if self._settings.regularization:
+                z = torch.ones_like(cpt)
+                z /= z.sum(dim=-1, keepdim=True)
+
+                gamma = self._settings.regularization
+                cpt = (1 - gamma) * cpt + gamma * z
 
             # Update node according to learning rate
             lr = self._settings.learning_rate

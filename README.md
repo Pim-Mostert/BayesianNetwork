@@ -2,4 +2,11 @@
 
 ## To do
 
-- Fix numerical issues with softmax function? (See https://d2l.ai/chapter_linear-classification/softmax-regression-concise.html)
+- [ ] Add regularization, else a cpt may decay to 0
+  - [ ] Add unit test
+  - [ ] Check if this fixes the job's issues (see network1-464.pkl)
+  - [ ] Also add to EmOptimizer
+- [ ] Use networkx?
+  - [ ] Use longest path as input to spainferencemachine iterations
+  - [ ] Warning or check if there's a cycle?
+- [ ] Try networks with cycles
