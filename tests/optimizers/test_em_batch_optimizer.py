@@ -1,5 +1,6 @@
 from typing import List, Tuple
 from unittest import TestCase
+from unittest.mock import create_autospec
 
 import torch
 from torch.nn.functional import one_hot
@@ -8,6 +9,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
+from bayesian_network.inference_machines.abstractions import IInferenceMachine
 from bayesian_network.inference_machines.common import InferenceMachineSettings
 from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
 from bayesian_network.inference_machines.naive.naive_inference_machine import NaiveInferenceMachine
@@ -58,22 +60,20 @@ class TestEmOptimizer(TestCase):
         return bayesian_network, observed_nodes
 
     def setUp(self):
-        self.em_batch_optimizer_settings = EmBatchOptimizerSettings(
-            num_epochs=2,
-            learning_rate=0.01,
-        )
+        pass
 
-        # Create true network
-        self.true_network, self.observed_nodes = self._generate_random_network()
+    def test_optimize_increase_log_likelihood_full_data(self):
+        ### Assign
+        true_network, true_observed_nodes = self._generate_random_network()
 
         # Create training data
         sampler = TorchBayesianNetworkSampler(
-            bayesian_network=self.true_network,
+            bayesian_network=true_network,
             torch_settings=self.get_torch_settings(),
         )
 
         num_samples = 1000
-        data = sampler.sample(num_samples, self.observed_nodes)
+        data = sampler.sample(num_samples, true_observed_nodes)
 
         evidence_loader = EvidenceLoader(
             data_loader=DataLoader(
@@ -86,10 +86,7 @@ class TestEmOptimizer(TestCase):
             ),
         )
 
-        self.evidence_loader = evidence_loader
-
-    def test_optimize_increase_log_likelihood_full_data(self):
-        # Assign
+        # Create untrained network
         untrained_network, observed_nodes = self._generate_random_network()
 
         def inference_machine_factory(network):
@@ -104,18 +101,21 @@ class TestEmOptimizer(TestCase):
 
         evaluator = BatchEvaluator(
             inference_machine_factory=inference_machine_factory,
-            evidence_loader=self.evidence_loader,
+            evidence_loader=evidence_loader,
         )
 
         sut = EmBatchOptimizer(
-            settings=self.em_batch_optimizer_settings,
+            settings=EmBatchOptimizerSettings(
+                num_epochs=2,
+                learning_rate=0.01,
+            ),
             bayesian_network=untrained_network,
             inference_machine_factory=inference_machine_factory,
             evaluator=evaluator,
         )
 
         # Act
-        sut.optimize(self.evidence_loader)
+        sut.optimize(evidence_loader)
 
         # Assert either greater or almost equal
         ll = list(evaluator.log_likelihoods.values())
@@ -127,3 +127,127 @@ class TestEmOptimizer(TestCase):
                 self.assertGreaterEqual(diff, 0)
             else:
                 self.assertAlmostEqual(diff, 0)
+
+    def test_optimize_em_step(self):
+        torch_settings = self.get_torch_settings()
+
+        ### Assign
+        # Setup network
+        Q1_cpt = generate_random_probability_matrix(
+            (2), torch_settings.device, torch_settings.dtype
+        )
+        Q2_cpt = generate_random_probability_matrix(
+            (2, 2), torch_settings.device, torch_settings.dtype
+        )
+        Y_cpt = generate_random_probability_matrix(
+            (2, 2), torch_settings.device, torch_settings.dtype
+        )
+
+        Q1 = Node(Q1_cpt, name="Q1")
+        Q2 = Node(Q2_cpt, name="Q2")
+        Y = Node(Y_cpt, name="Y")
+
+        nodes = [Q1, Q2, Y]
+        parents = {
+            Q1: [],
+            Q2: [Q1],
+            Y: [Q2],
+        }
+
+        network = BayesianNetwork(nodes, parents)
+
+        # Setup mock
+        inference_machine_mock = create_autospec(IInferenceMachine, instance=True)
+        p_Q1 = generate_random_probability_matrix(
+            (1, *Q1_cpt.size()),
+            torch_settings.device,
+            torch_settings.dtype,
+        )
+        p_Q2 = generate_random_probability_matrix(
+            (1, *Q2_cpt.size()),
+            torch_settings.device,
+            torch_settings.dtype,
+        )
+        inference_machine_mock.infer_nodes_with_parents.return_value = [p_Q1, p_Q2]
+
+        lr = 0.1
+        sut = EmBatchOptimizer(
+            settings=EmBatchOptimizerSettings(
+                learning_rate=lr,
+                num_epochs=1,
+            ),
+            bayesian_network=network,
+            inference_machine_factory=lambda _: inference_machine_mock,
+        )
+
+        # Setup evidence loader
+        evidence_loader_mock = create_autospec(EvidenceLoader, instance=True)
+        evidence_loader_mock.__iter__.return_value = [(None, None)]
+
+        ### Act
+        sut.optimize(evidence_loader_mock)
+
+        # Assert
+        assert Q1.cpt.isclose((1 - lr) * Q1_cpt + lr * p_Q1).all()
+        assert Q2.cpt.isclose((1 - lr) * Q2_cpt + lr * p_Q2).all()
+
+    def test_optimize_em_step_regularization(self):
+        torch_settings = self.get_torch_settings()
+
+        ### Assign
+        # Setup network
+        Q1_cpt = generate_random_probability_matrix(
+            (2), torch_settings.device, torch_settings.dtype
+        )
+        Q2_cpt = generate_random_probability_matrix(
+            (2, 2), torch_settings.device, torch_settings.dtype
+        )
+        Y_cpt = generate_random_probability_matrix(
+            (2, 2), torch_settings.device, torch_settings.dtype
+        )
+
+        Q1 = Node(Q1_cpt, name="Q1")
+        Q2 = Node(Q2_cpt, name="Q2")
+        Y = Node(Y_cpt, name="Y")
+
+        nodes = [Q1, Q2, Y]
+        parents = {
+            Q1: [],
+            Q2: [Q1],
+            Y: [Q2],
+        }
+
+        network = BayesianNetwork(nodes, parents)
+
+        # Setup mock
+        inference_machine_mock = create_autospec(IInferenceMachine, instance=True)
+        p_Q1 = generate_random_probability_matrix(
+            (1, *Q1_cpt.size()),
+            torch_settings.device,
+            torch_settings.dtype,
+        )
+        p_Q2 = generate_random_probability_matrix(
+            (1, *Q2_cpt.size()),
+            torch_settings.device,
+            torch_settings.dtype,
+        )
+        inference_machine_mock.infer_nodes_with_parents.return_value = [p_Q1, p_Q2]
+
+        lr = 0.1
+        r = 0.2
+        sut = EmBatchOptimizer(
+            settings=EmBatchOptimizerSettings(learning_rate=lr, num_epochs=1, regularization=r),
+            bayesian_network=network,
+            inference_machine_factory=lambda _: inference_machine_mock,
+        )
+
+        # Setup evidence loader
+        evidence_loader_mock = create_autospec(EvidenceLoader, instance=True)
+        evidence_loader_mock.__iter__.return_value = [(None, None)]
+
+        ### Act
+        sut.optimize(evidence_loader_mock)
+
+        # Assert
+        assert Q1.cpt.isclose((1 - lr) * Q1_cpt + lr * ((1 - r) * p_Q1 + r * 0.5)).all()
+        assert Q2.cpt.isclose((1 - lr) * Q2_cpt + lr * ((1 - r) * p_Q2 + r * 0.5)).all()

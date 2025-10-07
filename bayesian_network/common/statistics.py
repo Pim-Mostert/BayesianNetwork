@@ -1,10 +1,10 @@
-from typing import Tuple, Union
-
 import torch
 
 
 def generate_random_probability_matrix(
-    size: Union[int, Tuple[int]], device: torch.device, dtype: torch.dtype
+    size,
+    device: torch.device,
+    dtype: torch.dtype,
 ):
     p: torch.Tensor = torch.rand(size, dtype=dtype, device=device)
 
