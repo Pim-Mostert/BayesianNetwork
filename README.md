@@ -8,4 +8,4 @@
 - [ ] Use networkx?
   - [ ] Use longest path as input to spainferencemachine iterations
   - [ ] Warning or check if there's a cycle?
-- [ ] Try networks with cycles
+- [x] Try networks with cycles
