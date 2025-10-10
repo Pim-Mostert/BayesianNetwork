@@ -1,6 +1,6 @@
 import itertools
 from collections import namedtuple
-from typing import Dict, List
+from typing import List
 
 import torch
 import torch.nn.functional as F
@@ -14,8 +14,7 @@ class VariableNodeGroup:
     def __init__(
         self,
         nodes: List[Node],
-        children: Dict[Node, List[Node]],
-        parents: Dict[Node, List[Node]],
+        bayesian_network: BayesianNetwork,
         num_inputs: int,
         num_states: int,
         num_observations: int,
@@ -24,8 +23,7 @@ class VariableNodeGroup:
     ):
         self._torch_settings = torch_settings
         self.nodes = nodes
-        self._children = children
-        self._parents = parents
+        self._bayesian_network = bayesian_network
         self._num_nodes = len(self.nodes)
         self._num_observations = num_observations
         self._num_inputs = num_inputs
@@ -150,7 +148,7 @@ class VariableNodeGroup:
         if output_node == node:
             i_output = self._i_output_to_local_factor_node
         else:
-            i_output = self._children[node].index(output_node)
+            i_output = list(self._bayesian_network.children_of(node)).index(output_node)
 
         self._output_tensors[i_output][i_node] = tensor
 
@@ -160,7 +158,7 @@ class VariableNodeGroup:
         if input_node == node:
             i_input = self._i_output_to_local_factor_node
         else:
-            i_input = self._children[node].index(input_node)
+            i_input = list(self._bayesian_network.children_of(node)).index(input_node)
 
         return self._inputs[i_input, i_node]
 
@@ -175,8 +173,7 @@ class FactorNodeGroup:
     def __init__(
         self,
         nodes: List[Node],
-        children: Dict[Node, List[Node]],
-        parents: Dict[Node, List[Node]],
+        bayesian_network: BayesianNetwork,
         num_inputs: int,
         inputs_num_states: List[int],
         num_observations: int,
@@ -184,8 +181,7 @@ class FactorNodeGroup:
     ):
         self._torch_settings = torch_settings
         self.nodes = nodes
-        self._children = children
-        self._parents = parents
+        self._bayesian_network = bayesian_network
         self._num_nodes = len(self.nodes)
         self._num_observations = num_observations
         self._num_inputs = num_inputs
@@ -306,7 +302,7 @@ class FactorNodeGroup:
         if output_node == node:
             i_output = -1
         else:
-            i_output = self._parents[node].index(output_node)
+            i_output = list(self._bayesian_network.parents_of(node)).index(output_node)
 
         self._output_tensors[i_output][i_node] = tensor
 
@@ -316,7 +312,7 @@ class FactorNodeGroup:
         if input_node == node:
             i_input = -1
         else:
-            i_input = self._parents[node].index(input_node)
+            i_input = list(self._bayesian_network.parents_of(node)).index(input_node)
 
         return self._inputs[i_input][i_node]
 
@@ -343,9 +339,9 @@ class FactorGraph:
         def variable_node_groups_key_func(node):
             return NodeGroupKey(
                 (
-                    len(bayesian_network.children[node]) + 2
+                    len(list(bayesian_network.children_of(node))) + 2
                     if node in self._observed_nodes
-                    else len(bayesian_network.children[node]) + 1
+                    else len(list(bayesian_network.children_of(node))) + 1
                 ),
                 node.num_states,
             )
@@ -353,8 +349,7 @@ class FactorGraph:
         self.variable_node_groups = [
             VariableNodeGroup(
                 nodes,
-                bayesian_network.children,
-                bayesian_network.parents,
+                bayesian_network,
                 key.num_inputs,
                 key.num_states,
                 num_observations,
@@ -384,8 +379,7 @@ class FactorGraph:
         self.factor_node_groups = [
             FactorNodeGroup(
                 list(nodes),
-                bayesian_network.children,
-                bayesian_network.parents,
+                bayesian_network,
                 len(key),
                 list(key),
                 num_observations,
@@ -408,7 +402,7 @@ class FactorGraph:
             variable_node_group.set_output_tensor(node, node, tensor)
 
             # Child factor nodes
-            for child_node in bayesian_network.children[node]:
+            for child_node in bayesian_network.children_of(node):
                 child_factor_node_group = self.get_factor_node_group(child_node)
                 tensor = child_factor_node_group.get_input_tensor(child_node, node)
 
@@ -420,7 +414,7 @@ class FactorGraph:
             factor_node_group.set_output_tensor(node, node, tensor)
 
             # Parent variable nodes
-            for parent_node in bayesian_network.parents[node]:
+            for parent_node in bayesian_network.parents_of(node):
                 parent_variable_node_group = self.get_variable_node_group(parent_node)
                 tensor = parent_variable_node_group.get_input_tensor(parent_node, node)
 
