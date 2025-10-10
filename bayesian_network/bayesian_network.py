@@ -99,6 +99,16 @@ class ParentsExistInNetwork(NetworkValidator):
                     )
 
 
+class NoDuplicateNodeNames(NetworkValidator):
+    def evaluate(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
+        names = set()
+        for node in nodes:
+            if node.name in names:
+                raise ValueError(f'A node with name "{node.name}" was already added.')
+
+            names.add(node.name)
+
+
 class BayesianNetworkBuilder:
     def __init__(self):
         self.nodes: List[Node] = []
@@ -108,6 +118,7 @@ class BayesianNetworkBuilder:
             NoDuplicateNodes(),
             NoIsolatedNodes(),
             ParentsExistInNetwork(),
+            NoDuplicateNodeNames(),
         }
 
     def add_node(self, node: Node, parents: None | Node | List[Node] = None):
