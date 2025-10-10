@@ -1,11 +1,11 @@
-from typing import Dict, List
+from typing import List
 
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.inference_machines.abstractions import IInferenceMachine
-from bayesian_network.inference_machines.evidence import Evidence
 from bayesian_network.inference_machines.common import InferenceMachineSettings
+from bayesian_network.inference_machines.evidence import Evidence
 
 
 class NaiveInferenceMachine(IInferenceMachine):
@@ -18,27 +18,23 @@ class NaiveInferenceMachine(IInferenceMachine):
         self._settings = settings
 
         self.dims = [node.num_states for node in bayesian_network.nodes]
-        self.num_nodes = len(bayesian_network.nodes)
+        self.num_nodes = bayesian_network.num_nodes
         self.num_observed_nodes = len(observed_nodes)
-        self.node_to_index = {
-            node: bayesian_network.nodes.index(node) for node in bayesian_network.nodes
-        }
+        self.node_to_index = {node: i for i, node in enumerate(bayesian_network.nodes)}
         self.observed_nodes_indices: List[int] = [
             self.node_to_index[node] for node in observed_nodes
         ]
         self.bayesian_network = bayesian_network
         self._log_likelihoods = None
 
-        self.p = self._calculate_p_complete(bayesian_network.nodes, bayesian_network.parents)[
-            None, ...
-        ]
+        self.p = self._calculate_p_complete(list(bayesian_network.nodes))[None, ...]
         self.p_evidence = torch.ones_like(self.p)
 
     @property
     def settings(self) -> InferenceMachineSettings:
         return self._settings
 
-    def _calculate_p_complete(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
+    def _calculate_p_complete(self, nodes: List[Node]):
         dims = [node.num_states for node in nodes]
         p = torch.ones(
             dims,
@@ -50,7 +46,7 @@ class NaiveInferenceMachine(IInferenceMachine):
             new_shape = [1] * self.num_nodes
             new_shape[self.node_to_index[node]] = node.num_states
 
-            for parent in parents[node]:
+            for parent in self.bayesian_network.parents_of(node):
                 parent_index = self.node_to_index[parent]
                 new_shape[parent_index] = parent.num_states
 
@@ -101,7 +97,10 @@ class NaiveInferenceMachine(IInferenceMachine):
         return (self.p * self.p_evidence).sum(dim=dims)
 
     def infer_nodes_with_parents(self, child_nodes: List[Node]):
-        p = [self._infer(self.bayesian_network.parents[node] + [node]) for node in child_nodes]
+        p = [
+            self._infer(list(self.bayesian_network.parents_of(node)) + [node])
+            for node in child_nodes
+        ]
 
         return p
 
@@ -113,6 +112,9 @@ class NaiveInferenceMachine(IInferenceMachine):
     def log_likelihood(self) -> float:
         if self.num_observed_nodes == 0:
             raise Exception("Log likelihood can't be calculated with 0 observed nodes")
+
+        if not self._log_likelihoods:
+            raise RuntimeError("No log-likelihood calculated. Did you enter evidence?")
 
         if self._settings.average_log_likelihood:
             return self._log_likelihoods.mean().item()

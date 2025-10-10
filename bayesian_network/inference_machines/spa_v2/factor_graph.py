@@ -216,7 +216,7 @@ class FactorGraph:
         self.variable_nodes: Dict[Node, VariableNode] = {
             node: VariableNode(
                 num_observations=num_observations,
-                num_inputs=len(bayesian_network.children[node]) + 1,
+                num_inputs=len(list(bayesian_network.children_of(node))) + 1,
                 num_states=node.num_states,
                 local_likelihood=self.local_likelihoods[:, i],
                 is_observed=node in observed_nodes,
@@ -229,8 +229,10 @@ class FactorGraph:
         self.factor_nodes: Dict[Node, FactorNode] = {
             node: FactorNode(
                 num_observations=num_observations,
-                num_inputs=len(bayesian_network.parents[node]) + 1,
-                inputs_num_states=[parent.num_states for parent in bayesian_network.parents[node]]
+                num_inputs=len(list(bayesian_network.parents_of(node))) + 1,
+                inputs_num_states=[
+                    parent.num_states for parent in bayesian_network.parents_of(node)
+                ]
                 + [node.num_states],
                 cpt=node.cpt,
                 torch_settings=self.torch_settings,
@@ -250,22 +252,22 @@ class FactorGraph:
             )
 
             # Child factor nodes
-            child_nodes = bayesian_network.children[node]
+            child_nodes = bayesian_network.children_of(node)
             for child_node, outputs_with_input_indices in zip(
                 child_nodes, variable_node.outputs_with_indices_to_remote_factor_nodes
             ):
                 child_factor_node = self.factor_nodes[child_node]
-                child_input_index = bayesian_network.parents[child_node].index(node)
+                child_input_index = list(bayesian_network.parents_of(child_node)).index(node)
                 outputs_with_input_indices.output = (
                     child_factor_node.inputs_from_remote_variable_nodes[child_input_index]
                 )
 
             # ### Factor nodes
             # Parent variable nodes
-            parent_nodes = bayesian_network.parents[node]
+            parent_nodes = bayesian_network.parents_of(node)
             for i, parent_node in enumerate(parent_nodes):
                 parent_variable_node = self.variable_nodes[parent_node]
-                child_index = bayesian_network.children[parent_node].index(node)
+                child_index = list(bayesian_network.children_of(parent_node)).index(node)
                 input_from_parent_variable_node = (
                     parent_variable_node.input_from_remote_factor_nodes[child_index]
                 )

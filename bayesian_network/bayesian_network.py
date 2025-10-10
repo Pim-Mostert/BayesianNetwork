@@ -45,6 +45,12 @@ class BayesianNetwork:
     def parents_of(self, node: Node):
         return self._G.predecessors(node)
 
+    def is_leaf_node(self, node: Node):
+        return self._G.out_degree(node) == 0
+
+    def children_of(self, node: Node):
+        return self._G.successors(node)
+
 
 class NetworkValidationError(Exception):
     pass

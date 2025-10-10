@@ -49,7 +49,7 @@ class FactorGraph:
 
             ### Variable node
             # To children's factor nodes
-            for child in bayesian_network.children[node]:
+            for child in bayesian_network.children_of(node):
                 variable_node.add_output_message(destination=self.factor_nodes[child])
 
             # To corresponding factor node
@@ -57,7 +57,7 @@ class FactorGraph:
 
             ### Factor node
             # To parents' variable nodes
-            for parent in bayesian_network.parents[node]:
+            for parent in bayesian_network.parents_of(node):
                 factor_node.add_output_message(self.variable_nodes[parent])
 
             # To corresponding variable node
