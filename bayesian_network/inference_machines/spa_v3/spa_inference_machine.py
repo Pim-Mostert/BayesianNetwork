@@ -42,7 +42,7 @@ class SpaInferenceMachine(IInferenceMachine):
             self._num_iterations = (
                 self._settings.num_iterations
                 if self._settings.num_iterations
-                else 2 * nx.diameter(bayesian_network.G.to_undirected())
+                else 2 * nx.diameter(bayesian_network.G.to_undirected()) + 1
             )
         else:
             if not self._settings.allow_loops:
