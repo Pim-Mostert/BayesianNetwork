@@ -207,7 +207,7 @@ class FactorGraph:
         self.torch_settings = torch_settings
         self.observed_nodes = observed_nodes
         self.local_likelihoods: torch.Tensor = torch.zeros(
-            (num_observations, len(bayesian_network.nodes)),
+            (num_observations, bayesian_network.num_nodes),
             dtype=self.torch_settings.dtype,
             device=self.torch_settings.device,
         )
