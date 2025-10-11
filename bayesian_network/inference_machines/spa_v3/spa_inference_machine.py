@@ -1,20 +1,22 @@
 from dataclasses import dataclass
 from typing import Callable, List, Optional
 
+import networkx as nx
 import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.inference_machines.abstractions import IInferenceMachine
-from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.inference_machines.spa_v3.factor_graph import FactorGraph
 from bayesian_network.inference_machines.common import (
     InferenceMachineSettings,
 )
+from bayesian_network.inference_machines.evidence import Evidence
+from bayesian_network.inference_machines.spa_v3.factor_graph import FactorGraph
 
 
 @dataclass
 class SpaInferenceMachineSettings(InferenceMachineSettings):
-    num_iterations: int
+    num_iterations: int | None = None
+    allow_loops: bool = False
     callback: Optional[Callable[[int], None]] = None
 
 
@@ -35,6 +37,21 @@ class SpaInferenceMachine(IInferenceMachine):
             torch_settings=self._settings.torch_settings,
             num_observations=self.num_observations,
         )
+
+        self._num_iterations = self._settings.num_iterations
+        if nx.is_tree(self.factor_graph.G):
+            if not self._settings.num_iterations:
+                self._num_iterations = nx.diameter(self.factor_graph.G)
+        else:
+            if not self._settings.allow_loops:
+                raise ValueError(
+                    "Network contains loops, but the specified settings disallow them."
+                )
+
+            if not self._settings.num_iterations:
+                raise ValueError(
+                    "Networks containers loops; number of iterations must be set explicitly."
+                )
 
         self.must_iterate: bool = True
 
