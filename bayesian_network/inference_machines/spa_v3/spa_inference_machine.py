@@ -38,10 +38,12 @@ class SpaInferenceMachine(IInferenceMachine):
             num_observations=self.num_observations,
         )
 
-        self._num_iterations = self._settings.num_iterations
-        if nx.is_tree(self.factor_graph.G):
-            if not self._settings.num_iterations:
-                self._num_iterations = nx.diameter(self.factor_graph.G)
+        if nx.is_tree(bayesian_network.G):
+            self._num_iterations = (
+                self._settings.num_iterations
+                if self._settings.num_iterations
+                else 2 * nx.diameter(bayesian_network.G.to_undirected())
+            )
         else:
             if not self._settings.allow_loops:
                 raise ValueError(
@@ -100,7 +102,7 @@ class SpaInferenceMachine(IInferenceMachine):
         return p
 
     def _iterate(self):
-        for iteration in range(self._settings.num_iterations):
+        for iteration in range(self._num_iterations):
             self.factor_graph.iterate()
 
             if self._settings.callback:

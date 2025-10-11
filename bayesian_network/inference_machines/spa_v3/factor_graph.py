@@ -1,8 +1,7 @@
 import itertools
 from collections import namedtuple
-from typing import Dict, List
+from typing import List
 
-import networkx as nx
 import torch
 import torch.nn.functional as F
 
@@ -334,8 +333,6 @@ class FactorGraph:
         self._torch_settings = torch_settings
         self._observed_nodes = observed_nodes
 
-        self._G = self._contruct_G(bayesian_network)
-
         NodeGroupKey = namedtuple("NodeGroupKey", "num_inputs num_states")
 
         # Instantiate variable node groups
@@ -423,10 +420,6 @@ class FactorGraph:
 
                 factor_node_group.set_output_tensor(node, parent_node, tensor)
 
-    @property
-    def G(self):
-        return self._G
-
     def get_variable_node_group(self, node: Node) -> VariableNodeGroup:
         [variable_node_group] = [
             variable_node_group
@@ -471,35 +464,3 @@ class FactorGraph:
 
         for variable_node_group, evidence_group in evidence_groups:
             variable_node_group.set_observations(evidence_group)
-
-    def _contruct_G(self, bayesian_network: BayesianNetwork):
-        G: nx.Graph[str] = nx.Graph()
-        variable_nodes: Dict[Node, str] = {}
-        factor_nodes: Dict[Node, str] = {}
-
-        # Construct variable and factor nodes
-        for node in bayesian_network.nodes:
-            variable_node = f"VariableNode - {node.name}"
-            variable_nodes[node] = variable_node
-            G.add_node(variable_node)
-
-            factor_node = f"FactorNode - {node.name}"
-            factor_nodes[node] = factor_node
-            G.add_node(factor_node)
-
-        # Add edges
-        # Between local factor and variable nodes
-        for node in bayesian_network.nodes:
-            source_variable_node = variable_nodes[node]
-            target_factor_node = factor_nodes[node]
-
-            G.add_edge(source_variable_node, target_factor_node)
-
-        # Between remote factor and variable nodes
-        for source, target in bayesian_network.edges:
-            source_variable_node = variable_nodes[source]
-            target_factor_node = factor_nodes[target]
-
-            G.add_edge(source_variable_node, target_factor_node)
-
-        return G

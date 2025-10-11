@@ -31,6 +31,10 @@ class BayesianNetwork:
                 self._G.add_edge(parent, node)
 
     @property
+    def G(self):
+        return self._G
+
+    @property
     def nodes(self):
         return iter(self._G.nodes)
 
