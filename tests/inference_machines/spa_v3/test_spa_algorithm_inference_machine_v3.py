@@ -32,7 +32,7 @@ class TestSpaInferenceMachineV3Base(ABC):
         return SpaInferenceMachine(
             settings=SpaInferenceMachineSettings(
                 **asdict(settings),
-                num_iterations=20,
+                num_iterations=None,
             ),
             bayesian_network=bayesian_network,
             observed_nodes=observed_nodes,

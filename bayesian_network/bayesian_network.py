@@ -36,7 +36,11 @@ class BayesianNetwork:
 
     @property
     def nodes(self):
-        return self._G.nodes
+        return iter(self._G.nodes)
+
+    @property
+    def edges(self):
+        return iter(self._G.edges)
 
     @property
     def num_nodes(self):
