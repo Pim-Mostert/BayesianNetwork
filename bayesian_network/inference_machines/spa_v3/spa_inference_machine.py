@@ -55,6 +55,8 @@ class SpaInferenceMachine(IInferenceMachine):
                     "Networks containers loops; number of iterations must be set explicitly."
                 )
 
+            self._num_iterations = self._settings.num_iterations
+
         self.must_iterate: bool = True
 
     @property

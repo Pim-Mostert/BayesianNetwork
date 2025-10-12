@@ -7,7 +7,8 @@ import torchvision
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 
-from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.bayesian_network import BayesianNetworkBuilder, Node
+from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
 from bayesian_network.inference_machines.spa_v3.spa_inference_machine import (
@@ -31,14 +32,12 @@ torch_settings = TorchSettings(
     dtype="float64",
 )
 
-NUM_EPOCHS = 10
-LEARNING_RATE = 0.01
-REGULARIZATION = 0.05
-BATCH_SIZE = 100
+NUM_EPOCHS = 5
+LEARNING_RATE = 0.2
+REGULARIZATION = 0.01
+BATCH_SIZE = 1000
 
 # %% Load data
-gamma = 0.001
-
 mnist = torchvision.datasets.MNIST(
     "./dev_experiments/mnist",
     train=True,
@@ -46,12 +45,11 @@ mnist = torchvision.datasets.MNIST(
         [
             transforms.ToTensor(),
             transforms.Lambda(lambda x: x.flatten()),
-            transforms.Lambda(lambda x: x * (1 - gamma) + gamma / 2),
         ]
     ),
     download=True,
 )
-mnist_subset = Subset(mnist, range(0, 10000))
+mnist_subset = Subset(mnist, range(0, 1000))
 height, width = 28, 28
 
 iterations_per_epoch = len(mnist_subset) / BATCH_SIZE
@@ -61,35 +59,26 @@ assert int(iterations_per_epoch) == iterations_per_epoch, (
 iterations_per_epoch = int(iterations_per_epoch)
 
 # %% Define network
+
 num_classes = 10
+num_hidden = 10  # per class
 
-# Create network
-Q = Node(
-    torch.ones(
-        (num_classes),
-        device=torch_settings.device,
-        dtype=torch_settings.dtype,
-    )
-    / num_classes,
-    name="Q",
-)
-mu = (
-    torch.rand(
-        (height, width, num_classes),
-        device=torch_settings.device,
-        dtype=torch_settings.dtype,
-    )
-    * 0.2
-    + 0.4
-)
-mu = torch.stack([1 - mu, mu], dim=3)
-Ys = [Node(mu[iy, ix], name=f"Y_{iy}x{ix}") for iy in range(height) for ix in range(width)]
+Q = Node.random((num_classes), torch_settings, name="Q")
+Z = Node.random((num_classes, num_hidden), torch_settings, name="Z")
 
-nodes = [Q] + Ys
-parents = {Y: [Q] for Y in Ys}
-parents[Q] = []
+builder = BayesianNetworkBuilder().add_node(Q).add_node(Z, parents=Q)
 
-network = BayesianNetwork(nodes, parents)
+Ys = []
+for iy in range(height):
+    for ix in range(width):
+        node = Node(
+            generate_random_probability_matrix((num_classes, num_hidden, 2), torch_settings),
+            name=f"Y_{iy}x{ix}",
+        )
+        builder.add_node(node, parents=[Q, Z])
+        Ys.append(node)
+
+network = builder.build()
 
 # %% Fit network
 logger = OptimizerLogger()
@@ -111,18 +100,28 @@ def transform(batch: torch.Tensor) -> Evidence:
     )
 
 
-evaluator_batch_size = 2000
+def wrapper(num_observations):
+    def inference_machine_factory(network):
+        return SpaInferenceMachine(
+            settings=SpaInferenceMachineSettings(
+                torch_settings=torch_settings,
+                num_iterations=10,
+                allow_loops=True,
+                average_log_likelihood=True,
+            ),
+            bayesian_network=network,
+            observed_nodes=Ys,
+            num_observations=num_observations,
+        )
+
+    return inference_machine_factory
+
+
+# nx.draw_networkx(wrapper(100)(network).factor_graph.G)
+
+evaluator_batch_size = 1000
 evaluator = BatchEvaluator(
-    inference_machine_factory=lambda network: SpaInferenceMachine(
-        settings=SpaInferenceMachineSettings(
-            torch_settings=torch_settings,
-            num_iterations=4,
-            average_log_likelihood=True,
-        ),
-        bayesian_network=network,
-        observed_nodes=Ys,
-        num_observations=evaluator_batch_size,
-    ),
+    inference_machine_factory=wrapper(evaluator_batch_size),
     evidence_loader=EvidenceLoader(
         DataLoader(
             dataset=mnist_subset,
@@ -132,7 +131,7 @@ evaluator = BatchEvaluator(
     ),
     should_evaluate=lambda epoch, iteration: (
         (iteration == 0)
-        or (iteration == int(iterations_per_epoch / 2))
+        # or (iteration == int(iterations_per_epoch / 2))
         or (epoch == (NUM_EPOCHS - 1) and (iteration == iterations_per_epoch - 1))
     ),
 )
@@ -149,16 +148,7 @@ evidence_loader = EvidenceLoader(
 
 em_optimizer = EmBatchOptimizer(
     bayesian_network=network,
-    inference_machine_factory=lambda network: SpaInferenceMachine(
-        settings=SpaInferenceMachineSettings(
-            torch_settings=torch_settings,
-            num_iterations=4,
-            average_log_likelihood=True,
-        ),
-        bayesian_network=network,
-        observed_nodes=Ys,
-        num_observations=BATCH_SIZE,
-    ),
+    inference_machine_factory=wrapper(BATCH_SIZE),
     settings=EmBatchOptimizerSettings(
         learning_rate=LEARNING_RATE,
         num_epochs=NUM_EPOCHS,
@@ -169,18 +159,6 @@ em_optimizer = EmBatchOptimizer(
 )
 
 em_optimizer.optimize(evidence_loader)
-
-# %% Plot
-
-Ys = network.nodes[1:]
-w = torch.stack([y.cpt.cpu() for y in Ys])
-
-plt.figure()
-for i in range(0, 10):
-    plt.subplot(4, 3, i + 1)
-    plt.imshow(w[:, i, 1].reshape(28, 28))
-    plt.colorbar()
-    plt.clim(0, 1)
 
 
 # %% Plot log_likelihood
@@ -198,5 +176,16 @@ plt.plot(eval_iterations, eval_values, label="Eval")
 plt.xlabel("Iterations")
 plt.ylabel("Average log-likelihood")
 plt.legend()
+
+# %% Plot
+
+w = torch.stack([y.cpt.cpu() for y in Ys])[:, :, 0, :]
+
+plt.figure()
+for i in range(0, w.shape[1]):
+    plt.subplot(13, 8, i + 1)
+    plt.imshow(w[:, i, 1].reshape(28, 28))
+    plt.colorbar()
+    plt.clim(0, 1)
 
 # %%

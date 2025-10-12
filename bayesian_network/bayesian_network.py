@@ -4,7 +4,11 @@ from typing import Dict, List, Set
 import networkx as nx
 import torch
 
-from bayesian_network.common.statistics import is_valid_probability_matrix
+from bayesian_network.common.statistics import (
+    generate_random_probability_matrix,
+    is_valid_probability_matrix,
+)
+from bayesian_network.common.torch_settings import TorchSettings
 
 
 class Node:
@@ -18,6 +22,12 @@ class Node:
         self.num_states: int = cpt.shape[-1]
         self.cpt = cpt
         self.name = name
+
+    @classmethod
+    def random(cls, size, torch_settings: TorchSettings, name: str | None = None):
+        cpt = generate_random_probability_matrix(size, torch_settings)
+
+        return Node(cpt, name)
 
 
 class BayesianNetwork:

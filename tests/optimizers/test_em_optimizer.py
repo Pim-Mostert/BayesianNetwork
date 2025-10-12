@@ -4,7 +4,6 @@ from unittest import TestCase
 from torch.nn.functional import one_hot
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.common import InferenceMachineSettings
 from bayesian_network.inference_machines.evidence import Evidence
@@ -24,19 +23,11 @@ class TestEmOptimizer(TestCase):
     def _generate_random_network(
         self,
     ) -> Tuple[BayesianNetwork, List[Node]]:
-        device = self.get_torch_settings().device
-        dtype = self.get_torch_settings().dtype
-
-        cpt1 = generate_random_probability_matrix((2), device=device, dtype=dtype)
-        cpt2 = generate_random_probability_matrix((2, 3), device=device, dtype=dtype)
-        cpt3_1 = generate_random_probability_matrix((2, 3, 4), device=device, dtype=dtype)
-        cpt3_2 = generate_random_probability_matrix((2, 5), device=device, dtype=dtype)
-        cpt3_3 = generate_random_probability_matrix((3, 6), device=device, dtype=dtype)
-        Q1 = Node(cpt1, name="Q1")
-        Q2 = Node(cpt2, name="Q2")
-        Y1 = Node(cpt3_1, name="Y1")
-        Y2 = Node(cpt3_2, name="Y2")
-        Y3 = Node(cpt3_3, name="Y3")
+        Q1 = Node.random((2), torch_settings=self.get_torch_settings(), name="Q1")
+        Q2 = Node.random((2, 3), torch_settings=self.get_torch_settings(), name="Q2")
+        Y1 = Node.random((2, 3, 4), torch_settings=self.get_torch_settings(), name="Y1")
+        Y2 = Node.random((2, 5), torch_settings=self.get_torch_settings(), name="Y2")
+        Y3 = Node.random((3, 6), torch_settings=self.get_torch_settings(), name="Y3")
 
         nodes = [Q1, Q2, Y1, Y2, Y3]
         parents = {

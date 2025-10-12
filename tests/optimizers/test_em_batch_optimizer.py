@@ -31,19 +31,11 @@ class TestEmOptimizer(TestCase):
     def _generate_random_network(
         self,
     ) -> Tuple[BayesianNetwork, List[Node]]:
-        device = self.get_torch_settings().device
-        dtype = self.get_torch_settings().dtype
-
-        cpt1 = generate_random_probability_matrix((2), device=device, dtype=dtype)
-        cpt2 = generate_random_probability_matrix((2, 3), device=device, dtype=dtype)
-        cpt3_1 = generate_random_probability_matrix((2, 3, 4), device=device, dtype=dtype)
-        cpt3_2 = generate_random_probability_matrix((2, 5), device=device, dtype=dtype)
-        cpt3_3 = generate_random_probability_matrix((3, 6), device=device, dtype=dtype)
-        Q1 = Node(cpt1, name="Q1")
-        Q2 = Node(cpt2, name="Q2")
-        Y1 = Node(cpt3_1, name="Y1")
-        Y2 = Node(cpt3_2, name="Y2")
-        Y3 = Node(cpt3_3, name="Y3")
+        Q1 = Node.random((2), torch_settings=self.get_torch_settings(), name="Q1")
+        Q2 = Node.random((2, 3), torch_settings=self.get_torch_settings(), name="Q2")
+        Y1 = Node.random((2, 3, 4), torch_settings=self.get_torch_settings(), name="Y1")
+        Y2 = Node.random((2, 5), torch_settings=self.get_torch_settings(), name="Y2")
+        Y3 = Node.random((3, 6), torch_settings=self.get_torch_settings(), name="Y3")
 
         nodes = [Q1, Q2, Y1, Y2, Y3]
         parents = {
@@ -129,19 +121,13 @@ class TestEmOptimizer(TestCase):
                 self.assertAlmostEqual(diff, 0)
 
     def test_optimize_em_step(self):
-        torch_settings = self.get_torch_settings()
-
         ### Assign
         # Setup network
-        Q1_cpt = generate_random_probability_matrix(
-            (2), torch_settings.device, torch_settings.dtype
-        )
+        Q1_cpt = generate_random_probability_matrix((2), torch_settings=self.get_torch_settings())
         Q2_cpt = generate_random_probability_matrix(
-            (2, 2), torch_settings.device, torch_settings.dtype
+            (2, 2), torch_settings=self.get_torch_settings()
         )
-        Y_cpt = generate_random_probability_matrix(
-            (2, 2), torch_settings.device, torch_settings.dtype
-        )
+        Y_cpt = generate_random_probability_matrix((2, 2), torch_settings=self.get_torch_settings())
 
         Q1 = Node(Q1_cpt, name="Q1")
         Q2 = Node(Q2_cpt, name="Q2")
@@ -159,14 +145,10 @@ class TestEmOptimizer(TestCase):
         # Setup mock
         inference_machine_mock = create_autospec(IInferenceMachine, instance=True)
         p_Q1 = generate_random_probability_matrix(
-            (1, *Q1_cpt.size()),
-            torch_settings.device,
-            torch_settings.dtype,
+            (1, *Q1_cpt.size()), torch_settings=self.get_torch_settings()
         )
         p_Q2 = generate_random_probability_matrix(
-            (1, *Q2_cpt.size()),
-            torch_settings.device,
-            torch_settings.dtype,
+            (1, *Q2_cpt.size()), torch_settings=self.get_torch_settings()
         )
         inference_machine_mock.infer_nodes_with_parents.return_value = [p_Q1, p_Q2]
 
@@ -192,19 +174,13 @@ class TestEmOptimizer(TestCase):
         assert Q2.cpt.isclose((1 - lr) * Q2_cpt + lr * p_Q2).all()
 
     def test_optimize_em_step_regularization(self):
-        torch_settings = self.get_torch_settings()
-
         ### Assign
         # Setup network
-        Q1_cpt = generate_random_probability_matrix(
-            (2), torch_settings.device, torch_settings.dtype
-        )
+        Q1_cpt = generate_random_probability_matrix((2), torch_settings=self.get_torch_settings())
         Q2_cpt = generate_random_probability_matrix(
-            (2, 2), torch_settings.device, torch_settings.dtype
+            (2, 2), torch_settings=self.get_torch_settings()
         )
-        Y_cpt = generate_random_probability_matrix(
-            (2, 2), torch_settings.device, torch_settings.dtype
-        )
+        Y_cpt = generate_random_probability_matrix((2, 2), torch_settings=self.get_torch_settings())
 
         Q1 = Node(Q1_cpt, name="Q1")
         Q2 = Node(Q2_cpt, name="Q2")
@@ -222,14 +198,10 @@ class TestEmOptimizer(TestCase):
         # Setup mock
         inference_machine_mock = create_autospec(IInferenceMachine, instance=True)
         p_Q1 = generate_random_probability_matrix(
-            (1, *Q1_cpt.size()),
-            torch_settings.device,
-            torch_settings.dtype,
+            (1, *Q1_cpt.size()), torch_settings=self.get_torch_settings()
         )
         p_Q2 = generate_random_probability_matrix(
-            (1, *Q2_cpt.size()),
-            torch_settings.device,
-            torch_settings.dtype,
+            (1, *Q2_cpt.size()), torch_settings=self.get_torch_settings()
         )
         inference_machine_mock.infer_nodes_with_parents.return_value = [p_Q1, p_Q2]
 

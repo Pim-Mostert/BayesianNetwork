@@ -1,12 +1,13 @@
 import torch
 
+from bayesian_network.common.torch_settings import TorchSettings
+
 
 def generate_random_probability_matrix(
     size,
-    device: torch.device,
-    dtype: torch.dtype,
+    torch_settings: TorchSettings,
 ):
-    p: torch.Tensor = torch.rand(size, dtype=dtype, device=device)
+    p: torch.Tensor = torch.rand(size, dtype=torch_settings.dtype, device=torch_settings.device)
 
     return p / p.sum(dim=-1, keepdim=True)
 

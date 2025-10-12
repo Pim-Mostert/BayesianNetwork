@@ -6,7 +6,6 @@ import torch
 from parameterized import parameterized
 
 from bayesian_network.bayesian_network import BayesianNetwork, BayesianNetworkBuilder, Node
-from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.tensor_helpers import rescale_tensors
 from bayesian_network.common.testcase_extensions import BaseTestCase
 from bayesian_network.common.torch_settings import TorchSettings
@@ -52,21 +51,9 @@ class TorchInferenceMachineGenericTests:
         def setUp(self):
             super().setUp()
 
-            device = self.get_torch_settings().device
-            dtype = self.get_torch_settings().dtype
-
-            self.Q1 = Node(
-                generate_random_probability_matrix((2), device=device, dtype=dtype),
-                name="Q1",
-            )
-            self.Q2 = Node(
-                generate_random_probability_matrix((2, 2), device=device, dtype=dtype),
-                name="Q2",
-            )
-            self.Y = Node(
-                generate_random_probability_matrix((2, 2), device=device, dtype=dtype),
-                name="Y",
-            )
+            self.Q1 = Node.random((2), torch_settings=self.get_torch_settings(), name="Q1")
+            self.Q2 = Node.random((2, 2), torch_settings=self.get_torch_settings(), name="Q2")
+            self.Y = Node.random((2, 2), torch_settings=self.get_torch_settings(), name="Y")
 
             self.network = (
                 BayesianNetworkBuilder()
@@ -430,41 +417,14 @@ class TorchInferenceMachineGenericTests:
         def setUp(self):
             super().setUp()
 
-            device = self.get_torch_settings().device
-            dtype = self.get_torch_settings().dtype
-
-            self.Q1 = Node(
-                generate_random_probability_matrix((2), device=device, dtype=dtype),
-                name="Q1",
-            )
-            self.Q2 = Node(
-                generate_random_probability_matrix((2, 3), device=device, dtype=dtype),
-                name="Q2",
-            )
-            self.Q3 = Node(
-                generate_random_probability_matrix((3, 2), device=device, dtype=dtype),
-                name="Q3",
-            )
-            self.Y1 = Node(
-                generate_random_probability_matrix((2, 2), device=device, dtype=dtype),
-                name="Y1",
-            )
-            self.Y2 = Node(
-                generate_random_probability_matrix((3, 3), device=device, dtype=dtype),
-                name="Y2",
-            )
-            self.Y3 = Node(
-                generate_random_probability_matrix((3, 4), device=device, dtype=dtype),
-                name="Y3",
-            )
-            self.Y4 = Node(
-                generate_random_probability_matrix((2, 2), device=device, dtype=dtype),
-                name="Y4",
-            )
-            self.Y5 = Node(
-                generate_random_probability_matrix((2, 3), device=device, dtype=dtype),
-                name="Y5",
-            )
+            self.Q1 = Node.random((2), self.get_torch_settings(), name="Q1")
+            self.Q2 = Node.random((2, 3), self.get_torch_settings(), name="Q2")
+            self.Q3 = Node.random((3, 2), self.get_torch_settings(), name="Q3")
+            self.Y1 = Node.random((2, 2), self.get_torch_settings(), name="Y1")
+            self.Y2 = Node.random((3, 3), self.get_torch_settings(), name="Y2")
+            self.Y3 = Node.random((3, 4), self.get_torch_settings(), name="Y3")
+            self.Y4 = Node.random((2, 2), self.get_torch_settings(), name="Y4")
+            self.Y5 = Node.random((2, 3), self.get_torch_settings(), name="Y5")
             self.network = (
                 BayesianNetworkBuilder()
                 .add_node(self.Q1)
@@ -765,21 +725,9 @@ class TorchInferenceMachineGenericTests:
         def setUp(self):
             super().setUp()
 
-            device = self.get_torch_settings().device
-            dtype = self.get_torch_settings().dtype
-
-            self.Q1 = Node(
-                generate_random_probability_matrix((2), device=device, dtype=dtype),
-                name="Q1",
-            )
-            self.Q2 = Node(
-                generate_random_probability_matrix((2, 2), device=device, dtype=dtype),
-                name="Q2",
-            )
-            self.Y = Node(
-                generate_random_probability_matrix((2, 2, 2), device=device, dtype=dtype),
-                name="Y",
-            )
+            self.Q1 = Node.random((2), torch_settings=self.get_torch_settings(), name="Q1")
+            self.Q2 = Node.random((2, 2), torch_settings=self.get_torch_settings(), name="Q2")
+            self.Y = Node.random((2, 2, 2), torch_settings=self.get_torch_settings(), name="Y")
 
             self.network = (
                 BayesianNetworkBuilder()
