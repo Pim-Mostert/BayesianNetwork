@@ -56,6 +56,16 @@ class BayesianNetwork:
     def num_nodes(self):
         return self._G.number_of_nodes()
 
+    @property
+    def degrees_of_freedom(self):
+        def df_for_node(node: Node):
+            s = torch.tensor(node.cpt.shape)
+            s[-1] -= 1
+
+            return s.prod().item()
+
+        return sum([df_for_node(node) for node in self.nodes])
+
     def parents_of(self, node: Node):
         return self._G.predecessors(node)
 
@@ -144,6 +154,13 @@ class BayesianNetworkBuilder:
     def add_node(self, node: Node, parents: None | Node | List[Node] = None):
         self.nodes.append(node)
         self.set_parents(node, parents)
+
+        return self
+
+    def add_nodes(self, nodes: List[Node], parents: None | Node | List[Node] = None):
+        for node in nodes:
+            self.nodes.append(node)
+            self.set_parents(node, parents)
 
         return self
 
