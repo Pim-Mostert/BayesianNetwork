@@ -32,10 +32,10 @@ torch_settings = TorchSettings(
     dtype="float64",
 )
 
-NUM_EPOCHS = 5
-LEARNING_RATE = 0.2
+NUM_EPOCHS = 1
+LEARNING_RATE = 0.1
 REGULARIZATION = 0.01
-BATCH_SIZE = 1000
+BATCH_SIZE = 100
 
 # %% Load data
 mnist = torchvision.datasets.MNIST(
@@ -49,7 +49,7 @@ mnist = torchvision.datasets.MNIST(
     ),
     download=True,
 )
-mnist_subset = Subset(mnist, range(0, 1000))
+mnist_subset = Subset(mnist, range(0, 10000))
 height, width = 28, 28
 
 iterations_per_epoch = len(mnist_subset) / BATCH_SIZE
@@ -61,21 +61,31 @@ iterations_per_epoch = int(iterations_per_epoch)
 # %% Define network
 
 num_classes = 10
-num_hidden = 10  # per class
+num_features = 2
 
-Q = Node.random((num_classes), torch_settings, name="Q")
-Z = Node.random((num_classes, num_hidden), torch_settings, name="Z")
+Q = Node(
+    torch.ones(
+        (num_classes),
+        device=torch_settings.device,
+        dtype=torch_settings.dtype,
+    )
+    / num_classes,
+    name="Q",
+)
+builder = BayesianNetworkBuilder().add_node(Q)
 
-builder = BayesianNetworkBuilder().add_node(Q).add_node(Z, parents=Q)
+F1 = Node.random((num_classes, num_features), torch_settings, "F1")
+F2 = Node.random((num_classes, num_features), torch_settings, "F2")
+builder.add_node(F1, parents=Q).add_node(F2, parents=Q)
 
 Ys = []
 for iy in range(height):
     for ix in range(width):
         node = Node(
-            generate_random_probability_matrix((num_classes, num_hidden, 2), torch_settings),
+            generate_random_probability_matrix((num_features, num_features, 2), torch_settings),
             name=f"Y_{iy}x{ix}",
         )
-        builder.add_node(node, parents=[Q, Z])
+        builder.add_node(node, parents=[F1, F2])
         Ys.append(node)
 
 network = builder.build()

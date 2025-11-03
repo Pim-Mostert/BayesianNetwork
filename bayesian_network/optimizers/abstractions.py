@@ -1,10 +1,7 @@
-from typing import Dict, Tuple
+from abc import ABC, abstractmethod
 
 from bayesian_network.bayesian_network import BayesianNetwork
-from bayesian_network.inference_machines.evidence import EvidenceLoader, Evidence
-
-
-from abc import ABC, abstractmethod
+from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
 
 
 class IOptimizer(ABC):
@@ -22,9 +19,4 @@ class IBatchOptimizer(ABC):
 class IEvaluator(ABC):
     @abstractmethod
     def evaluate(self, epoch: int, iteration: int, network: BayesianNetwork):
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
-    def log_likelihoods(self) -> Dict[Tuple[int, int], float]:
         raise NotImplementedError()
