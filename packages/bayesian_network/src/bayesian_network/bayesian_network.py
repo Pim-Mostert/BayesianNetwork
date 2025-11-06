@@ -3,12 +3,11 @@ from typing import Dict, List, Set
 
 import networkx as nx
 import torch
-
-from bayesian_network.common.statistics import (
+from common.statistics import (
     generate_random_probability_matrix,
     is_valid_probability_matrix,
 )
-from bayesian_network.common.torch_settings import TorchSettings
+from common.torch_settings import TorchSettings
 
 
 class Node:

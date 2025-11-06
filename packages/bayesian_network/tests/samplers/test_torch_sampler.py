@@ -2,12 +2,11 @@ from itertools import groupby
 from unittest import TestCase
 
 import torch
+from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
+from common.torch_settings import TorchSettings
 from scipy import stats
 from torch import flatten
-
-from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.common.torch_settings import TorchSettings
-from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
 
 
 class TestTorchSampler(TestCase):

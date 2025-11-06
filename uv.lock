@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 members = [
     "bayesian-network",
     "bayesian-network-dev",
+    "common",
 ]
 
 [[package]]
@@ -39,16 +40,16 @@ wheels = [
 name = "bayesian-network"
 source = { editable = "packages/bayesian_network" }
 dependencies = [
+    { name = "common" },
     { name = "networkx" },
-    { name = "pydantic-settings" },
     { name = "scipy" },
     { name = "torch" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "common", editable = "packages/common" },
     { name = "networkx", specifier = ">=3.5" },
-    { name = "pydantic-settings", specifier = ">=2.11.0" },
     { name = "scipy", specifier = ">=1.16.3" },
     { name = "torch", specifier = ">=2.9.0" },
 ]
@@ -166,6 +167,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/4c/13/7d740c5849255756bc17888787313b61fd38a0a8304fc4f073dfc46122aa/comm-0.2.3.tar.gz", hash = "sha256:2dc8048c10962d55d7ad693be1e7045d891b7ce8d999c97963a5e3e99c055971", size = 6319, upload-time = "2025-07-25T14:02:04.452Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/97/891a0971e1e4a8c5d2b20bbe0e524dc04548d2307fee33cdeba148fd4fc7/comm-0.2.3-py3-none-any.whl", hash = "sha256:c615d91d75f7f04f095b30d1c1711babd43bdc6419c1be9886a85f2f4e489417", size = 7294, upload-time = "2025-07-25T14:02:02.896Z" },
+]
+
+[[package]]
+name = "common"
+source = { editable = "packages/common" }
+dependencies = [
+    { name = "pydantic-settings" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic-settings", specifier = ">=2.11.0" },
+    { name = "torch", specifier = ">=2.9.0" },
 ]
 
 [[package]]

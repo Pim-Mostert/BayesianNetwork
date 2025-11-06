@@ -5,9 +5,9 @@ from typing import Dict, List
 import networkx as nx
 import torch
 import torch.nn.functional as F
+from common.torch_settings import TorchSettings
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence
 
 

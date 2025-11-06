@@ -4,17 +4,12 @@ requires-python = ">=3.12"
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bayesian_network"
+name = "common"
 dynamic = ["version"]
 dependencies = [
-    "common",
-    "networkx>=3.5",
-    "scipy>=1.16.3",
+    "pydantic-settings>=2.11.0",
     "torch>=2.9.0",
 ]
 
 [tool.setuptools_scm]
 root = "../../"
-
-[tool.uv.sources]
-common = { workspace = true }

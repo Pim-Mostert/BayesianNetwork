@@ -1,9 +1,8 @@
 from typing import Callable, List
 
 import torch
+from common.torch_settings import TorchSettings
 from torch.utils.data import DataLoader
-
-from bayesian_network.common.torch_settings import TorchSettings
 
 
 class Evidence:

@@ -1,16 +1,15 @@
 from typing import List, Tuple
 from unittest import TestCase
 
-from torch.nn.functional import one_hot
-
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.common import InferenceMachineSettings
 from bayesian_network.inference_machines.evidence import Evidence
 from bayesian_network.inference_machines.naive.naive_inference_machine import NaiveInferenceMachine
 from bayesian_network.optimizers.common import OptimizerLogger
 from bayesian_network.optimizers.em_optimizer import EmOptimizer, EmOptimizerSettings
 from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
+from common.torch_settings import TorchSettings
+from torch.nn.functional import one_hot
 
 
 class TestEmOptimizer(TestCase):

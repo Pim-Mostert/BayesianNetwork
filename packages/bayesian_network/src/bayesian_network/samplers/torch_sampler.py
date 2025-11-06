@@ -1,9 +1,9 @@
 from typing import Dict, List
 
 import torch
+from common.torch_settings import TorchSettings
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.samplers.abstractions import IBayesianNetworkSampler
 
 

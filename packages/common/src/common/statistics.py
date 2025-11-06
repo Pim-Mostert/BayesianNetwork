@@ -1,6 +1,6 @@
 import torch
 
-from bayesian_network.common.torch_settings import TorchSettings
+from .torch_settings import TorchSettings
 
 
 def generate_random_probability_matrix(

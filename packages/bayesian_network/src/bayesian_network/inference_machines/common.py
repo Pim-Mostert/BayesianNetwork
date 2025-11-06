@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
-
-from bayesian_network.common.torch_settings import TorchSettings
+from common.torch_settings import TorchSettings
 
 
 @dataclass

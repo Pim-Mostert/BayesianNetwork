@@ -3,12 +3,7 @@ from unittest import TestCase
 from unittest.mock import create_autospec
 
 import torch
-from torch.nn.functional import one_hot
-from torch.utils.data import DataLoader, TensorDataset
-
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.common.statistics import generate_random_probability_matrix
-from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.abstractions import IInferenceMachine
 from bayesian_network.inference_machines.common import InferenceMachineSettings
 from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
@@ -19,6 +14,10 @@ from bayesian_network.optimizers.em_batch_optimizer import (
     EmBatchOptimizerSettings,
 )
 from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
+from common.statistics import generate_random_probability_matrix
+from common.torch_settings import TorchSettings
+from torch.nn.functional import one_hot
+from torch.utils.data import DataLoader, TensorDataset
 
 
 class TestEmOptimizer(TestCase):

@@ -3,12 +3,13 @@ from dataclasses import asdict
 from typing import List
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
-from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.common import InferenceMachineSettings
 from bayesian_network.inference_machines.spa_v1.spa_inference_machine import (
     SpaInferenceMachine,
     SpaInferenceMachineSettings,
 )
+from common.torch_settings import TorchSettings
+
 from tests.inference_machines.torch_inference_machine_generic_tests import (
     TorchInferenceMachineGenericTests,
 )
