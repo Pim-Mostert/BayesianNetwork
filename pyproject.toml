@@ -1,15 +1,23 @@
-[build-system]
-requires = ["setuptools", "wheel", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "bayesian_network"
-dynamic = ["version", "dependencies"]
+name = "bayesian_network_dev"
+requires-python = ">=3.12"
+version = "0.0.0"
+dependencies = [
+    "bayesian-network",
+]
 
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
+[tool.uv]
+package = false
 
-[tool.setuptools.packages.find]
-include = ["bayesian_network*"]
+[tool.uv.sources]
+bayesian-network = { workspace = true }
 
-[tool.setuptools_scm]
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[dependency-groups]
+dev = [
+    "parameterized>=0.9.0",
+    "pre-commit>=4.3.0",
+    "pytest>=8.4.2",
+]
