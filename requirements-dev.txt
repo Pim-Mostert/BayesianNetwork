@@ -1,8 +1,0 @@
--r requirements.txt
-build
-setuptools-scm
-pre-commit
-ipykernel
-torchvision
-matplotlib
-parameterized
