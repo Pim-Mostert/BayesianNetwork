@@ -1,15 +1,31 @@
-[build-system]
-requires = ["setuptools", "wheel", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "bayesian_network"
-dynamic = ["version", "dependencies"]
+name = "bayesian_network_dev"
+requires-python = ">=3.12"
+version = "0.0.0"
+dependencies = [
+    "bayesian-network",
+]
 
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
+[tool.uv]
+package = false
 
-[tool.setuptools.packages.find]
-include = ["bayesian_network*"]
+[[tool.uv.index]]
+name = "azure-artifacts"
+url = "https://pypi.org/simple"
+publish-url = "https://pkgs.dev.azure.com/mostertpim/BayesianNetwork/_packaging/BayesianNetwork/pypi/upload/"
 
-[tool.setuptools_scm]
+[tool.uv.sources]
+bayesian-network = { workspace = true }
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.1.0",
+    "matplotlib>=3.10.7",
+    "parameterized>=0.9.0",
+    "pre-commit>=4.3.0",
+    "pytest>=8.4.2",
+    "torchvision>=0.24.0",
+]

@@ -1,0 +1,100 @@
+from typing import List, Tuple
+from unittest import TestCase
+
+from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.inference_machines.common import InferenceMachineSettings
+from bayesian_network.inference_machines.evidence import Evidence
+from bayesian_network.inference_machines.naive.naive_inference_machine import NaiveInferenceMachine
+from bayesian_network.optimizers.common import OptimizerLogger
+from bayesian_network.optimizers.em_optimizer import EmOptimizer, EmOptimizerSettings
+from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
+from common.torch_settings import TorchSettings
+from torch.nn.functional import one_hot
+
+
+class TestEmOptimizer(TestCase):
+    def get_torch_settings(self) -> TorchSettings:
+        return TorchSettings(
+            device="cpu",
+            dtype="float64",
+        )
+
+    def _generate_random_network(
+        self,
+    ) -> Tuple[BayesianNetwork, List[Node]]:
+        Q1 = Node.random((2), torch_settings=self.get_torch_settings(), name="Q1")
+        Q2 = Node.random((2, 3), torch_settings=self.get_torch_settings(), name="Q2")
+        Y1 = Node.random((2, 3, 4), torch_settings=self.get_torch_settings(), name="Y1")
+        Y2 = Node.random((2, 5), torch_settings=self.get_torch_settings(), name="Y2")
+        Y3 = Node.random((3, 6), torch_settings=self.get_torch_settings(), name="Y3")
+
+        nodes = [Q1, Q2, Y1, Y2, Y3]
+        parents = {
+            Q1: [],
+            Q2: [Q1],
+            Y1: [Q1, Q2],
+            Y2: [Q1],
+            Y3: [Q2],
+        }
+
+        observed_nodes = [Y1, Y2, Y3]
+        bayesian_network = BayesianNetwork(nodes, parents)
+
+        return bayesian_network, observed_nodes
+
+    def setUp(self):
+        self.em_optimizer_settings = EmOptimizerSettings(
+            num_iterations=10,
+        )
+
+        # Create true network
+        self.true_network, self.observed_nodes = self._generate_random_network()
+
+        # Create training data
+        sampler = TorchBayesianNetworkSampler(
+            bayesian_network=self.true_network,
+            torch_settings=self.get_torch_settings(),
+        )
+
+        num_samples = 10000
+        data = sampler.sample(num_samples, self.observed_nodes)
+        self.evidence = Evidence(
+            [one_hot(node_data.long()) for node_data in data.T],
+            self.get_torch_settings(),
+        )
+
+    def test_optimize_increase_log_likelihood(self):
+        # Assign
+        untrained_network, observed_nodes = self._generate_random_network()
+
+        # Act
+        def inference_machine_factory(bayesian_network):
+            return NaiveInferenceMachine(
+                settings=InferenceMachineSettings(
+                    torch_settings=self.get_torch_settings(),
+                    average_log_likelihood=False,
+                ),
+                bayesian_network=bayesian_network,
+                observed_nodes=observed_nodes,
+            )
+
+        logger = OptimizerLogger()
+        sut = EmOptimizer(
+            untrained_network,
+            inference_machine_factory,
+            settings=self.em_optimizer_settings,
+            logger=logger,
+        )
+
+        sut.optimize(self.evidence)
+
+        # Assert either greater or almost equal
+        ll = [log.ll for log in logger.logs]
+
+        for iteration in range(1, self.em_optimizer_settings.num_iterations):
+            diff = ll[iteration] - ll[iteration - 1]
+
+            if diff > 0:
+                self.assertGreaterEqual(diff, 0)
+            else:
+                self.assertAlmostEqual(diff, 0)
