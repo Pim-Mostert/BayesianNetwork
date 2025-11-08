@@ -9,6 +9,11 @@ dependencies = [
 [tool.uv]
 package = false
 
+[[tool.uv.index]]
+name = "azure-artifacts"
+url = "https://pypi.org/simple"
+publish-url = "https://pkgs.dev.azure.com/mostertpim/BayesianNetwork/_packaging/BayesianNetwork/pypi/upload/"
+
 [tool.uv.sources]
 bayesian-network = { workspace = true }
 
