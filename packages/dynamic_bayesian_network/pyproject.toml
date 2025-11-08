@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools", "wheel", "setuptools-scm"]
+requires-python = ">=3.12"
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dynamic_bayesian_network"
+dynamic = ["version"]
+dependencies = [
+    "common",
+    "bayesian_network",
+]
+
+[tool.setuptools_scm]
+root = "../../"
+
+[tool.uv.sources]
+common = { workspace = true }
+bayesian_network = { workspace = true }
