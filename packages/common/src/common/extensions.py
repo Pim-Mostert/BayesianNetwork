@@ -1,42 +1,44 @@
 # %%
 
-
 from functools import wraps
+from typing import Any, Callable, Generic, Type, TypeVar
+
+T = TypeVar("T")
 
 
-class ExtensionDecorator:
-    def __init__(self, func, args, kwargs, for_type):
+class ExtensionDecorator(Generic[T]):
+    def __init__(self, func: Callable[..., Any], args, kwargs, to: Type[T]):
         self._func = func
-        self._for_type = for_type
+        self._to = to
         self._args = args
         self._kwargs = kwargs
 
-    def __call__(self, _):
+    def __call__(self, _: Any) -> Any:
         raise NotImplementedError("Don't call an extension method directly.")
 
-    def __rrshift__(self, other):
-        if not isinstance(other, self._for_type):
+    def __ror__(self, other: T) -> Any:
+        if not isinstance(other, self._to):
             raise TypeError(
-                f"Extension '{self._func.__name__}' can only be used on '{self._for_type.__name__}', "
+                f"Extension '{self._func.__name__}' can only be used on '{self._to.__name__}', "
                 f"not '{type(other).__name__}'"
             )
 
         return self._func(other, *self._args, **self._kwargs)
 
 
-class ExtensionDecoratorFactory:
-    def __init__(self, func, for_type):
+class ExtensionDecoratorFactory(Generic[T]):
+    def __init__(self, func: Callable[..., Any], to: Type[T]):
         self._func = func
-        self._for_type = for_type
+        self._to = to
 
         wraps(func)(self)
 
-    def __call__(self, *args, **kwargs):
-        return ExtensionDecorator(self._func, args, kwargs, self._for_type)
+    def __call__(self, *args, **kwargs) -> ExtensionDecorator[T]:
+        return ExtensionDecorator(self._func, args, kwargs, self._to)
 
 
-def extension_to(for_type: type):
-    def wrapper(func):
-        return ExtensionDecoratorFactory(func, for_type)
+def extension(*, to: Type[T]) -> Callable[[Callable[..., Any]], ExtensionDecoratorFactory[T]]:
+    def wrapper(func: Callable[..., Any]) -> ExtensionDecoratorFactory[T]:
+        return ExtensionDecoratorFactory(func, to)
 
     return wrapper
