@@ -38,6 +38,6 @@ jobs:
 
       - name: Publish package
         env:
-          UV_PUBLISH_PASSWORD: ${{ secrets.AZURE_ARTIFACTS_READWRITE_TOKEN }}
+          UV_PUBLISH_TOKEN: ${{ secrets.AZURE_ARTIFACTS_READWRITE_TOKEN }}
         run: |
           uv publish --index azure-artifacts dist/*.whl
