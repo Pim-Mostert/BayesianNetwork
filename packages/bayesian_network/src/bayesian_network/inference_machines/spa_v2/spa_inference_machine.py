@@ -5,11 +5,11 @@ import torch
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.inference_machines.abstractions import IInferenceMachine
-from bayesian_network.inference_machines.evidence import Evidence
-from bayesian_network.inference_machines.spa_v2.factor_graph import FactorGraph
 from bayesian_network.inference_machines.common import (
     InferenceMachineSettings,
 )
+from bayesian_network.inference_machines.evidence import Evidence
+from bayesian_network.inference_machines.spa_v2.factor_graph import FactorGraph
 
 
 @dataclass

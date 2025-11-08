@@ -1,6 +1,6 @@
+import logging
 from dataclasses import dataclass
 from datetime import datetime
-import logging
 from typing import Callable, Dict, List, Tuple
 
 import numpy as np

@@ -1,13 +1,11 @@
-from bayesian_network.bayesian_network import Node
-from bayesian_network.inference_machines.common import InferenceMachineSettings
-from bayesian_network.inference_machines.evidence import Evidence
-
+from abc import ABC, abstractmethod
+from typing import List
 
 import torch
 
-
-from abc import ABC, abstractmethod
-from typing import List
+from bayesian_network.bayesian_network import Node
+from bayesian_network.inference_machines.common import InferenceMachineSettings
+from bayesian_network.inference_machines.evidence import Evidence
 
 
 class IInferenceMachine(ABC):

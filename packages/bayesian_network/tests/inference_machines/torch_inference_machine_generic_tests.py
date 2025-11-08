@@ -3,7 +3,8 @@ from dataclasses import replace
 from typing import List
 
 import torch
-from bayesian_network.bayesian_network import BayesianNetwork, BayesianNetworkBuilder, Node
+from bayesian_network.bayesian_network import BayesianNetwork, Node
+from bayesian_network.builder import BayesianNetworkBuilder
 from bayesian_network.inference_machines.abstractions import IInferenceMachine
 from bayesian_network.inference_machines.common import InferenceMachineSettings
 from bayesian_network.inference_machines.evidence import Evidence

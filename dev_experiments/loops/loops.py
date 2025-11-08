@@ -2,11 +2,8 @@
 import logging
 from typing import List, Tuple
 
-import torch
 import matplotlib.pyplot as plt
-from torch.nn.functional import one_hot
-
-
+import torch
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
@@ -18,6 +15,7 @@ from bayesian_network.inference_machines.spa_v1_1.spa_inference_machine import (
     SpaInferenceMachineSettings,
 )
 from bayesian_network.samplers.torch_sampler import TorchBayesianNetworkSampler
+from torch.nn.functional import one_hot
 
 logging.basicConfig(level=logging.INFO)
 

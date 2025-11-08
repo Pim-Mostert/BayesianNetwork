@@ -4,10 +4,8 @@ import logging
 import matplotlib.pyplot as plt
 import torch
 import torchvision
-from torch.utils.data import DataLoader, Subset
-from torchvision import transforms
-
-from bayesian_network.bayesian_network import BayesianNetworkBuilder, Node
+from bayesian_network.bayesian_network import Node
+from bayesian_network.builder import BayesianNetworkBuilder
 from bayesian_network.common.statistics import generate_random_probability_matrix
 from bayesian_network.common.torch_settings import TorchSettings
 from bayesian_network.inference_machines.evidence import Evidence, EvidenceLoader
@@ -23,6 +21,8 @@ from bayesian_network.optimizers.em_batch_optimizer import (
     EmBatchOptimizer,
     EmBatchOptimizerSettings,
 )
+from torch.utils.data import DataLoader, Subset
+from torchvision import transforms
 
 logging.basicConfig(level=logging.INFO)
 
