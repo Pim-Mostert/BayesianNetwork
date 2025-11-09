@@ -1,4 +1,7 @@
 import torch
+from typing_extensions import deprecated
+
+from common.extensions import extension
 
 from .torch_settings import TorchSettings
 
@@ -12,14 +15,11 @@ def generate_random_probability_matrix(
     return p / p.sum(dim=-1, keepdim=True)
 
 
-def is_valid_probability_matrix(p: torch.Tensor, tolerance=None):
-    if tolerance is None:
-        if p.dtype == torch.float32:
-            tolerance = 1e-6
-        else:
-            tolerance = 1e-15
+@deprecated("Use is_probability_matrix extension method")
+def is_valid_probability_matrix(p: torch.Tensor):
+    return torch.isclose(p.sum(dim=-1), torch.tensor(1.0)).all().item()
 
-    def _is_approximately_one(x: torch.Tensor):
-        return torch.abs(x - 1) < tolerance
 
-    return torch.all(_is_approximately_one(p.sum(dim=-1)))
+@extension(to=torch.Tensor)
+def is_probability_matrix(p: torch.Tensor):
+    return is_valid_probability_matrix(p)

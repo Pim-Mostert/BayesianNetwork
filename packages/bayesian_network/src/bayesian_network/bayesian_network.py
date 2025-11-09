@@ -2,7 +2,7 @@ from typing import Dict, List
 
 import networkx as nx
 import torch
-from common.statistics import generate_random_probability_matrix, is_valid_probability_matrix
+from common.statistics import generate_random_probability_matrix, is_probability_matrix
 from common.torch_settings import TorchSettings
 
 
@@ -11,7 +11,7 @@ class Node:
         return self.name if self.name else super().__repr__()
 
     def __init__(self, cpt: torch.Tensor, name=None):
-        if not is_valid_probability_matrix(cpt):
+        if not cpt | is_probability_matrix():
             raise Exception("The CPT should sum to 1 along the last dimension.")
 
         self.num_states: int = cpt.shape[-1]
