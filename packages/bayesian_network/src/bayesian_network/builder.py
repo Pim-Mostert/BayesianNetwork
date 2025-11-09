@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Set
+from collections.abc import Iterable, Mapping
 
 from bayesian_network.bayesian_network import BayesianNetwork, Node
 
@@ -10,12 +10,12 @@ class NetworkValidationError(Exception):
 
 class NetworkValidator(ABC):
     @abstractmethod
-    def evaluate(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
+    def evaluate(self, nodes: Iterable[Node], parents: Mapping[Node, Iterable[Node]]):
         pass
 
 
 class CPTsMatchParents(NetworkValidator):
-    def evaluate(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
+    def evaluate(self, nodes: Iterable[Node], parents: Mapping[Node, Iterable[Node]]):
         for node in nodes:
             for i, parent in enumerate(parents[node]):
                 if node.cpt.shape[i] != parent.num_states:
@@ -25,7 +25,7 @@ class CPTsMatchParents(NetworkValidator):
 
 
 class NoDuplicateNodes(NetworkValidator):
-    def evaluate(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
+    def evaluate(self, nodes: Iterable[Node], parents: Mapping[Node, Iterable[Node]]):
         nodes_set = set()
         for node in nodes:
             if node in nodes_set:
@@ -35,7 +35,7 @@ class NoDuplicateNodes(NetworkValidator):
 
 
 class NoIsolatedNodes(NetworkValidator):
-    def evaluate(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
+    def evaluate(self, nodes: Iterable[Node], parents: Mapping[Node, Iterable[Node]]):
         for node in nodes:
             children = [child for child in nodes if node in parents[child]]
 
@@ -46,7 +46,7 @@ class NoIsolatedNodes(NetworkValidator):
 
 
 class ParentsExistInNetwork(NetworkValidator):
-    def evaluate(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
+    def evaluate(self, nodes: Iterable[Node], parents: Mapping[Node, Iterable[Node]]):
         nodes_set = set(nodes)
 
         for node in nodes_set:
@@ -58,7 +58,7 @@ class ParentsExistInNetwork(NetworkValidator):
 
 
 class NoDuplicateNodeNames(NetworkValidator):
-    def evaluate(self, nodes: List[Node], parents: Dict[Node, List[Node]]):
+    def evaluate(self, nodes: Iterable[Node], parents: Mapping[Node, Iterable[Node]]):
         names = set()
         for node in nodes:
             if node.name in names:
@@ -69,9 +69,9 @@ class NoDuplicateNodeNames(NetworkValidator):
 
 class BayesianNetworkBuilder:
     def __init__(self):
-        self.nodes: List[Node] = []
-        self.parents: Dict[Node, List[Node]] = {}
-        self._validators: Set[NetworkValidator] = {
+        self.nodes: list[Node] = []
+        self.parents: dict[Node, list[Node]] = {}
+        self._validators: set[NetworkValidator] = {
             CPTsMatchParents(),
             NoDuplicateNodes(),
             NoIsolatedNodes(),
@@ -79,20 +79,20 @@ class BayesianNetworkBuilder:
             NoDuplicateNodeNames(),
         }
 
-    def add_node(self, node: Node, parents: None | Node | List[Node] = None):
+    def add_node(self, node: Node, parents: None | Node | list[Node] = None):
         self.nodes.append(node)
         self.set_parents(node, parents)
 
         return self
 
-    def add_nodes(self, nodes: List[Node], parents: None | Node | List[Node] = None):
+    def add_nodes(self, nodes: list[Node], parents: None | Node | list[Node] = None):
         for node in nodes:
             self.nodes.append(node)
             self.set_parents(node, parents)
 
         return self
 
-    def set_parents(self, node: Node, parents: None | Node | List[Node] = None):
+    def set_parents(self, node: Node, parents: None | Node | list[Node] = None):
         if parents:
             if isinstance(parents, Node):
                 parents = [parents]

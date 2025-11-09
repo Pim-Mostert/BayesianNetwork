@@ -1,5 +1,4 @@
 import torch
-from typing_extensions import deprecated
 
 from common.extensions import extension
 
@@ -15,9 +14,9 @@ def generate_random_probability_matrix(
     return p / p.sum(dim=-1, keepdim=True)
 
 
-@deprecated("Use is_probability_matrix extension method")
 def is_valid_probability_matrix(p: torch.Tensor):
-    return torch.isclose(p.sum(dim=-1), torch.tensor(1.0)).all().item()
+    total = p.sum(dim=-1)
+    return torch.isclose(total, torch.ones_like(total)).all().item()
 
 
 @extension(to=torch.Tensor)
