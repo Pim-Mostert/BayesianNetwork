@@ -13,15 +13,19 @@ Q = Node.random(
     is_sequential=True,
     torch_settings=torch_settings,
     prior_size=(2),
+    name="Q",
 )
 Y = Node.random(
     cpt_size=(3, 2, 3),
     is_sequential=True,
     torch_settings=torch_settings,
     prior_size=(2, 3),
+    name="Y",
 )
 
 builder.add_node(Q, sequential_parents=Q)
 builder.add_node(Y, parents=Q, sequential_parents=Y)
 
 network = builder.build()
+network.nodes
+# %%

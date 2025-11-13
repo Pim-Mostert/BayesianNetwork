@@ -1,5 +1,3 @@
-from collections.abc import Iterable
-
 import torch
 from common.statistics import generate_random_probability_matrix, is_probability_matrix
 from common.torch_settings import TorchSettings
@@ -100,5 +98,6 @@ class DynamicBayesianNetwork:
         self._parents = parents
         self._sequential_parents = sequential_parents
 
-    def nodes(self) -> Iterable[Node]:
+    @property
+    def nodes(self):
         return self._nodes

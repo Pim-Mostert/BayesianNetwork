@@ -194,12 +194,8 @@ class DynamicBayesianNetworkBuilder:
         sequential_parents: None | Node | list[Node] = None,
     ):
         self._nodes.append(node)
-
-        if parents:
-            self.set_parents(node, parents)
-
-        if sequential_parents:
-            self.set_sequential_parents(node, sequential_parents)
+        self.set_parents(node, parents)
+        self.set_sequential_parents(node, sequential_parents)
 
         return self
 
@@ -217,24 +213,30 @@ class DynamicBayesianNetworkBuilder:
     def set_parents(
         self,
         node: Node,
-        parents: Node | list[Node],
+        parents: None | Node | list[Node],
     ):
         if isinstance(parents, Node):
             parents = [parents]
 
-        self._parents[node] = parents
+        if parents:
+            self._parents[node] = parents
+        else:
+            self._parents[node] = []
 
         return self
 
     def set_sequential_parents(
         self,
         node: Node,
-        sequential_parents: Node | list[Node],
+        sequential_parents: None | Node | list[Node],
     ):
         if isinstance(sequential_parents, Node):
             sequential_parents = [sequential_parents]
 
-        self._sequential_parents[node] = sequential_parents
+        if sequential_parents:
+            self._sequential_parents[node] = sequential_parents
+        else:
+            self._sequential_parents[node] = []
 
         return self
 
