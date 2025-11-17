@@ -36,6 +36,24 @@ class CPTsMatchParents(NetworkValidator):
                     )
 
 
+class PriorsMatchParents(NetworkValidator):
+    def evaluate(
+        self,
+        nodes: Iterable[Node],
+        parents: Mapping[Node, Iterable[Node]],
+        sequential_parents: Mapping[Node, Iterable[Node]],
+    ):
+        for node in nodes:
+            if not node.is_sequential:
+                continue
+
+            for i, parent in enumerate(parents[node]):
+                if node.prior.shape[i] != parent.num_states:
+                    raise NetworkValidationError(
+                        f"Node \"{node}\"'s prior's {i}'th dimension should match with corresponding parent \"{parent}\"'s num_states."
+                    )
+
+
 class NoDuplicateNodes(NetworkValidator):
     def evaluate(
         self,
@@ -165,9 +183,12 @@ class PriorShouldMatchCPT(NetworkValidator):
         sequential_parents: Mapping[Node, Iterable[Node]],
     ):
         for node in nodes:
+            if not node.is_sequential:
+                continue
+
             num_parents = len(list(parents[node]))
 
-            if not node.prior.size() == node.cpt.size()[-num_parents:]:
+            if not node.prior.size() == node.cpt.size()[-(num_parents + 1) :]:
                 raise NetworkValidationError(f"Node {node}'s prior does not match its CPT")
 
 
@@ -178,6 +199,8 @@ class DynamicBayesianNetworkBuilder:
         self._sequential_parents: dict[Node, list[Node]] = {}
         self._network_validators: set[NetworkValidator] = {
             CPTsMatchParents(),
+            PriorShouldMatchCPT(),
+            PriorsMatchParents(),
             NoDuplicateNodes(),
             NoIsolatedNodes(),
             ParentsExistInNetwork(),

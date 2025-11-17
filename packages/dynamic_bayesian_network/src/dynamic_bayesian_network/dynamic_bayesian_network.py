@@ -54,7 +54,7 @@ class Node:
         if not self._is_sequential:
             raise RuntimeError("Only sequential nodes have a prior.")
 
-        assert self._prior
+        assert self._prior is not None
 
         return self._prior
 
@@ -101,3 +101,9 @@ class DynamicBayesianNetwork:
     @property
     def nodes(self):
         return self._nodes
+
+    def parents_of(self, node: Node):
+        return self._parents[node]
+
+    def sequential_parents_of(self, node: Node):
+        return self._sequential_parents[node]
