@@ -1,13 +1,13 @@
 from bayesian_network import bayesian_network as bn
 from bayesian_network.builder import BayesianNetworkBuilder
 
-from dynamic_bayesian_network.dynamic_bayesian_network import DynamicBayesianNetwork
+from dynamic_bayesian_network.dynamic_bayesian_network import DynamicBayesianNetwork, Node
 
 
 def unroll(
     dynamic_network: DynamicBayesianNetwork,
     sequence_length: int,
-):
+) -> tuple[bn.BayesianNetwork, dict[int, dict[Node, bn.Node]]]:
     builder = BayesianNetworkBuilder()
     nodes_map = {}
 

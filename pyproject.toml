@@ -3,7 +3,8 @@ name = "bayesian_network_dev"
 requires-python = ">=3.12"
 version = "0.0.0"
 dependencies = [
-    "bayesian-network",
+#    "bayesian-network",
+    "dynamic-bayesian-network",
 ]
 
 [tool.uv]
@@ -15,7 +16,7 @@ url = "https://pypi.org/simple"
 publish-url = "https://pkgs.dev.azure.com/mostertpim/BayesianNetwork/_packaging/BayesianNetwork/pypi/upload/"
 
 [tool.uv.sources]
-bayesian-network = { workspace = true }
+#bayesian-network = { workspace = true }
 dynamic-bayesian-network = { workspace = true }
 
 [tool.uv.workspace]
@@ -23,7 +24,6 @@ members = ["packages/*"]
 
 [dependency-groups]
 dev = [
-    "dynamic-bayesian-network",
     "ipykernel>=7.1.0",
     "matplotlib>=3.10.7",
     "parameterized>=0.9.0",
