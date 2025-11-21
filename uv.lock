@@ -60,6 +60,7 @@ name = "bayesian-network-dev"
 version = "0.0.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "bayesian-network" },
     { name = "dynamic-bayesian-network" },
 ]
 
@@ -74,7 +75,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "dynamic-bayesian-network", editable = "packages/dynamic_bayesian_network" }]
+requires-dist = [
+    { name = "bayesian-network", editable = "packages/bayesian_network" },
+    { name = "dynamic-bayesian-network", editable = "packages/dynamic_bayesian_network" },
+]
 
 [package.metadata.requires-dev]
 dev = [
